@@ -9,12 +9,20 @@ namespace DCT_data_import
 {
     class CompareTool
     {
-        public static string POOL_NAME = "DB_program";
-        public static string HOST = "192.168.0.105";
-        public static string PORT = "3308";
-        public static string USER = "5910";
-        public static string PASSWORD = "5910";
-        public static string DATABASE = "dct_test";
+        //public static string POOL_NAME = "DB_program";
+        //public static string HOST = "192.168.0.105";
+        //public static string PORT = "3308";
+        //public static string USER = "5910";
+        //public static string PASSWORD = "5910";
+        //public static string DATABASE = "dct_test";
+
+
+        public static string POOL_NAME = "C_sharp_dct_import";
+        public static string HOST = "192.168.0.101";
+        public static string PORT = "3306";
+        public static string USER = "5940";
+        public static string PASSWORD = "5940";
+        public static string DATABASE = "dct";
 
         public bool compareRawData(RawDataContentFormat content, WebApiClient webApiClient)
         {
@@ -25,6 +33,11 @@ namespace DCT_data_import
             Pool_excute_response response;
             string column_name;
             string info_Id;
+
+
+            CalculateSPC calculateSPC = new CalculateSPC();
+            List<StatisticItem>  avg_2 = calculateSPC.AverageOfSumSquare(content);
+
 
             // 查詢 lots_info
             pool_excute = new Pool_excute
@@ -57,7 +70,7 @@ namespace DCT_data_import
 
                     if (val1 != val2)
                     {
-                        if (column_name == "yield" || column_name == "total_ppm"|| column_name == "open_pin_fail_ppm" || column_name == "short_pin_fail_ppm" || column_name == "	leakage_pin_fail_ppm")
+                        if (column_name == "yield" || column_name == "total_ppm"|| column_name == "open_pin_fail_ppm" || column_name == "short_pin_fail_ppm" || column_name == "leakage_pin_fail_ppm")
                         {
                             if (double.Parse(val1) != double.Parse(val2))
                             {
@@ -96,14 +109,14 @@ namespace DCT_data_import
                     if (column_name == "#_of_pass") column_name = "pass";
                     if (column_name == "#_of_fail") column_name = "fail";
                     // 不比對
-                    if (column_name == "real_time" || column_name == "cp" || column_name == "cpk") continue;
+                    if (column_name == "real_time" || column_name == "cp" || column_name == "cpk" || column_name == "sum_of_square") continue;
 
                     string val1 = content.lotStatistic.Tables[i].Rows[0][j].ToString();
                     string val2 = response.data[i][column_name].ToString();
 
                     if (val1 != val2)
                     {
-                        if (column_name == "force" || column_name == "wait_time" || column_name == "cpk" || column_name == "cp"|| column_name == "min" || column_name == "stdev")
+                        if (column_name == "force" || column_name == "wait_time" || column_name == "cpk" || column_name == "cp"|| column_name == "min" || column_name == "max" || column_name == "stdev")
                         {
                             double double_val1 = Math.Round(double.Parse(val1), 8);
                             double double_val2 = Math.Round(double.Parse(val2), 8);
@@ -129,6 +142,26 @@ namespace DCT_data_import
                             //{
                             //    return false;
                             //}
+                        }
+                        else if(column_name == "avg")
+                        {
+                            if (avg_2[i].avg != decimal.Parse(val2))
+                            {
+                                return false;
+                            }
+                            val2 = response.data[i]["avg_2"].ToString();
+                            if(avg_2[i].avg2 != decimal.Parse(val2))
+                            {
+                                return false;
+                            }
+
+                        }
+                        else if (column_name == "avg_2")
+                        {
+                            if (avg_2[i].avg2 != decimal.Parse(val2))
+                            {
+                                return false;
+                            }
                         }
                         else
                         {
@@ -232,20 +265,27 @@ namespace DCT_data_import
                     if (column_name == "l/b_id") column_name = "L/B_id";
                     // 不比對
                     if (column_name == "start_time"|| column_name == "end_time") continue;
+
+
                     if (content.tester_device_info.Rows[i][j].ToString() != response.data[i][column_name].ToString())
                     {
-                        if(column_name == "yield")
+                        if (column_name == "yield")
                         {
-                            if(content.tester_device_info.Rows[i][j].ToString() == "NA" && string.IsNullOrEmpty(response.data[i][column_name].ToString()))
+                            if (content.tester_device_info.Rows[i][j].ToString() == "NA" && string.IsNullOrEmpty(response.data[i][column_name].ToString()))
                             {
                                 continue;
                             }
-                            else if(double.Parse(content.tester_device_info.Rows[i][j].ToString()) != double.Parse(response.data[i][column_name].ToString()))
+                            else if (double.Parse(content.tester_device_info.Rows[i][j].ToString()) != double.Parse(response.data[i][column_name].ToString()))
                             {
+                                string val1 = content.tester_device_info.Rows[i][j].ToString();
+                                string val2 = response.data[i][column_name].ToString();
                                 return false;
                             }
-                        }else
+                        }
+                        else
                         {
+                            string val1 = content.tester_device_info.Rows[i][j].ToString();
+                            string val2 = response.data[i][column_name].ToString();
                             return false;
                         }
                     }
@@ -397,6 +437,8 @@ namespace DCT_data_import
 
             return true;
         }
+
+   
 
         public bool compareFailPinLog(FailPinLogContentFormat content, WebApiClient webApiClient)
         {
