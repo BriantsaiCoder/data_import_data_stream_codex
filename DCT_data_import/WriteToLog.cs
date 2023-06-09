@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DCT_data_import
 {
-    class WriteToLog
+    public class WriteToLog
     {
         int LogCount = 100;
         int WritedCount = 0;
@@ -40,7 +40,7 @@ namespace DCT_data_import
                     // Write file using StreamWriter  
                     using (StreamWriter writer = File.AppendText(log_path))
                     {
-                        writer.WriteLineAsync(DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + message);
+                    writer.WriteLineAsync(DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + message);
                     }
                 }
                 catch (Exception ex)

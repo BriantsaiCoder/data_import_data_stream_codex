@@ -1,0 +1,171 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using static DCT_data_import.ApiObject;
+
+namespace DCT_data_import.ReadAndImport
+{
+    public class UiStatus : ImportData
+    {
+        public ImportResult readAndImportUIStatus(FileProcess fileAccess, WebApiClient webApiClient, string dbKeyUiStatus)
+        {
+            String ftpserver;
+            FtpWebRequest reqFTP;
+            FtpWebResponse response;
+            Stream responseStream;
+            StreamReader reader;
+
+            bool isDBKeyExist = false, import_result = false;
+            CompareTool compareTool = new CompareTool();
+            WriteToLog writeToLog = new WriteToLog();
+            string downloadStatus, deleteStatus;
+
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
+
+            // 檢查FTP連線狀態
+            ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/";
+            bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            if (!isFtpConnected)
+                return new ImportResult(0, "FTP server connection failed.");
+
+            // 檢查FTP是否有此檔案
+            string filename = "ui_status_" + dbKeyUiStatus + ".csv";
+            ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
+            bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            if (!isFileExist)
+                return new ImportResult(0, "File not found.");
+
+            // 確認 pool 連線狀態
+            bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+            if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
+                if (!createPool(webApiClient, writeToLog))
+                    return new ImportResult(0, "MySQL database connection failed.");
+            
+            try
+            {
+                import_result = false;
+
+                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
+                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
+                response = (FtpWebResponse)reqFTP.GetResponse();
+                responseStream = response.GetResponseStream();
+                reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+                UIStatusContentFormat uiStatusContentFormat = FileReadUIStatus(reader);
+                reader.Close();
+                if (uiStatusContentFormat == null)
+                {
+                    Console.WriteLine("UI Status 讀取失敗: " + filename);
+                    writeToLog.writeToLog("UI Status 讀取失敗:" + ftpserver);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    return new ImportResult(2, "檔案內容缺失");
+                }
+                if (!uiStatusContentFormat.compareUiStatus())
+                {
+                    Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + filename);
+                    writeToLog.writeToLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    return new ImportResult(2, "ui_status 欄位名稱不符");
+                }
+
+                import_result = fileAccess.importUIStatus(uiStatusContentFormat, webApiClient);
+                if (import_result)
+                {
+                    Console.WriteLine("匯入完成! UI Status " + filename);
+                    // Kerwin 的電腦
+                    if (macid == "94C6913F94BD")
+                    {
+                        // 下載檔案到本地端
+                        downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\ui_status_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    }
+                    // 刪除已存在的的CSV檔案
+                    deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+
+                    reader.Close();
+                    response.Close();
+                }
+                else
+                {
+                    Console.WriteLine("匯入失敗: UI Status " + filename);
+                    writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+
+                    reader.Close();
+                    response.Close();
+                    return new ImportResult(3, "匯入失敗");
+                }
+
+                Thread.Sleep(500); reader.Close();
+                response.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return new ImportResult(3, "匯入時發生Exception錯誤");
+            }
+
+            GC.Collect();
+            //Console.WriteLine("UI status end~");
+            return new ImportResult(1, "");
+        }
+
+        public UIStatusContentFormat FileReadUIStatus(StreamReader reader)
+        {
+            UIStatusContentFormat uiStatusContentFormat = new UIStatusContentFormat();
+            try
+            {
+                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                //{
+                //    using (var reader = new StreamReader(stream))
+                //    {
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    //Console.WriteLine(line);
+
+                    var values = eraseSpecificChar(line);
+                    if (values.Length < 1) continue;
+                    //Console.WriteLine("values : " + values_tmp.Length);
+
+                    if (values[0] == "Mac_Address")
+                    {
+                        for (int i = 0; i < values.Length; i++)
+                        {
+                            uiStatusContentFormat.UI_status.Columns.Add(values[i], typeof(string));
+                        }
+                    }
+                    else
+                    {
+                        DataRow dr_UI_status = uiStatusContentFormat.UI_status.NewRow();
+                        for (int i = 0; i < values.Length; i++)
+                        {
+                            dr_UI_status[i] = values[i];
+                        }
+                        uiStatusContentFormat.UI_status.Rows.Add(dr_UI_status);
+                    }
+
+                }
+                
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return null;
+            }
+            return uiStatusContentFormat;
+        }
+
+    }
+}

@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -15,20 +16,59 @@ namespace DCT_data_import
     public class WebApiClient
     {
         public HttpClient client = new HttpClient();
+        private string api_key { get; set; }
+        private string api_value { get; set; }
 
         public WebApiClient()
         {
-            client.BaseAddress = new Uri("http://10.16.92.89:3001/");
+            client.BaseAddress = new Uri(ConfigurationManager.ConnectionStrings["ApiUrl"].ConnectionString);
+            api_key = "authorization";
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
+        public async Task<Signin_response> getApiKeyValueAsync(Pool_signin pool_Signin)
+        {
+            string path = string.Format("/signin");
+
+            // 將 data 轉為 json
+            string json = JsonConvert.SerializeObject(pool_Signin);
+            // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
+            HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
+            // 發出 post 並取得結果
+            HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            Signin_response result;
+            if (response.IsSuccessStatusCode)
+            {
+                // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
+                string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                result = await response.Content.ReadAsAsync<Signin_response>();
+
+                if (result != null)
+                {
+                    api_value = result.token;
+
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Add(api_key, api_value);
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                }
+
+                return result;
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         public async Task<Pool_get_all_response> GetPoolAsync(string api_key="")
         {
             string path = string.Format("/api/mysql/pools/get-all");
             //client.DefaultRequestHeaders.Add("api-key", api_key);
-            HttpResponseMessage response = await client.GetAsync(path);
+            HttpResponseMessage response = await client.GetAsync(path).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
                 // 取得response的資料
@@ -51,7 +91,7 @@ namespace DCT_data_import
             // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
             HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
             //client.DefaultRequestHeaders.Add("api-key", api_key);
-            HttpResponseMessage response = await client.PostAsync(path, contentPost);
+            HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
             //response.EnsureSuccessStatusCode();
 
             if (response.IsSuccessStatusCode)
@@ -65,12 +105,8 @@ namespace DCT_data_import
             }
             else
             {
-                return null;
+                return new Pool_create_response { data = null, error = "Failed to fetch API data" };
             }
-            // return URI of the created resource.
-            //return response.Headers.Location;
-
-
         }
 
 
@@ -78,45 +114,54 @@ namespace DCT_data_import
         {
             //HttpResponseMessage response = await client.PostAsJsonAsync("api/mysql/pool/execute", pool_excute);
             //response.EnsureSuccessStatusCode();
-
-            string path = string.Format("api/mysql/pools/execute");
-
-            // 將 data 轉為 json
-            string json = JsonConvert.SerializeObject(pool_excute);
-            // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
-            HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
-            // 發出 post 並取得結果
-            HttpResponseMessage response = await client.PostAsync(path, contentPost);
-            response.EnsureSuccessStatusCode();
-
-            Pool_excute_response result;
-            if (response.IsSuccessStatusCode)
+            try
             {
-                // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
-                string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                //Console.WriteLine("execute pool: " + result_str);
-                if (mode == "insert" || mode == "delete")
-                {
-                    dynamic json_obj = JObject.Parse(result_str);
-                    JArray jArray = new JArray(json_obj.data);
+                string path = string.Format("api/mysql/pools/execute");
 
-                    result = new Pool_excute_response
+                // 將 data 轉為 json
+                string json = JsonConvert.SerializeObject(pool_excute);
+                // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
+                HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
+                // 發出 post 並取得結果
+                HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                Pool_excute_response result;
+                if (response.IsSuccessStatusCode)
+                {
+                    // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
+                    string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    //Console.WriteLine("execute pool: " + result_str);
+                    if (mode == "insert" || mode == "delete" || mode == "update")
                     {
-                        data = jArray,
-                        error = json_obj.error
-                    };
+                        dynamic json_obj = JObject.Parse(result_str);
+                        JArray jArray = new JArray(json_obj.data);
+
+                        result = new Pool_excute_response
+                        {
+                            data = jArray,
+                            error = json_obj.error
+                        };
+                    }
+                    else
+                    {
+                        result = await response.Content.ReadAsAsync<Pool_excute_response>();
+                    }
+
+                    return result;
                 }
                 else
                 {
-                    result = await response.Content.ReadAsAsync<Pool_excute_response>();
+                    return null;
                 }
-
-                return result;
             }
-            else
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.ToString());
                 return null;
             }
+
+           
 
             //string[] table_colums = { "Test Program", "Lot ID", "Wafer Lot", "Tester", "Date", "siteid", "device", "x", "y", "value", "bin_code", "x_Y", "ITEM NUM", "ITEM NAME" };
             //dynamic json_obj = JObject.Parse(result_str);
@@ -139,8 +184,8 @@ namespace DCT_data_import
             string path = string.Format("api/mysql/pools/delete/{0}", pool_delete.pool);
 
             // 發出 post 並取得結果
-            HttpResponseMessage response = await client.DeleteAsync(path);
-            
+            HttpResponseMessage response = await client.DeleteAsync(path).ConfigureAwait(false);
+
             if (response.IsSuccessStatusCode)
             {
                 // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
@@ -166,6 +211,8 @@ namespace DCT_data_import
         {
             try
             {
+                //Signin_response signin_response = getApiKeyValueAsync(pool_signin).GetAwaiter().GetResult();
+
                 // 確認Pool中是否有此 pool_name
                 Pool_get_all_response getPoolResponse = GetPoolAsync().GetAwaiter().GetResult();
                 //dynamic json_str = JObject.Parse(getPoolResponse.data);

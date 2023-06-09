@@ -1,10 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
 
@@ -12,19 +15,6 @@ namespace DCT_data_import
 {
     public class FileProcess
     {
-        //public static string POOL_NAME = "DB_program";
-        //public static string HOST = "192.168.0.105";
-        //public static string PORT = "3308";
-        //public static string USER = "5910";
-        //public static string PASSWORD = "5910";
-        //public static string DATABASE = "dct_test";
-
-        public static string POOL_NAME = "C_sharp_dct_import";
-        public static string HOST = "192.168.0.101";
-        public static string PORT = "3306";
-        public static string USER = "5940";
-        public static string PASSWORD = "5940";
-        public static string DATABASE = "dct";
 
         //public WebApiClient webApiClient;
         private WriteToLog writeToLog;
@@ -36,6 +26,33 @@ namespace DCT_data_import
 
         }
 
+        public List<string> GetStringSegments(string original, int linesPerSegment=0)
+        {
+            List<string> segments = new List<string>();
+
+            int startIndex = 0;
+            int newLinesEncountered = 0;
+
+            for (int i = 0; i < original.Length; i++)
+            {
+                //if (original[i] == '\n')
+                //{
+                //    newLinesEncountered++;
+                //}
+
+                if (original[i] == '\n'
+                    || i == original.Length - 1)
+                {
+                    segments.Add(original.Substring(startIndex, (i - startIndex + 1)));
+                    startIndex = i + 1;
+                    newLinesEncountered = 0;
+                }
+            }
+
+            return segments;
+        }
+
+        #region file read
         public RawDataContentFormat FileReadRawData(StreamReader reader)
         {
             RawDataContentFormat fileContentFormat = new RawDataContentFormat();
@@ -57,15 +74,41 @@ namespace DCT_data_import
                 // 第三部分  raw data的起始index
                 int rawData_part_index = 0;
 
-                while (!reader.EndOfStream)
+                string lines = reader.ReadToEnd();
+
+                Console.WriteLine("text length: " + lines.Length);
+
+                List<string> split_lines = GetStringSegments(lines);
+
+                //List<string> split_lines = lines.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+                for (int r = 0; r < split_lines.Count; r++)
                 {
-                    var line = reader.ReadLine();
+                    var line = split_lines[r].Trim();
+                    if (!string.IsNullOrEmpty(line) && IsChinese(line))
+                    {
+                        fileContentFormat.errMsg = "Chinese word exists.";
+                        //return new RawDataContentFormat("Chinese word exists.");
+                    }
+                    //}
+
+                    //while (!reader.EndOfStream)
+                    //{
+                    //    var line = reader.ReadLine();
                     //Console.WriteLine(line);
 
+                    //Console.Write(r.ToString() + ",");
+                    //if (r == 51454)
+                    //{
+                    //    Console.WriteLine("");
+                    //}
                     var values = line.Split(',', '\0', '\r', '\n');
-                    
+                    var values_tmp = values;
                     // 去除空白值
-                    var values_tmp = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+                    if (content_part != 3)
+                    {
+                        values_tmp = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+                    }
                     if (values_tmp.Length < 1) continue;
                     //Console.WriteLine("values : " + values.Length);
                     //Console.WriteLine(values[0]);
@@ -132,10 +175,24 @@ namespace DCT_data_import
                         DataRow dr_lotResult = fileContentFormat.lotResult.NewRow();
                         for (int i = 0; i < values.Length; i++)
                         {
+                            //if (r == 51454)
+                            //{
+                            //    Console.Write(i.ToString() + ",");
+                            //    if (i == 639)
+                            //    {
+                            //        Console.WriteLine("");
+                            //    }
+                            //}
+
                             // 欄位 Serial, SN Num, SiteID,	 X, Y, HBIN, P/F
-                            if (result_part == 1 && values[0]=="Serial")
+                            if (result_part == 1 && values[0] == "Serial")
                             {
                                 fileContentFormat.lotResult.Columns.Add(values[i], typeof(string));
+                            }
+                            // 欄位 Serial 為空的直接跳過
+                            else if(string.IsNullOrEmpty(values[0].Trim()))
+                            {
+                                continue;
                             }
                             // 欄位 Serial, SN Num, SiteID,	 X, Y, HBIN, P/F 的 values
                             else if (result_part == 1)
@@ -158,6 +215,8 @@ namespace DCT_data_import
                             // raw data value的部分 先存入rawData_list
                             else if (result_part == 2 && i < rawData_part_index + rawData_list.Count)
                             {
+                                // 讀值若含有小數點"."而沒有小數位，則移除小數點
+                                if (values[i].Substring(values[i].Length - 1) == ".") values[i] = values[i].Substring(0, values[i].Length - 1);
                                 rawData_list[i - rawData_part_index].Add(values[i]);
                             }
                             else if (result_part == 2 && i >= rawData_part_index + rawData_list.Count)
@@ -191,6 +250,11 @@ namespace DCT_data_import
                             
                 }
 
+                // 釋放記憶體
+                split_lines = null;
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect();
+
                 // 將raw data values 填入統計值的表
                 DataTable item_table = new DataTable();
                 for (int i = 0; i < statistic_dict.Keys.Count; i++)
@@ -200,6 +264,13 @@ namespace DCT_data_import
                 item_table.Columns.Add("value", typeof(string));
                 for (int i = 0; i < item_count; i++)
                 {
+                    //Console.Write(i.ToString() + ",");
+                    //if (i == 330)
+                    //{
+                    //    var memSz = GC.GetTotalMemory(false) / 1024 / 1024;
+                    //    Console.WriteLine($"Managed Heap = {memSz}MB");
+                    //}
+
                     // Clone 方法建立的新 DataTable 不會包含任何 DataRows.，只有相同的Schema。
                     DataTable item_table_tmp = item_table.Clone();
                     DataRow dataRow = item_table_tmp.NewRow();
@@ -209,20 +280,62 @@ namespace DCT_data_import
                         dataRow[statistic_dict.ElementAt(j).Key] = statistic_dict[statistic_dict.ElementAt(j).Key][i];
                     }
                     // 對 dataRow 填入 raw data list
-                    dataRow["value"] = "[" + String.Join(", ", rawData_list[i].ToArray()) + "]";
+                    if(rawData_list.Count >0)
+                    {
+                        string strJoin = String.Join(", ", rawData_list[i].ToArray());
+                        if(string.IsNullOrEmpty(strJoin.Trim()))
+                        {
+                            dataRow["value"] = "[]";
+                        }
+                        else
+                        {
+                            dataRow["value"] = "[" + String.Join(", ", rawData_list[i].ToArray()) + "]";
+                        }
+                        //dataRow["value"] = "[";
+                        //for (int k = 0; k < rawData_list[i].Count; k++)
+                        //{
+                        //    if (string.IsNullOrEmpty(rawData_list[i][k]))
+                        //    {
+                        //        dataRow["value"] += "null";
+                        //    }
+                        //    else
+                        //    {
+                        //        dataRow["value"] += rawData_list[i][k];
+                        //    }
+
+                        //    if(k!= rawData_list[i].Count-1)
+                        //    {
+                        //        dataRow["value"] += ",";
+                        //    }
+                        //    else
+                        //    {
+                        //        dataRow["value"] += "]";
+                        //    }
+                        //}
+                    }
+                    else
+                    {
+                        dataRow["value"] = "[]";
+                    }
+                    if (dataRow["value"].ToString().Substring(dataRow["value"].ToString().Length - 1) != "]")
+                    {
+                        dataRow["value"] += "]";
+                    }
 
                     item_table_tmp.Rows.Add(dataRow);
                     fileContentFormat.lotStatistic.Tables.Add(item_table_tmp);
                 }
-
-                int a = 0;
+                
 
                 //stream.Close();
             }
             catch(Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                return null;
+                fileContentFormat.errMsg = "讀檔內容錯誤";
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect();
+                return fileContentFormat;
             }
             return fileContentFormat;
         }
@@ -357,8 +470,7 @@ namespace DCT_data_import
 
                     //Console.WriteLine(line);
                 }
-
-                        int a = 0;
+                
                 //    }
                 //}
 
@@ -530,8 +642,7 @@ namespace DCT_data_import
                             
 
                         }
-
-                        int a = 0;
+                        
                 //    }
                 //}
 
@@ -543,12 +654,13 @@ namespace DCT_data_import
             }
             return failPinLogContentFormat;
         }
+        #endregion file read
 
         public bool isFileNameExistInDB(string fileName, WebApiClient webApiClient)
         {
             var pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = "SELECT file_name FROM lots_info where file_name='"+ fileName + "';"
             };
             Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute).GetAwaiter().GetResult();
@@ -570,7 +682,7 @@ namespace DCT_data_import
         {
             var pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = "SELECT db_key FROM " + db_table_name+ " where db_key='" + db_key + "';"
             };
             Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute).GetAwaiter().GetResult();
@@ -591,7 +703,7 @@ namespace DCT_data_import
         {
             var pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = "SELECT id FROM ui_status WHERE mac_address='" + mac_address + "' AND area='"+ area + "' AND factory='" + factory + "' AND os_machine='" + os_machine + "' AND date='" + date + "' ; "
             };
             Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute).GetAwaiter().GetResult();
@@ -699,10 +811,14 @@ namespace DCT_data_import
 
             try
             {
-
                 response2 = executeInsertWithAPI(webApiClient, "lots_info", columns, values);
                 if (!string.IsNullOrEmpty(response2.error))
                 {
+                    if(response2.error.Contains("Please initiate connection pool first using the init function"))
+                    {
+                        writeToLog.writeToLog("'INSERT INTO lots_info' error:" + response2.error);
+                        return false;
+                    }
                     return false;
                 }
             }
@@ -723,6 +839,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                writeToLog.writeToLog("'取得當前 lot id 值 error:" + ex.ToString());
                 Console.WriteLine(ex.ToString());
                 return false;
             }
@@ -754,10 +871,17 @@ namespace DCT_data_import
             // 開始逐一insert 統計值表
             int test_count = 0, cut_size = 0;
             int.TryParse(content.lotStatistic.Tables[0].Rows[0]["# of PASS"].ToString(), out test_count);
-            if (test_count < 1000) cut_size = 50;
-            else if (test_count < 2000) cut_size = 10;
-            else if (test_count < 10000) cut_size =2;
-            else  cut_size = 1;
+            int tableCount = content.lotStatistic.Tables.Count;
+            //if (test_count* tableCount < 30000) cut_size = 50;
+            //else if (test_count * tableCount < 60000) cut_size = 10;
+            //else if (test_count * tableCount < 100000) cut_size =2;
+            //else  cut_size = 1;
+            cut_size = (test_count >0 && test_count < 20000) ? 20000 / test_count : 1;
+
+            int lotResultCount = content.lotResult.Rows.Count;
+            Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
+
+            //cut_size = 1;
 
             //Console.WriteLine("test_count: " + test_count + "    cut_size: " + cut_size);
 
@@ -786,8 +910,12 @@ namespace DCT_data_import
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
                         response2 = executeInsertWithAPI(webApiClient, "lots_statistic", columns, values);
+
+                        if(Program.HOST == "192.168.0.105") response2 = executeInsertWithAPI(webApiClient, "lots_statistic_str", columns, values); // 只給舊win server使用
+                        //Thread.Sleep(500); 
                         if (!string.IsNullOrEmpty(response2.error))
                         {
+                            writeToLog.writeToLog("'INSERT INTO lots_statistic' response error:" + response2.error);
                             response2 = deleteRawData(webApiClient, lotId);
                             return false;
                         }
@@ -802,14 +930,17 @@ namespace DCT_data_import
                     {
                         values += ")";
                     }
+                    //Thread.Sleep(50);
                 }
 
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
                     response2 = executeInsertWithAPI(webApiClient, "lots_statistic", columns, values);
+                    if (Program.HOST == "192.168.0.105") response2 = executeInsertWithAPI(webApiClient, "lots_statistic_str", columns, values); // 只給舊win server使用
                     if (!string.IsNullOrEmpty(response2.error))
                     {
+                        writeToLog.writeToLog("'INSERT INTO lots_statistic' response error:" + response2.error);
                         response2 = deleteRawData(webApiClient, lotId);
                         return false;
                     }
@@ -818,6 +949,32 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                if(ex.Message.Contains("工作已取消"))
+                {
+                    Pool_delete pool_delete = new Pool_delete
+                    {
+                        pool = Program.POOL_NAME
+                    };
+                    Pool_delete_response response = webApiClient.DeletePoolAsync(pool_delete).GetAwaiter().GetResult();
+                    
+                    // 重新建立 pool
+                    Pool pool = new Pool
+                    {
+                        pool_name = Program.POOL_NAME,
+                        host = Program.HOST,
+                        port = Program.PORT,
+                        user = Program.USER,
+                        password = Program.PASSWORD,
+                        database = Program.DATABASE
+                    };
+                    var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
+                    if (create_response.error != null)
+                    {
+                        writeToLog.writeToLog("Pool 建立失敗: " + create_response.error);
+                        throw new Exception("Pool 建立失敗: " + create_response.error);
+                    }
+
+                }
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO lots_statistic' error:" + ex.ToString());
                 response2 = deleteRawData(webApiClient, lotId);
@@ -826,10 +983,7 @@ namespace DCT_data_import
             #endregion
 
             #region insert raw data 的 result 表格
-            if(content.lotResult.Rows.Count>5000)
-            {
-                cut_size = 5000;
-            }
+            cut_size = (content.lotResult.Rows.Count > 5000) ? 5000 : content.lotResult.Rows.Count;
 
             columns = "`lot_id`,"; values = "";
             for (int i = 0; i < content.lotResult.Columns.Count; i++)
@@ -859,53 +1013,82 @@ namespace DCT_data_import
                 values = "";
                 for (int i = 0; i < content.lotResult.Rows.Count; i++)
                 {
-                    values += "(\"" + lotId + "\",";
-
-                    for (int j = 0; j < content.lotResult.Columns.Count; j++)
+                    //// 判斷 index=1 的Serial是否為空，若為空則跳過
+                    //if (string.IsNullOrEmpty(content.lotResult.Rows[0][0].ToString())) continue;
+                    if (!string.IsNullOrEmpty(content.lotResult.Rows[i]["Serial"].ToString()))
                     {
-                        if (content.lotResult.Columns[j].ColumnName != "SN Num" || content.lotResult.Rows[0][j].ToString().Trim() != "")
+                        values += "(\"" + lotId + "\",";
+
+                        for (int j = 0; j < content.lotResult.Columns.Count; j++)
                         {
-                            values += "\"" + content.lotResult.Rows[i][j].ToString().Trim() + "\"";
+                            if ((content.lotResult.Columns[j].ColumnName == "SN Num" || content.lotResult.Columns[j].ColumnName == "SiteID" || content.lotResult.Columns[j].ColumnName == "real time" || content.lotResult.Columns[j].ColumnName == "X" || content.lotResult.Columns[j].ColumnName == "Y" || content.lotResult.Columns[j].ColumnName == "P/F") && content.lotResult.Rows[i][j].ToString().Trim() == "")
+                            {
+                                values += "NULL";
+                            }
+                            else if ((content.lotResult.Columns[j].ColumnName == "test time" || content.lotResult.Columns[j].ColumnName == "index time") && content.lotResult.Rows[i][j].ToString().Trim() == "")
+                            {
+                                values += "0";
+                            }else if (content.lotResult.Columns[j].ColumnName == "real time")
+                            {
+                                // 判斷是否為時間格式，若不符合則給NULL
+                                DateTime out_dateTime;
+                                if (DateTime.TryParse(content.lotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
+                                {
+                                    values += "\"" + content.lotResult.Rows[i][j].ToString().Trim() + "\"";
+                                }
+                                else
+                                {
+                                    values += "NULL";
+                                }
+                            }
+                            else
+                            {
+                                values += "\"" + content.lotResult.Rows[i][j].ToString().Trim() + "\"";
+                            }
+                            if (j != content.lotResult.Columns.Count - 1)
+                            {
+                                values += ",";
+                            }
+                        }
+
+                        // 每cut_size個row就匯入一次
+                        if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
+                        {
+                            values += ")";
+                            values = values.Substring(1, values.Length - 2);
+                            response2 = executeInsertWithAPI(webApiClient, "lots_result", columns, values);
+                            if (!string.IsNullOrEmpty(response2.error))
+                            {
+                                writeToLog.writeToLog("'INSERT INTO lots_result' error:" + response2.error);
+                                response2 = deleteRawData(webApiClient, lotId);
+                                return false;
+                            }
+                            values = "";
+                        }
+                        else if (i != content.lotResult.Rows.Count - 1)
+                        {
+                            values += "),";
                         }
                         else
                         {
-                            values += "NULL";
-                        }
-                        if (j != content.lotResult.Columns.Count - 1)
-                        {
-                            values += ",";
+                            values += ")";
                         }
                     }
-
-                    // 每cut_size個row就匯入一次
-                    if (i != 0 && i % cut_size == 0&& !string.IsNullOrEmpty(values))
-                    {
-                        values += ")";
-                        values = values.Substring(1, values.Length - 2);
-                        response2 = executeInsertWithAPI(webApiClient, "lots_result", columns, values);
-                        if (!string.IsNullOrEmpty(response2.error))
-                        {
-                            response2 = deleteRawData(webApiClient, lotId);
-                            return false;
-                        }
-                        values = "";
-                    }
-                    else if (i != content.lotResult.Rows.Count - 1)
-                    {
-                        values += "),";
-                    }
-                    else
-                    {
-                        values += ")";
-                    }
-
+                    
                 }
                 if(!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
+                    // 如果最後一個字元是')' 則移除
+                    string last_str = values.Substring(values.Length - 1);
+                    if (last_str == ")")
+                    {
+                        values = values.Substring(0, values.Length - 1); 
+                    }
                     response2 = executeInsertWithAPI(webApiClient, "lots_result", columns, values);
                     if (!string.IsNullOrEmpty(response2.error))
                     {
+                        writeToLog.writeToLog("'INSERT INTO lots_result' response error:" + response2.error);
                         response2 = deleteRawData(webApiClient, lotId);
                         return false;
                     }
@@ -913,6 +1096,32 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                if (ex.Message.Contains("工作已取消"))
+                {
+                    Pool_delete pool_delete = new Pool_delete
+                    {
+                        pool = Program.POOL_NAME
+                    };
+                    Pool_delete_response response = webApiClient.DeletePoolAsync(pool_delete).GetAwaiter().GetResult();
+
+                    // 重新建立 pool
+                    Pool pool = new Pool
+                    {
+                        pool_name = Program.POOL_NAME,
+                        host = Program.HOST,
+                        port = Program.PORT,
+                        user = Program.USER,
+                        password = Program.PASSWORD,
+                        database = Program.DATABASE
+                    };
+
+                    var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
+                    if (create_response.error != null)
+                    {
+                        writeToLog.writeToLog("Pool 建立失敗: " + create_response.error);
+                        throw new Exception("Pool 建立失敗: " + create_response.error);
+                    }
+                }
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO lots_result' error:" + ex.ToString());
                 response2 = deleteRawData(webApiClient, lotId);
@@ -1463,19 +1672,29 @@ namespace DCT_data_import
 
         private Pool_excute_response executeInsertWithAPI(WebApiClient webApiClient, string tableName, string columns, string values)
         {
-            // 宣告 Web API body
-            Pool_excute pool_excute = new Pool_excute
+            try
             {
-                pool = POOL_NAME,
-                query = "INSERT INTO "+tableName + "(" + columns + ") VALUES (" + values + ");"
-            };
-            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "insert").GetAwaiter().GetResult();
-            if (!string.IsNullOrEmpty(response.error))
-            {
-                writeToLog.writeToLog("'INSERT INTO " + tableName + "' response error:" + response.error);
+
+                // 宣告 Web API body
+                Pool_excute pool_excute = new Pool_excute
+                {
+                    pool = Program. POOL_NAME,
+                    query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
+                };
+                // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+                Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "insert").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.error))
+                {
+                    writeToLog.writeToLog("'INSERT INTO " + tableName + "' response error:" + response.error);
+                }
+                return response;
             }
-            return response;
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return null;
+            }
+
         }
 
         private Pool_excute_response deleteRawData(WebApiClient webApiClient, string lot_id)
@@ -1483,7 +1702,7 @@ namespace DCT_data_import
             // 宣告 Web API body
             Pool_excute pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = @"DELETE t1, t2, t3 
                                           FROM lots_info t1
                                           LEFT JOIN lots_statistic t2 ON t1.id = t2.lot_id
@@ -1504,7 +1723,7 @@ namespace DCT_data_import
             // 宣告 Web API body
             Pool_excute pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = @"DELETE t1, t2, t3, t4
                                           FROM tester_device_info t1
                                           LEFT JOIN tester_status t2 ON t1.id = t2.device_info_id
@@ -1526,7 +1745,7 @@ namespace DCT_data_import
             // 宣告 Web API body
             Pool_excute pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = @"DELETE t3 
 	                                    FROM fail_pin_rate_list_pin_ball t3
 	                                    LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
@@ -1541,7 +1760,7 @@ namespace DCT_data_import
             // 宣告 Web API body
             pool_excute = new Pool_excute
             {
-                pool = POOL_NAME,
+                pool = Program.POOL_NAME,
                 query = @"DELETE t1, t2 
 	                                      FROM fail_pin_rate_list t2
 	                                      LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
@@ -1570,6 +1789,51 @@ namespace DCT_data_import
 
 
         }
+
+
+        // 判斷是否包含中文字符
+        static bool IsChinese(string input)
+        {
+            // 使用 Unicode 字節順序標記 (BOM) 判斷字符串是否為 Unicode 編碼
+            if (input.StartsWith("\uFEFF"))
+            {
+                input = input.Substring(1);
+            }
+
+            // 判斷字符串中是否包含中文字符
+            foreach (char c in input)
+            {
+                if (c >= 0x4E00 && c <= 0x9FFF)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // 判斷是否為 ANSI Big5 編碼
+        static bool IsBig5(string input)
+        {
+            // 將字符串轉換為 byte 陣列
+            byte[] bytes = Encoding.Default.GetBytes(input);
+
+            // 判斷 byte 陣列是否為 ANSI Big5 編碼
+            return Encoding.GetEncoding("big5").GetString(bytes) == input;
+        }
+
+        // 判斷是否
+        static bool IsUnicode(string input)
+        {
+            // 將字符串轉換為 byte 陣列
+            byte[] bytes = Encoding.Unicode.GetBytes(input);
+
+            // 判斷 byte 陣列是否為 Unicode 編碼
+            return Encoding.Unicode.GetString(bytes) == input;
+        }
+
+
+
 
 
     }

@@ -17,7 +17,7 @@ namespace DCT_data_import
         //public static string DATABASE = "dct_test";
 
 
-        public static string POOL_NAME = "C_sharp_dct_import";
+        public static string POOL_NAME = "dct_import";
         public static string HOST = "192.168.0.101";
         public static string PORT = "3306";
         public static string USER = "5940";

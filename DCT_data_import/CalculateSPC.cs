@@ -82,83 +82,116 @@ namespace DCT_data_import
             decimal avg;
             decimal N;
 
-            for (int i = 0; i < content.lotStatistic.Tables.Count; i++)
+            try
             {
-                if (content.lotStatistic.Tables[i].Rows.Count < 1) continue;
-                str_values = content.lotStatistic.Tables[i].Rows[0]["value"].ToString();
-                split_str = str_values.Split(new char[] { '[', ']', ',' }, StringSplitOptions.RemoveEmptyEntries);
-                sum_of_square = 0;
-                sum = 0;
-                N = 0;
-                // 取得 fail 個數
-                if(!int.TryParse(content.lotStatistic.Tables[i].Rows[0]["# of FAIL"].ToString(), out fail_n))
+                for (int i = 0; i < content.lotStatistic.Tables.Count; i++)
                 {
-                    fail_n = 0;
-                }
-                // 若 fail 數>0 先把fail的值篩掉
-                if(fail_n!=0)
-                {
-                    if (!double.TryParse(content.lotStatistic.Tables[i].Rows[0]["Spec MAX"].ToString(), out spec_max))
-                    {
-                        spec_max = 0;
-                    }
-                    if (!double.TryParse(content.lotStatistic.Tables[i].Rows[0]["Spec MIN"].ToString(), out spec_min))
-                    {
-                        spec_min = 0;
-                    }
-                    list_values = seperatePassValue(split_str, spec_max, spec_min, fail_n);
-                }
-                // fail 數為零，則不用篩選
-                else
-                {
-                    list_values = Array.ConvertAll(split_str, Double.Parse).ToList();
-                }
+                    //Console.Write(i.ToString() + ",");
+                    //if (i == 61)
+                    //{
+                    //    Console.WriteLine("");
+                    //}
 
-                if(list_values.Count==0)
-                {
+                    if (content.lotStatistic.Tables[i].Rows.Count < 1) continue;
+                    str_values = content.lotStatistic.Tables[i].Rows[0]["value"].ToString();
+                    split_str = str_values.Split(new char[] { '[', ']', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    sum_of_square = 0;
+                    sum = 0;
+                    N = 0;
+                    // 取得 fail 個數
+                    if (!int.TryParse(content.lotStatistic.Tables[i].Rows[0]["# of FAIL"].ToString(), out fail_n))
+                    {
+                        fail_n = 0;
+                    }
+                    // 若 fail 數>0 先把fail的值篩掉
+                    if (fail_n != 0)
+                    {
+                        if (!double.TryParse(content.lotStatistic.Tables[i].Rows[0]["Spec MAX"].ToString(), out spec_max))
+                        {
+                            spec_max = 0;
+                        }
+                        if (!double.TryParse(content.lotStatistic.Tables[i].Rows[0]["Spec MIN"].ToString(), out spec_min))
+                        {
+                            spec_min = 0;
+                        }
+                        list_values = seperatePassValue(split_str, spec_max, spec_min, fail_n);
+                    }
+                    // fail 數為零，則不用篩選
+                    else
+                    {
+                        list_values = new List<double>();
+                        for (int str_id = 0; str_id < split_str.Length; str_id++)
+                        {
+                            double out_d;
+                            if (double.TryParse(split_str[str_id], out out_d))
+                            {
+                                list_values.Add(out_d);
+                            }
+                        }
+                        //list_values = Array.ConvertAll(split_str, Double.Parse).ToList();
+                    }
+
+                    if (list_values.Count == 0)
+                    {
+                        list_statistic_item.Add(new StatisticItem
+                        {
+                            pass_n = 0,
+                            avg = 0,
+                            avg2 = 0,
+                        });
+                        continue;
+                    }
+
+                    for (int j = 0; j < list_values.Count; j++)
+                    {
+                        sum_of_square += Convert.ToDecimal(list_values[j] * list_values[j]);
+                        sum += Convert.ToDecimal(list_values[j]);
+                        N++;
+                    }
+                    avg = sum / N;
+                    if (sum_of_square / N - avg * avg < 0)
+                    {
+                        Console.WriteLine("發現根號負值!");
+                    }
+                    stdev = Convert.ToDecimal(Math.Sqrt(Convert.ToDouble(sum_of_square / N - avg * avg)));
+
+                    list_avg_sum_square.Add(sum_of_square / N);
+                    list_avg.Add(avg);
+                    list_n.Add(N);
+                    list_stdev.Add(stdev);
                     list_statistic_item.Add(new StatisticItem
                     {
-                        pass_n = 0,
-                        avg = 0,
-                        avg2 = 0,
+                        pass_n = N,
+                        avg = avg,
+                        avg2 = sum_of_square / N,
                     });
-                    continue;
                 }
 
-                for (int j = 0; j < list_values.Count; j++)
-                {
-                    sum_of_square += Convert.ToDecimal(list_values[j] * list_values[j]);
-                    sum += Convert.ToDecimal(list_values[j]);
-                    N++;
-                }
-                avg = sum / N;
-                if (sum_of_square / N - avg * avg < 0)
-                {
-                    Console.WriteLine("發現根號負值!");
-                }
-                stdev = Convert.ToDecimal(Math.Sqrt(Convert.ToDouble(sum_of_square / N - avg * avg)));
-
-                list_avg_sum_square.Add(sum_of_square/N);
-                list_avg.Add(avg);
-                list_n.Add(N);
-                list_stdev.Add(stdev);
-                list_statistic_item.Add(new StatisticItem
-                {
-                    pass_n = N,
-                    avg = avg,
-                    avg2 = sum_of_square / N,
-                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("AverageOfSumSquare() error: " +ex.ToString());
             }
 
+            
             return list_statistic_item;
         }
 
 
         private List<double> seperatePassValue(string[] values, double spec_max, double spec_min, int fail_n)
         {
-            List<double> double_values = Array.ConvertAll(values, Double.Parse).ToList();
-            int fail_count = 0;
+            List<double> double_values = new List<double>();// Array.ConvertAll(values, Double.Parse).ToList();
+            double out_val;
+            for(int i =0;i< values.Length;i++)
+            {
+                if(double.TryParse(values[i], out out_val))
+                {
+                    double_values.Add(out_val);
+                }
+            }
 
+
+            int fail_count = 0;
             List<double> double_values_test = double_values;
 
             //Stopwatch sw = new Stopwatch();

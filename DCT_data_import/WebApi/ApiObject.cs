@@ -9,6 +9,45 @@ namespace DCT_data_import
 {
     public class ApiObject
     {
+
+        public class ImportResult
+        {
+            public int result { get; set; }
+            public string messege { get; set; }
+
+            public ImportResult(int result, string messege)
+            {
+                this.result = result;
+                this.messege = messege;
+            }
+
+        }
+
+        public class DbKeyObject
+        {
+            public int id { get; set; }
+            public string dbKey { get; set; }
+            public int checkStatus { get; set; }
+            public string remark { get; set; }
+
+            public DbKeyObject(int id, string dbKey, string remark)
+            {
+                this.id = id;
+                this.dbKey = dbKey;
+                this.checkStatus = 0;
+                this.remark = remark;
+            }
+
+            public DbKeyObject(int id, string dbKey, int checkStatus)
+            {
+                this.id = id;
+                this.dbKey = dbKey;
+                this.checkStatus = checkStatus;
+                this.remark = "";
+            }
+        }
+
+
         public class Pool
         {
             public string pool_name { get; set; }
@@ -37,7 +76,14 @@ namespace DCT_data_import
         {
             public string pool { get; set; }
         }
-        
+
+        public class Signin_response
+        {
+            public string token { get; set; }
+            public JObject user { get; set; }
+        }
+
+
         public class Pool_create_response
         {
             public JValue data { get; set; }

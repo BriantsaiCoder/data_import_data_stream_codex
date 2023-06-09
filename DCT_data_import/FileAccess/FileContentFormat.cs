@@ -49,13 +49,16 @@ namespace DCT_data_import
             "LEAKAGE_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop" };
         private string[] statisticColumns = { "Item No", "Item Name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
             "STDEV", "Cp", "Cpk", "Ppk", "unit", "value" };
+        
+        public string errMsg { get; set; }
 
         public DataTable lotInfo { get; set; }
         public DataSet lotStatistic { get; set; }
         public DataTable lotResult { get; set; }
 
-        public RawDataContentFormat()
+        public RawDataContentFormat(string errMsg="")
         {
+            this.errMsg = errMsg;
             lotInfo = new DataTable();
             // 因info只有一列資料，故先建立一個空DataRow
             DataRow dr = lotInfo.NewRow();
@@ -123,14 +126,16 @@ namespace DCT_data_import
             "data_module_ASEKH_smart1_xml result", "data_module_ASEKH_smart1_xml respond", "data_module_act_fail_log result",
             "data_module_act_fail_log respond", "VIM result", "VIM respond", "VIM_open result", "VIM_open respond", "ViCbit result", "ViCbit respond",
             "ViCbit_open result", "ViCbit_open respond", "Pattern result", "Pattern respond" };
-
+        
+        public string errMsg { get; set; }
         public DataTable tester_device_info { get; set; }
         public DataTable tester_status { get; set; }
         public DataTable tester_sw_version { get; set; }
         public DataTable tester_production_analysis { get; set; }
 
-        public TestStatusContentFormat()
+        public TestStatusContentFormat(string errMsg = "")
         {
+            this.errMsg = errMsg;
             tester_device_info = new DataTable();
             tester_status = new DataTable();
             tester_sw_version = new DataTable();
