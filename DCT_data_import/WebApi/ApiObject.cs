@@ -27,9 +27,19 @@ namespace DCT_data_import
         {
             public int id { get; set; }
             public string dbKey { get; set; }
+            public int tester { get; set; }
+            public int testResult { get; set; }
+            public int failPin { get; set; }
+            public int uiStatus { get; set; }
             public int checkStatus { get; set; }
             public string remark { get; set; }
 
+            public DbKeyObject(string dbKey, string remark)
+            {
+                this.dbKey = dbKey;
+                this.checkStatus = 0;
+                this.remark = remark;
+            }
             public DbKeyObject(int id, string dbKey, string remark)
             {
                 this.id = id;
@@ -37,11 +47,21 @@ namespace DCT_data_import
                 this.checkStatus = 0;
                 this.remark = remark;
             }
-
             public DbKeyObject(int id, string dbKey, int checkStatus)
             {
                 this.id = id;
                 this.dbKey = dbKey;
+                this.checkStatus = checkStatus;
+                this.remark = "";
+            }
+
+            public DbKeyObject(int id, string dbKey, int tester, int testResult, int failPin, int checkStatus)
+            {
+                this.id = id;
+                this.dbKey = dbKey;
+                this.tester = tester;
+                this.testResult = testResult;
+                this.failPin = failPin;
                 this.checkStatus = checkStatus;
                 this.remark = "";
             }

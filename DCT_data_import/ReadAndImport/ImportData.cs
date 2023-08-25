@@ -18,9 +18,9 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 request = (FtpWebRequest)WebRequest.Create(requestUri);
-                request.Credentials = new NetworkCredential(ftpUser, ftpPassword);
                 request.Method = WebRequestMethods.Ftp.ListDirectory;
-                request.KeepAlive = true;
+                request.Credentials = new NetworkCredential(ftpUser, ftpPassword);
+                //request.KeepAlive = true;
                 response = (FtpWebResponse)request.GetResponse();
                 response.Close();
                 return true;

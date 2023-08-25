@@ -143,14 +143,16 @@ namespace DCT_data_import
                             //    return false;
                             //}
                         }
-                        else if(column_name == "avg")
+                        else if (column_name == "avg")
                         {
-                            if (avg_2[i].avg != decimal.Parse(val2))
+                            decimal tmp = decimal.Round(avg_2[i].avg, 10, MidpointRounding.AwayFromZero);
+                            decimal tmp2 = decimal.Round(avg_2[i].avg2, 20, MidpointRounding.AwayFromZero);
+                            if (decimal.Round(avg_2[i].avg, 10, MidpointRounding.AwayFromZero) != decimal.Parse(val2))
                             {
                                 return false;
                             }
                             val2 = response.data[i]["avg_2"].ToString();
-                            if(avg_2[i].avg2 != decimal.Parse(val2))
+                            if (decimal.Round(avg_2[i].avg2, 20, MidpointRounding.AwayFromZero) != decimal.Parse(val2))
                             {
                                 return false;
                             }
@@ -158,7 +160,7 @@ namespace DCT_data_import
                         }
                         else if (column_name == "avg_2")
                         {
-                            if (avg_2[i].avg2 != decimal.Parse(val2))
+                            if (decimal.Round(avg_2[i].avg2, 20, MidpointRounding.AwayFromZero) != decimal.Parse(val2))
                             {
                                 return false;
                             }

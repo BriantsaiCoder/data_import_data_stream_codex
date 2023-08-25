@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -16,58 +17,24 @@ namespace DCT_data_import
     public class WebApiClient
     {
         public HttpClient client = new HttpClient();
-        private string api_key { get; set; }
-        private string api_value { get; set; }
+        private string authKey { get; set; }
+        private string authValue { get; set; }
+        private string tokenFile = @"C:\temp\DCT_api_token_value.log";
 
         public WebApiClient()
         {
+            authKey = ConfigurationManager.ConnectionStrings["AuthKey"].ConnectionString;
+            authValue = GetTokenFromFile();
             client.BaseAddress = new Uri(ConfigurationManager.ConnectionStrings["ApiUrl"].ConnectionString);
-            api_key = "authorization";
             client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Add(authKey, authValue);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
-
-        public async Task<Signin_response> getApiKeyValueAsync(Pool_signin pool_Signin)
-        {
-            string path = string.Format("/signin");
-
-            // 將 data 轉為 json
-            string json = JsonConvert.SerializeObject(pool_Signin);
-            // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
-            HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
-            // 發出 post 並取得結果
-            HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-
-            Signin_response result;
-            if (response.IsSuccessStatusCode)
-            {
-                // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
-                string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-
-                result = await response.Content.ReadAsAsync<Signin_response>();
-
-                if (result != null)
-                {
-                    api_value = result.token;
-
-                    client.DefaultRequestHeaders.Accept.Clear();
-                    client.DefaultRequestHeaders.Add(api_key, api_value);
-                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                }
-
-                return result;
-            }
-            else
-            {
-                return null;
-            }
-        }
+        
 
         public async Task<Pool_get_all_response> GetPoolAsync(string api_key="")
         {
             string path = string.Format("/api/mysql/pools/get-all");
-            //client.DefaultRequestHeaders.Add("api-key", api_key);
             HttpResponseMessage response = await client.GetAsync(path).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
@@ -158,7 +125,9 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                return null;
+                WriteToLog writeToLog = new WriteToLog();
+                writeToLog.writeToLog("ExcutePoolAsync error:" + pool_excute.query + "         ex:" + ex.ToString());
+                return new Pool_excute_response { error=ex.ToString()};
             }
 
            
@@ -207,15 +176,41 @@ namespace DCT_data_import
         }
 
 
+
         public bool checkDBConnect(string pool_name)
         {
             try
             {
-                //Signin_response signin_response = getApiKeyValueAsync(pool_signin).GetAwaiter().GetResult();
-
                 // 確認Pool中是否有此 pool_name
                 Pool_get_all_response getPoolResponse = GetPoolAsync().GetAwaiter().GetResult();
                 //dynamic json_str = JObject.Parse(getPoolResponse.data);
+                if (getPoolResponse == null)  // 若回傳null 則重新sign in取得token value試試看
+                {
+                    Pool_signin poolSignin = new Pool_signin
+                    {
+                        username = ConfigurationManager.ConnectionStrings["ApiUser"].ConnectionString,
+                        password = ConfigurationManager.ConnectionStrings["ApiPassword"].ConnectionString
+                    };
+                    Signin_response signinResponse = getApiKeyValueAsync(poolSignin).GetAwaiter().GetResult();
+
+                    if (signinResponse != null)
+                    {
+                        // 取得 token value 
+                        authValue = signinResponse.token;
+                        // 將 token value 寫入暫存檔
+                        bool writeTokenResult = WriteTokenToFile(authValue);
+
+                        client.DefaultRequestHeaders.Remove(authKey);
+                        client.DefaultRequestHeaders.Add(authKey, authValue);
+
+                        getPoolResponse = GetPoolAsync().GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        return false;
+                    }
+
+                }
                 JArray pool_name_jarray = (JArray)getPoolResponse.data["pool_name"];
                 List<string> pool_name_list = pool_name_jarray.ToObject<List<string>>();
 
@@ -223,13 +218,96 @@ namespace DCT_data_import
 
                 return contains_in;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
                 return false;
             }
         }
 
+        public async Task<Signin_response> getApiKeyValueAsync(Pool_signin pool_Signin)
+        {
+            string path = string.Format("/signin");
+
+            // 將 data 轉為 json
+            string json = JsonConvert.SerializeObject(pool_Signin);
+            // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
+            HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
+            // 發出 post 並取得結果
+            HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            Signin_response result;
+            if (response.IsSuccessStatusCode)
+            {
+                // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
+                string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                result = await response.Content.ReadAsAsync<Signin_response>();
+
+                return result;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+
+        private bool WriteTokenToFile(string token)
+        {
+            try
+            {
+                if (!File.Exists(tokenFile))
+                {
+                    using (StreamWriter writer = File.CreateText(tokenFile))
+                    {
+                        writer.WriteLine(token);
+                    }
+                }
+                else
+                {
+                    using (StreamWriter writer = new StreamWriter(tokenFile, false))
+                    {
+                        writer.WriteLine(token);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return false;
+            }
+
+
+            return true;
+        }
+
+        private string GetTokenFromFile()
+        {
+            try
+            {
+                if (!File.Exists(tokenFile))
+                {
+                    return "no token";
+                }
+                else
+                {
+                    using (StreamReader reader = new StreamReader(tokenFile))
+                    {
+                        return reader.ReadLine();
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return " read token error";
+            }
+
+        }
 
     }
 }

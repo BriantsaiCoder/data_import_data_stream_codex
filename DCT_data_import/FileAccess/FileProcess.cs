@@ -688,6 +688,11 @@ namespace DCT_data_import
             Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute).GetAwaiter().GetResult();
             //dynamic json_str = JObject.Parse(response.data);
             //JArray items = (JArray)json_str["data"];
+            if(!string.IsNullOrEmpty(response.error))
+            {
+                string result = PoolException(new Exception(response.error), webApiClient);
+                return false;
+            }
             int length = 0;
             if (response.data != null)
             {
@@ -701,6 +706,12 @@ namespace DCT_data_import
 
         public bool isUIStatusDataExistInDB(string mac_address, string area, string factory, string os_machine, string date, WebApiClient webApiClient)
         {
+            //string whereDate = (string.IsNullOrEmpty(date) || date == "null") ? "" : "' AND date='" + date;
+            if(string.IsNullOrEmpty(date) || date == "null")
+            {
+                return false;
+            }
+
             var pool_excute = new Pool_excute
             {
                 pool = Program.POOL_NAME,
@@ -792,6 +803,12 @@ namespace DCT_data_import
                 column_name = column_name.Split('(', ')')[0];
                 // 欄位名稱調整
                 if (column_name == "bondingdiagram") column_name = "bonding_diagram";
+                if (column_name == "Pass without OCR".ToLower()) column_name = "pass_without_ocr";
+                if (column_name == "OPEN without OCR".ToLower()) column_name = "open_without_ocr";
+                if (column_name == "Short & Others".ToLower()) column_name = "short_others";
+                if (column_name == "Pass without OCR_PPM".ToLower()) column_name = "pass_without_ocr_ppm";
+                if (column_name == "OPEN without OCR_PPM".ToLower()) column_name = "open_without_ocr_ppm";
+                if (column_name == "Short & Others_PPM".ToLower()) column_name = "short_others_ppm";
 
                 // 處理日期格式
                 if (column_name == "start" || column_name == "stop")
@@ -949,32 +966,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                if(ex.Message.Contains("工作已取消"))
-                {
-                    Pool_delete pool_delete = new Pool_delete
-                    {
-                        pool = Program.POOL_NAME
-                    };
-                    Pool_delete_response response = webApiClient.DeletePoolAsync(pool_delete).GetAwaiter().GetResult();
-                    
-                    // 重新建立 pool
-                    Pool pool = new Pool
-                    {
-                        pool_name = Program.POOL_NAME,
-                        host = Program.HOST,
-                        port = Program.PORT,
-                        user = Program.USER,
-                        password = Program.PASSWORD,
-                        database = Program.DATABASE
-                    };
-                    var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
-                    if (create_response.error != null)
-                    {
-                        writeToLog.writeToLog("Pool 建立失敗: " + create_response.error);
-                        throw new Exception("Pool 建立失敗: " + create_response.error);
-                    }
-
-                }
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO lots_statistic' error:" + ex.ToString());
                 response2 = deleteRawData(webApiClient, lotId);
@@ -1096,32 +1088,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                if (ex.Message.Contains("工作已取消"))
-                {
-                    Pool_delete pool_delete = new Pool_delete
-                    {
-                        pool = Program.POOL_NAME
-                    };
-                    Pool_delete_response response = webApiClient.DeletePoolAsync(pool_delete).GetAwaiter().GetResult();
-
-                    // 重新建立 pool
-                    Pool pool = new Pool
-                    {
-                        pool_name = Program.POOL_NAME,
-                        host = Program.HOST,
-                        port = Program.PORT,
-                        user = Program.USER,
-                        password = Program.PASSWORD,
-                        database = Program.DATABASE
-                    };
-
-                    var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
-                    if (create_response.error != null)
-                    {
-                        writeToLog.writeToLog("Pool 建立失敗: " + create_response.error);
-                        throw new Exception("Pool 建立失敗: " + create_response.error);
-                    }
-                }
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO lots_result' error:" + ex.ToString());
                 response2 = deleteRawData(webApiClient, lotId);
@@ -1201,13 +1168,23 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
+
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO tester_device_info' error:" + ex.ToString());
                 return false;
             }
             #endregion
 
-            string device_info_Id = response.data[0]["insertId"].ToString();
+            string device_info_Id = "";
+            try
+            {
+                device_info_Id = response.data[0]["insertId"].ToString();
+            }catch(Exception ex)
+            {
+                writeToLog.writeToLog("get tester_device_info insertId error:" + ex.ToString());
+                return false;
+            }
 
             #region insert `tester_status`
             columns = "`device_info_Id`,"; values = "";
@@ -1265,6 +1242,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO tester_status' error:" + ex.ToString());
                 response = deleteTesterStatus(webApiClient, device_info_Id);
@@ -1318,6 +1296,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO tester_sw_version' error:" + ex.ToString());
                 response = deleteTesterStatus(webApiClient, device_info_Id);
@@ -1374,6 +1353,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO tester_production_analysis'  error:" + ex.ToString());
                 response = deleteTesterStatus(webApiClient, device_info_Id);
@@ -1443,22 +1423,23 @@ namespace DCT_data_import
 
                 try
                 {
-                    isDataExist = isUIStatusDataExistInDB(mac_address, area, factory, os_machine, date, webApiClient);
-                    if(isDataExist)
-                    {
-                        //Console.WriteLine("資料庫已存在此資料: UI Status   mac_address=" + mac_address + ", area=" + area + ", factory=" + factory + ", os_machine=" + os_machine + ", date=" + date);
-                    }
-                    else
-                    {
+                    //isDataExist = isUIStatusDataExistInDB(mac_address, area, factory, os_machine, date, webApiClient);
+                    //if(isDataExist)
+                    //{
+                    //    Console.WriteLine("資料庫已存在此資料: UI Status   mac_address=" + mac_address + ", area=" + area + ", factory=" + factory + ", os_machine=" + os_machine + ", date=" + date);
+                    //}
+                    //else
+                    //{
                         response = executeInsertWithAPI(webApiClient, "ui_status", columns, values);
                         if (!string.IsNullOrEmpty(response.error))
                         {
                             return false;
                         }
-                    }
+                    //}
                 }
                 catch (Exception ex)
                 {
+                    string poolExceptionResult = PoolException(ex, webApiClient);
                     Console.WriteLine(ex.ToString());
                     return false;
                 }
@@ -1492,8 +1473,15 @@ namespace DCT_data_import
                 // 欄位名稱調整
                 //if (column_name == "db_key") column_name = "db_version";
 
-                columns += "`" + column_name.Trim() + "`";
-                values += "\"" + content.fail_pin_rate_info.Rows[0][i].ToString().Trim() + "\"";
+                if(!string.IsNullOrEmpty(content.fail_pin_rate_info.Rows[0][i].ToString().Trim()))
+                {
+                    columns += "`" + column_name.Trim() + "`";
+                    values += "\"" + content.fail_pin_rate_info.Rows[0][i].ToString().Trim() + "\"";
+                }else
+                {
+                    columns = columns.Substring(0, columns.Length - 1);
+                    values = values.Substring(0, values.Length - 1);
+                }
                 if (i != content.fail_pin_rate_info.Columns.Count - 1)
                 {
                     columns += ",";
@@ -1511,6 +1499,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO fail_pin_rate_info' error:" + ex.ToString());
                 return false;
@@ -1573,6 +1562,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 response = deleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
                 return false;
@@ -1659,6 +1649,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 response = deleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
                 return false;
@@ -1670,7 +1661,7 @@ namespace DCT_data_import
             return true;
         }
 
-        private Pool_excute_response executeInsertWithAPI(WebApiClient webApiClient, string tableName, string columns, string values)
+        public Pool_excute_response executeInsertWithAPI(WebApiClient webApiClient, string tableName, string columns, string values)
         {
             try
             {
@@ -1833,7 +1824,38 @@ namespace DCT_data_import
         }
 
 
+        private string PoolException(Exception ex, WebApiClient webApiClient)
+        {
+            if (ex.Message.Contains("工作已取消"))
+            {
+                Pool_delete pool_delete = new Pool_delete
+                {
+                    pool = Program.POOL_NAME
+                };
+                Pool_delete_response response_delete = webApiClient.DeletePoolAsync(pool_delete).GetAwaiter().GetResult();
 
+                // 重新建立 pool
+                Pool pool = new Pool
+                {
+                    pool_name = Program.POOL_NAME,
+                    host = Program.HOST,
+                    port = Program.PORT,
+                    user = Program.USER,
+                    password = Program.PASSWORD,
+                    database = Program.DATABASE
+                };
+
+                var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
+                if (create_response.error != null)
+                {
+                    writeToLog.writeToLog("Pool 建立失敗: " + create_response.error);
+                    throw new Exception("Pool 建立失敗: " + create_response.error);
+                }
+            }
+
+            return "";
+
+        }
 
 
     }

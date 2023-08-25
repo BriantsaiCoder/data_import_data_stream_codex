@@ -46,11 +46,11 @@ namespace DCT_data_import.ReadAndImport
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
 
-            // 檢查FTP連線狀態
-            ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/";
-            bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            if (!isFtpConnected)
-                return new ImportResult(0, "FTP server connection failed.");
+            //// 檢查FTP連線狀態
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/";
+            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            //if (!isFtpConnected)
+            //    return new ImportResult(0, "FTP server connection failed.");
             
             // 檢查FTP是否有此檔案
             string filename = "test_result_" + dbKey + ".csv";
@@ -71,7 +71,7 @@ namespace DCT_data_import.ReadAndImport
                 bool import_result = false;
                 bool isDBKeyExist = false;
 
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + filename;
+                //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + filename;
                 // 取得編碼格式
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
@@ -95,7 +95,7 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
 
-                    return new ImportResult(2, "檔案內容缺失. " + rawDataContentFormat.errMsg);
+                    return new ImportResult(2, "File content is missing. " + rawDataContentFormat.errMsg);
                 }
                 if (!rawDataContentFormat.compareInfo())
                 {
@@ -104,7 +104,7 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
 
-                    return new ImportResult(2, "information 欄位名稱不符");
+                    return new ImportResult(2, "Information field name not match.");
                 }
                 if (!rawDataContentFormat.compareStatistic())
                 {
@@ -113,13 +113,20 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
 
-                    return new ImportResult(2, "statistic 欄位名稱不符");
+                    return new ImportResult(2, "Statistic field name not match.");
                 }
                 //fileAccess.caculatePpk(rawDataContentFormat.lotStatistic);
                 //if (rawDataContentFormat.lotResult.Rows.Count < 1)
                 //{
                 //    Console.WriteLine("Lot Result 無資料");
                 //}
+
+                if(!dbKey.Equals(rawDataContentFormat.lotInfo.Rows[0]["DB_Key"].ToString()))
+                {
+                    writeToLog.writeToLog("檔名與內容的DB_Key不相符: " + ftpserver);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    return new ImportResult(3, "The filename does not match the DB_Key in the content.");
+                }
 
                 //  DB_Key是否已存在於資料庫
                 isDBKeyExist = fileAccess.isDBKeyExistInDB("lots_info", rawDataContentFormat.lotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
@@ -134,13 +141,13 @@ namespace DCT_data_import.ReadAndImport
                     if (macid == "94C6913F94BD")
                     {
                         // 下載檔案到本地端
-                        downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
 
                     //// 刪除已存在的的CSV檔案
                     //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         
-                    return new ImportResult(3, "資料庫已有相同DB_Key資料");
+                    return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
                 {
@@ -193,7 +200,7 @@ namespace DCT_data_import.ReadAndImport
                         reader.Close();
                         response.Close();
 
-                        return new ImportResult(3, "匯入失敗");
+                        return new ImportResult(3, "Import failed.");
                     }
                 }
                     
@@ -203,7 +210,7 @@ namespace DCT_data_import.ReadAndImport
                 //Console.WriteLine(ftpserver + ": " + ex.ToString());
                 //writeToLog.writeToLog(ftpserver + ": " + ex.ToString());
                 RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                return new ImportResult(3, "匯入時發生Exception錯誤");
+                return new ImportResult(3, "Exception error occurred during import.");
             }
 
             GC.Collect();
@@ -334,7 +341,16 @@ namespace DCT_data_import.ReadAndImport
                             // 欄位 Serial, SN Num, SiteID,	 X, Y, HBIN, P/F 的 values
                             else if (result_part == 1)
                             {
-                                dr_lotResult[i] = values[i];
+                                // 解析'*'字號
+                                if (i == 0 && values[i].Contains("*"))
+                                {
+                                    dr_lotResult["retest_loc"] = "R";
+                                    dr_lotResult[i] = values[i].Remove(0, 1);
+                                }
+                                else
+                                {
+                                    dr_lotResult[i] = values[i];
+                                }
                             }
                             // unit 
                             if (result_part == 2 && values[0] == "Serial")
@@ -345,6 +361,7 @@ namespace DCT_data_import.ReadAndImport
                                     fileContentFormat.lotResult.Columns.Add("test time", typeof(string));
                                     fileContentFormat.lotResult.Columns.Add("index time", typeof(string));
                                     fileContentFormat.lotResult.Columns.Add("real time", typeof(string));
+                                    fileContentFormat.lotResult.Columns.Add("retest_loc", typeof(string));
                                     break;
                                 }
                                 rawData_list.Add(new List<string>());

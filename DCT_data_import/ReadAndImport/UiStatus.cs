@@ -32,11 +32,11 @@ namespace DCT_data_import.ReadAndImport
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
 
-            // 檢查FTP連線狀態
-            ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/";
-            bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            if (!isFtpConnected)
-                return new ImportResult(0, "FTP server connection failed.");
+            //// 檢查FTP連線狀態
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/";
+            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            //if (!isFtpConnected)
+            //    return new ImportResult(0, "FTP server connection failed.");
 
             // 檢查FTP是否有此檔案
             string filename = "ui_status_" + dbKeyUiStatus + ".csv";
@@ -64,19 +64,23 @@ namespace DCT_data_import.ReadAndImport
 
                 UIStatusContentFormat uiStatusContentFormat = FileReadUIStatus(reader);
                 reader.Close();
+                if (!string.IsNullOrEmpty(uiStatusContentFormat.errMsg))
+                {
+                    return new ImportResult(2, uiStatusContentFormat.errMsg);
+                }
                 if (uiStatusContentFormat == null)
                 {
                     Console.WriteLine("UI Status 讀取失敗: " + filename);
                     writeToLog.writeToLog("UI Status 讀取失敗:" + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "檔案內容缺失");
+                    return new ImportResult(2, "File content is missing.");
                 }
                 if (!uiStatusContentFormat.compareUiStatus())
                 {
                     Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + filename);
                     writeToLog.writeToLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "ui_status 欄位名稱不符");
+                    return new ImportResult(2, "ui_status field name not match.");
                 }
 
                 import_result = fileAccess.importUIStatus(uiStatusContentFormat, webApiClient);
@@ -103,7 +107,7 @@ namespace DCT_data_import.ReadAndImport
 
                     reader.Close();
                     response.Close();
-                    return new ImportResult(3, "匯入失敗");
+                    return new ImportResult(3, "Import failed.");
                 }
 
                 Thread.Sleep(500); reader.Close();
@@ -112,7 +116,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                return new ImportResult(3, "匯入時發生Exception錯誤");
+                return new ImportResult(3, "Exception error occurred during import.");
             }
 
             GC.Collect();

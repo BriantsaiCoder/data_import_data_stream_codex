@@ -6,13 +6,12 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static DCT_data_import.ApiObject;
 
 namespace DCT_data_import
 {
     public class WriteToLog
     {
-        int LogCount = 100;
-        int WritedCount = 0;
         int FailedCount = 0;
 
         public void writeToLog(string message)
@@ -56,6 +55,49 @@ namespace DCT_data_import
             //}
 
         }
+
+
+        public string WriteErrorLog(List<DbKeyObject> failDbKeyObject)
+        {
+            string text = "";
+
+            string path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\DCT_error_file_Log.txt").LocalPath;
+
+            using (StreamWriter writetext = File.CreateText(path))
+            {
+                for (int i = 0; i < failDbKeyObject.Count; i++)
+                {
+                    writetext.WriteLine((i + 1).ToString() + ".    DB_Key:" + failDbKeyObject[i].dbKey + ",       " + failDbKeyObject[i].remark);
+                }
+            }
+
+            return path;
+        }
+
+        public string WriteToMailTemp(string message)
+        {
+            string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\mail_temp.txt").LocalPath;
+
+            if (!File.Exists(log_path))
+            {
+                //File.Create(log_path);
+                using (StreamWriter writer = File.CreateText(log_path))
+                {
+                    writer.WriteLine(message);
+                }
+
+                return "";
+            }
+
+            // Write file using StreamWriter  
+            using (StreamWriter writer = new StreamWriter(log_path, true, System.Text.Encoding.UTF8))
+            {
+                writer.WriteLine(message);
+            }
+
+            return "";
+        }
+
 
     }
 }

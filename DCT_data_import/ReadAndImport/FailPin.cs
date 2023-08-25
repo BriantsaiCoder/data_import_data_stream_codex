@@ -32,29 +32,29 @@ namespace DCT_data_import.ReadAndImport
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
 
-            // 檢查FTP連線狀態
-            ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/CSV_Kerwin/";
-            bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            if (!isFtpConnected)
-                return new ImportResult(0, "FTP server connection failed.");
+            //// 檢查FTP連線狀態
+            //ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/";
+            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            //if (!isFtpConnected)
+            //    return new ImportResult(0, "FTP server connection failed.");
 
-            // 檢查FTP是否有此檔案
-            string filename = "ui_status_" + dbKey + ".csv";
-            ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/CSV_Kerwin/" + filename;
-            bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            if (!isFileExist)
-                return new ImportResult(0, "File not found.");
-
-            // 確認 pool 連線狀態
-            bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
-            if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-                if (!createPool(webApiClient, writeToLog))
-                    return new ImportResult(0, "MySQL database connection failed.");
-            
+            string filename = "fail_pin_" + dbKey + ".csv";
+            ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
 
             try
             {
-                ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/CSV_Kerwin/" + filename;
+                // 檢查FTP是否有此檔案
+                bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                if (!isFileExist)
+                    return new ImportResult(0, "File not found.");
+
+                // 確認 pool 連線狀態
+                bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+                if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
+                    if (!createPool(webApiClient, writeToLog))
+                        return new ImportResult(0, "MySQL database connection failed.");
+
+                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
@@ -62,21 +62,25 @@ namespace DCT_data_import.ReadAndImport
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
 
                 FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
+                reader.Close();
+                if (!string.IsNullOrEmpty(failPinLogContent.errMsg))
+                {
+                    return new ImportResult(2, failPinLogContent.errMsg);
+                }
                 // 讀取失敗或沒有資料
                 if (failPinLogContent == null || failPinLogContent.fail_pin_rate_info.Rows.Count < 1)
                 {
                     Console.WriteLine("Fail Pin Log 讀取失敗:  " + filename);
                     writeToLog.writeToLog("Fail Pin Log 讀取失敗: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "檔案內容缺失");
+                    return new ImportResult(2, "File content is missing. ");
                 }
-                reader.Close();
                 if (!failPinLogContent.compareInfo())
                 {
                     Console.WriteLine("Fail Pin Log 之 information 欄位名稱不符:  " + filename);
                     writeToLog.writeToLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "information 欄位名稱不符");
+                    return new ImportResult(2, "Information field name not match.");
                 }
                 isDBKeyExist = fileAccess.isDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
                 if (isDBKeyExist)
@@ -85,16 +89,18 @@ namespace DCT_data_import.ReadAndImport
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);
                     //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
                     //writeToLog.writeToLog("資料庫已存在此資料: " + ftpserver);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+
                     // Kerwin 的電腦
                     if (macid == "94C6913F94BD")
                     {
                         // 下載檔案到本地端
                         downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\fail_pin_log_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
-                    // 刪除已存在的的CSV檔案
-                    deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                    //// 刪除已存在的的CSV檔案
+                    //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
 
-                    return new ImportResult(3, "資料庫已有相同DB_Key資料");
+                    return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
                 {
@@ -127,7 +133,7 @@ namespace DCT_data_import.ReadAndImport
                         
                         reader.Close();
                         response.Close();
-                        return new ImportResult(3, "匯入失敗");
+                        return new ImportResult(3, "Import failed.");
                     }
                 }
                 
@@ -136,7 +142,8 @@ namespace DCT_data_import.ReadAndImport
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog(ex.ToString());
-                return new ImportResult(3, "匯入時發生Exception錯誤");
+                RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                return new ImportResult(3, "Exception error occurred during import.");
             }
 
             GC.Collect();

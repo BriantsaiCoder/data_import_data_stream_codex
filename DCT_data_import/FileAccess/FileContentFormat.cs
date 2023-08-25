@@ -46,7 +46,8 @@ namespace DCT_data_import
         private string[] infoColumns = { "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
             "Control_lot", "AO_lot", "OS_Machine_ID", "OS_Test_Board_ID", "User_ID", "Schedule_Lot", "File_Name", "Yield(%)", "TOTAL", "PASS",
             "OPEN_PIN_FAIL", "SHORT_PIN_FAIL", "LEAKAGE_PIN_FAIL", "TOTAL_PPM", "OPEN_PIN_FAIL_PPM", "SHORT_PIN_FAIL_PPM",
-            "LEAKAGE_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop" };
+            "LEAKAGE_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop",
+            "Pass", "Pass without OCR","OPEN","OPEN without OCR","Short & Others","Pass without OCR_PPM","OPEN_PPM","OPEN without OCR_PPM","Short & Others_PPM" };
         private string[] statisticColumns = { "Item No", "Item Name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
             "STDEV", "Cp", "Cpk", "Ppk", "unit", "value" };
         
@@ -189,6 +190,7 @@ namespace DCT_data_import
             "Wire_assignment_tool", "BGA_highlight_tool", "SimplificationUI", "OS_scan_tool", "DCT_UploadTp_UI", "DCT_AutoDownloadTp",
             "DCT_SW_Control_Tool", "DCT_DownloadTp_KH" };
 
+        public string errMsg { get; set; }
         public DataTable UI_status { get; set; }
 
         public UIStatusContentFormat()
@@ -220,6 +222,7 @@ namespace DCT_data_import
     {
         private string[] infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date" };
 
+        public string errMsg { get; set; }
         public DataTable fail_pin_rate_info { get; set; }
         public DataTable fail_pin_rate_list { get; set; }
         public DataTable fail_pin_rate_list_pin_ball { get; set; }
@@ -262,5 +265,54 @@ namespace DCT_data_import
 
 
     }
+
+    public class IedaDataFormat
+    {
+        private string[] titleColumns = { "ase_lot", "lot_id", "sub_lot", "device", "mpw_code", "produce_code", "tester_id", "oper_id", "test_program", "start_time",
+            "end_time", "socket_lid", "load_board_id", "bd_file", "package_notch", "sort_stage", "test_site","fd_file","cover_id_side_blade","socket_id","handler_id","device_rev",
+            "tsmc_lot_id","assembly_start_date","assembly_end_date"};
+        public int[] titleColumnsDataSize = { 30, 30, 2, 32, 4, 6, 8, 8, 50, 19, 19, 12, 12, 20, 1, 1, 8, 20, 20, 20, 20, 10, 12, 11, 11 };
+
+        private string[] contentColumns = { "title_id", "touch_down", "sw_bin", "vi_result", "site_index", "index_time", "test_time", "re_probing_flag_retest_flag",
+            "handler_arm", "temperature", "package_start_time","handler_arm_force", "wafer_id", "wafer_x", "wafer_y",
+            "serial_number", "efuse_string_1", "efuse_string_2","efuse_string_3","efuse_string_4","spare_para_1","spare_para_2","spare_para_3","spare_para_4",
+            "soft_bin_name","hard_bin_number","hard_bin_name","ocr_laser_mark_qr_code"};
+        public int[] contentColumnsDataSize = { 8, 8, 4, 4, 4, 8, 8, 4, 8, 8, 19, 8, 12, 4, 4, 8, 53, 64, 46, 37, 6, 6, 6, 20, 20, 4, 20, 25 };
+
+
+        public DataTable iedaTitle { get; set; }
+        public DataTable iedaContent { get; set; }
+        public string errMsg { get; set; }
+
+        public IedaDataFormat()
+        {
+            IedaTitleInit();
+            IedaContentInit();
+        }
+
+        private void IedaTitleInit()
+        {
+            iedaTitle = new DataTable();
+
+            for (int i = 0; i < titleColumns.Length; i++)
+            {
+                iedaTitle.Columns.Add(titleColumns[i], typeof(string));
+            }
+
+        }
+
+        private void IedaContentInit()
+        {
+            iedaContent = new DataTable();
+
+            for (int i = 0; i < contentColumns.Length; i++)
+            {
+                iedaContent.Columns.Add(contentColumns[i], typeof(string));
+            }
+
+        }
+
+    }
+
 
 }
