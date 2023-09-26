@@ -83,6 +83,8 @@ namespace DCT_data_import.ReadAndImport
                 RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
                 reader.Close();
 
+                //if (rawDataContentFormat.lotInfo.Rows[0]["Customer"].ToString() != "TSMC") return null;
+
                 if (!string.IsNullOrEmpty(rawDataContentFormat.errMsg))
                 {
                     return new ImportResult(2, rawDataContentFormat.errMsg);
@@ -404,12 +406,22 @@ namespace DCT_data_import.ReadAndImport
 
                 }
 
+                
+                // 讀取net name欄位加入到此表
+                TsmcIeda tsmcIeda = new TsmcIeda();
+                List<string> netnameList = new List<string>();
+                if(fileContentFormat.lotInfo.Rows[0]["Customer"].ToString() == "TSMC")
+                {
+                    netnameList = tsmcIeda.GetNetNameList(fileContentFormat.lotInfo.Rows[0]["AO_lot"].ToString());
+                }
+
                 // 將raw data values 填入統計值的表
                 DataTable item_table = new DataTable();
                 for (int i = 0; i < statistic_dict.Keys.Count; i++)
                 {
                     item_table.Columns.Add(statistic_dict.ElementAt(i).Key, typeof(string));
                 }
+                item_table.Columns.Add("net_name", typeof(string));
                 item_table.Columns.Add("value", typeof(string));
                 for (int i = 0; i < item_count; i++)
                 {
@@ -464,6 +476,12 @@ namespace DCT_data_import.ReadAndImport
                     {
                         dataRow["value"] += "]";
                     }
+
+                    if(netnameList.Count>i)
+                    {
+                        dataRow["net_name"] = netnameList[i];
+                    }
+
 
                     item_table_tmp.Rows.Add(dataRow);
                     fileContentFormat.lotStatistic.Tables.Add(item_table_tmp);

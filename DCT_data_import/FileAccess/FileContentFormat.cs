@@ -48,7 +48,7 @@ namespace DCT_data_import
             "OPEN_PIN_FAIL", "SHORT_PIN_FAIL", "LEAKAGE_PIN_FAIL", "TOTAL_PPM", "OPEN_PIN_FAIL_PPM", "SHORT_PIN_FAIL_PPM",
             "LEAKAGE_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop",
             "Pass", "Pass without OCR","OPEN","OPEN without OCR","Short & Others","Pass without OCR_PPM","OPEN_PPM","OPEN without OCR_PPM","Short & Others_PPM" };
-        private string[] statisticColumns = { "Item No", "Item Name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
+        private string[] statisticColumns = { "Item No", "Item Name", "net_name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
             "STDEV", "Cp", "Cpk", "Ppk", "unit", "value" };
         
         public string errMsg { get; set; }

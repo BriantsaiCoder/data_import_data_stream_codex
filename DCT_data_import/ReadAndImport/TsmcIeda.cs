@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
@@ -12,37 +14,115 @@ namespace DCT_data_import.ReadAndImport
 {
     public class TsmcIeda : ImportData
     {
+        private DataTable _lotMappingDt = new DataTable();
+
+        public TsmcIeda()
+        {
+            // 設定全域變數中的DataTable _lotMappingDt 
+            GetLotMapping();
+        }
 
         public ImportResult readAndImportIeda(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
         {
-            String ftpserver;
+            string ftpserver = "";
             FtpWebRequest reqFTP;
             FtpWebResponse response;
             Stream responseStream;
             StreamReader reader;
+            WriteToLog writeToLog = new WriteToLog();
+
+            string downloadStatus, deleteStatus;
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
 
             bool import_result;
 
+            Stopwatch stopWatch = new Stopwatch();
+            TimeSpan ts2 = stopWatch.Elapsed;
+
+
+            string names;
+            List<string> list_filename = new List<string>();
+
             try
             {
-                string filename = "N9HK53.LE-FT1-202208311814";
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
+                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/";
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
+
                 responseStream = response.GetResponseStream();
-                reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+                reader = new StreamReader(responseStream);
 
-                IedaDataFormat iedaDataFormat =   FileReadIeda(reader);
-
-
-                // 開始匯入
-                import_result = ImportIeda(iedaDataFormat, webApiClient);
-
-
+                names = reader.ReadToEnd();
+                list_filename = names.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
             }
             catch(Exception ex)
             {
+                writeToLog.writeToLog("TSMC 之 IEDA 讀取檔案清單錯誤:" + ftpserver);
+            }
+
+
+
+
+            // 查詢所有檔案
+            for (int i = list_filename.Count - 1; i >= 0; i--)
+            {
+                // 取得IEDA檔案名
+                string filename = list_filename[i];
+
+                try
+                {
+                    ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
+                    reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
+                    response = (FtpWebResponse)reqFTP.GetResponse();
+                    responseStream = response.GetResponseStream();
+                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+                    IedaDataFormat iedaDataFormat = FileReadIeda(reader);
+
+                    if (!string.IsNullOrEmpty(iedaDataFormat.errMsg))
+                    {
+                        return new ImportResult(2, iedaDataFormat.errMsg);
+                    }
+
+
+                    stopWatch.Reset();
+                    stopWatch.Start();
+
+                    // 開始匯入
+                    import_result = ImportIeda(iedaDataFormat, webApiClient);
+                    
+                    stopWatch.Stop();
+                    ts2 = stopWatch.Elapsed;
+
+                    if (import_result)
+                    {
+                        Console.WriteLine("匯入完成! TSMC IEDA    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
+
+                        // Kerwin 的電腦
+                        if (macid == "94C6913F94BD")
+                        {
+                            // 下載檔案到本地端
+                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tsmc_ieda_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        }
+                        // 刪除已存在的的CSV檔案
+                        deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                        
+                    }else
+                    {
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+
+                    writeToLog.writeToLog("TSMC 之 IEDA 讀檔失敗:" + ftpserver);
+                }
 
             }
 
@@ -76,16 +156,22 @@ namespace DCT_data_import.ReadAndImport
                         int charIdx = 0;
                         DataRow dr = iedaDataFormat.iedaTitle.NewRow();
 
-                        // 取得ase_lot
-                        string aseLot = GetAseLot("DB_Key_exmaple");  // 輸入DB_KEY取得 ase_lot對應檔案的檔名
-                        dr["ase_lot"] = aseLot;
+                        
 
                         for (int j = 1; j < iedaDataFormat.iedaTitle.Columns.Count; j++)
                         {
                             dr[j] = split_lines[r].Substring(charIdx, iedaDataFormat.titleColumnsDataSize[j]).Trim();
                             charIdx += iedaDataFormat.titleColumnsDataSize[j];
                         }
-                        
+
+                        // 取得ase_lot
+                        DataRow[] mappingDtRows = _lotMappingDt.Select("tsmc_lot='"+ dr["lot_id"].ToString()+"'");
+                        //string aseLot = GetAseLot("ASE01-5070-075-10.10.53.169_AAH@A212990017-0_0315_N_20230904-213225");  // 輸入DB_KEY取得 ase_lot對應檔案的檔名
+                        if(mappingDtRows.Length>0)
+                        {
+                            dr["ase_lot"] = mappingDtRows[0]["ase_lot"];
+                        }
+
                         iedaDataFormat.iedaTitle.Rows.Add(dr);
 
                     }
@@ -121,9 +207,101 @@ namespace DCT_data_import.ReadAndImport
             return iedaDataFormat;
 
         }
-        
 
-        public string GetAseLot(string DbKey)
+        #region GetAseLot()
+        //public string GetAseLot(string DbKey)
+        //{
+        //    String ftpserver;
+        //    FtpWebRequest reqFTP;
+        //    FtpWebResponse response;
+        //    Stream responseStream;
+        //    StreamReader reader;
+
+        //    try
+        //    {
+
+        //        string filename = DbKey+".txt";
+        //        ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/" + filename;
+        //        reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+        //        reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
+        //        response = (FtpWebResponse)reqFTP.GetResponse();
+        //        responseStream = response.GetResponseStream();
+        //        reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+        //        string lines = reader.ReadToEnd();
+
+        //        return lines.Split(',')[0];
+
+        //    }
+        //    catch(Exception ex)
+        //    {
+        //        return "";
+        //    }
+
+        //}
+        #endregion GetAseLot() end
+
+        public List<string> GetNetNameList(string aseLot)
+        {
+            string ftpserver = "";
+            FtpWebRequest reqFTP;
+            FtpWebResponse response;
+            Stream responseStream;
+            WriteToLog writeToLog = new WriteToLog();
+            string filename = "";
+
+            List<string> netNameList = new List<string>();
+
+            try
+            {
+                // 取得 CSV 檔名
+                DataRow[] mappingDtRows = _lotMappingDt.Select("ase_lot='" + aseLot+"'");
+                if (mappingDtRows.Length > 0)
+                {
+                    filename = mappingDtRows[0]["csv"].ToString();  //mappingDtRows[2] 是 "csv" 欄位值
+                }
+                else
+                {
+                    return netNameList;
+                }
+
+                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV/" + filename;
+                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
+                response = (FtpWebResponse)reqFTP.GetResponse();
+                responseStream = response.GetResponseStream();
+                
+                string netNameLine = "";
+                StreamReader reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+                string line = reader.ReadLine();
+                while (line != null)
+                {
+                    if (line.Split(',')[0] == "Net Name")
+                    {
+                        netNameLine = line;
+                        break;
+                    }
+                    line = reader.ReadLine();
+                }
+
+                netNameList = netNameLine.Split(',').ToList();
+                netNameList.RemoveAt(0);
+
+                // 刪除已成功讀完的TSMC CSV檔案
+                string deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+
+            }
+            catch (Exception ex)
+            {
+                writeToLog.writeToLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver);
+                RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                return new List<string>();
+            }
+
+            return netNameList;
+        }
+
+        public string GetLotMapping()
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -133,58 +311,44 @@ namespace DCT_data_import.ReadAndImport
 
             try
             {
-
-                string filename = DbKey+".txt";
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/" + filename;
+                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/lot_mapping.csv";
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-
                 string lines = reader.ReadToEnd();
+                List<string> split_lines = lines.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
 
-                return lines.Split(',')[0];
-
-            }
-            catch(Exception ex)
-            {
-                return "";
-            }
-            
-        }
-
-        public List<string> GetNetNameList(string path)
-        {
-            List<string> netNameList = new List<string>();
-
-            try
-            {
-                string netNameLine = "";
-                using (StreamReader reader = new StreamReader(path))
+                for(int i=0;i< split_lines.Count;i++)
                 {
-                    string line = reader.ReadLine();
-                    while (line != null)
+                    string[] values = split_lines[i].Trim().Split(',', '\0', '\r', '\n');
+                    // assign DataTable 欄位
+                    if (i==0)
                     {
-                        if (line.Split(',')[0] == "Net Name")
+                        for(int j=0;j< values.Length;j++)
                         {
-                            netNameLine = line;
-                            break;
+                            _lotMappingDt.Columns.Add(values[j].Trim());
                         }
-                        line = reader.ReadLine();
+                    }else
+                    {
+                        DataRow dr = _lotMappingDt.NewRow();
+                        for (int j = 0; j < values.Length; j++)
+                        {
+                            dr[j] = values[j].Trim();
+                        }
+                        _lotMappingDt.Rows.Add(dr);
                     }
                 }
 
-                netNameList = netNameLine.Split(',').ToList();
-                netNameList.RemoveAt(0);
 
             }
             catch (Exception ex)
             {
-                return new List<string>();
+                return ex.ToString();
             }
 
-            return netNameList;
+            return "Get lot mapping successfully.";
         }
 
         public bool ImportIeda(IedaDataFormat content, WebApiClient webApiClient)

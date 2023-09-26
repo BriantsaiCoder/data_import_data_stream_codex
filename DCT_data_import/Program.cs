@@ -82,13 +82,13 @@ namespace DCT_data_import
                     threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
                     threadUiStatusMode.Start();
                 }
-                //if (!threadTsmcAlive)
-                //{
-                //    threadTesterMode.Interrupt();
-                //    threadTesterMode.Abort();
-                //    threadTesterMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
-                //    threadTesterMode.Start();
-                //}
+                if (!threadTsmcAlive)
+                {
+                    threadTsmcMode.Interrupt();
+                    threadTsmcMode.Abort();
+                    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+                    threadTsmcMode.Start();
+                }
 
                 #region 固定時間通報程式還活著
                 DateTime nowTime = DateTime.Now;
@@ -103,7 +103,7 @@ namespace DCT_data_import
                 Thread.Sleep(600000);
                 threadTesterAlive = threadTesterMode.IsAlive;
                 threadUiStatusAlive = threadUiStatusMode.IsAlive;
-                threadTsmcAlive = threadTesterMode.IsAlive;
+                threadTsmcAlive = threadTsmcMode.IsAlive;
                 Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + (++count) + " finished~");
 
 
@@ -262,7 +262,7 @@ namespace DCT_data_import
             Console.WriteLine("Tester mode end~");
 
             #region 寄信通報
-            if (DateTime.Now.TimeOfDay.Hours == 0 || DateTime.Now.TimeOfDay.Hours == 12)
+            if (/*DateTime.Now.TimeOfDay.Hours == 0 ||*/ DateTime.Now.TimeOfDay.Hours == 12)
             {
                 if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
                 {
@@ -392,7 +392,7 @@ namespace DCT_data_import
             ImportResult importResult;
             TsmcIeda tsmcIeda = new TsmcIeda();
             
-            importResult = tsmcIeda.readAndImportIeda(fileAccess, webApiClient, "DB_Key_exmaple");
+            importResult = tsmcIeda.readAndImportIeda(fileAccess, webApiClient, "");
 
             return "";
         }
