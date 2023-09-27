@@ -243,7 +243,7 @@ namespace DCT_data_import.ReadAndImport
                 int rawData_part_index = 0;
 
                 string lines = reader.ReadToEnd();
-
+                reader.Close();
 
                 List<string> split_lines = lines.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
 
@@ -276,6 +276,8 @@ namespace DCT_data_import.ReadAndImport
                     // 第一部分  info
                     if (content_part == 1)
                     {
+                        // "Open fail"與"Short fail"為TSMC 客戶中兩個非必要欄位，故排除不存進資料庫
+                        if (values[0].Split(':')[0] == "Open fail" || values[0].Split(':')[0] == "Short fail") continue;
                         fileContentFormat.lotInfo.Columns.Add(values[0].Split(':')[0], typeof(string));
                         fileContentFormat.lotInfo.Rows[0][values[0].Split(':')[0]] = values[1];
                         //fileContentFormat.setLotInfo(lotInfo, values[0], values[1]);

@@ -114,12 +114,12 @@ namespace DCT_data_import.ReadAndImport
                         
                     }else
                     {
-                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
                 }
                 catch (Exception ex)
                 {
-                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
 
                     writeToLog.writeToLog("TSMC 之 IEDA 讀檔失敗:" + ftpserver);
                 }
@@ -249,6 +249,9 @@ namespace DCT_data_import.ReadAndImport
             Stream responseStream;
             WriteToLog writeToLog = new WriteToLog();
             string filename = "";
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
 
             List<string> netNameList = new List<string>();
 
@@ -267,6 +270,8 @@ namespace DCT_data_import.ReadAndImport
 
                 ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV/" + filename;
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                //reqFTP.Timeout = 5000;//設定5秒超時
+                //reqFTP.ReadWriteTimeout = 5000;
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
@@ -283,10 +288,16 @@ namespace DCT_data_import.ReadAndImport
                     }
                     line = reader.ReadLine();
                 }
-
+                reader.Close();
                 netNameList = netNameLine.Split(',').ToList();
-                netNameList.RemoveAt(0);
+                if(netNameList.Count>0) netNameList.RemoveAt(0);
 
+                // Kerwin 的電腦
+                if (macid == "94C6913F94BD")
+                {
+                    // 下載檔案到本地端
+                    string downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tsmc_csv_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                }
                 // 刪除已成功讀完的TSMC CSV檔案
                 string deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
 
@@ -294,7 +305,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 writeToLog.writeToLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver);
-                RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new List<string>();
             }
 

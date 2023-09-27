@@ -7,40 +7,6 @@ using System.Threading.Tasks;
 
 namespace DCT_data_import
 {
-    //public class LotInfo
-    //{
-    //    public string Version { get; set; }
-    //    public string Mac_Address { get; set; }
-    //    public  string DB_Key { get; set; }
-    //    public string Customer { get; set; }
-    //    public string Package { get; set; }
-    //    public string BondingDiagram { get; set; }
-    //    public string Program { get; set; }
-    //    public string Device { get; set; }
-    //    public string Control_lot { get; set; }
-    //    public string AO_lot { get; set; }
-    //    public string OS_Machine_ID { get; set; }
-    //    public string OS_Test_Board_ID { get; set; }
-    //    public string User_ID { get; set; }
-    //    public string Schedule_Lot { get; set; }
-    //    public string File_Name { get; set; }
-    //    public string Yield { get; set; }
-    //    public string TOTAL { get; set; }
-    //    public string PASS { get; set; }
-    //    public string OPEN_PIN_FAIL { get; set; }
-    //    public string SHORT_PIN_FAIL { get; set; }
-    //    public string TOTAL_PPM { get; set; }
-    //    public string OPEN_PIN_FAIL_PPM { get; set; }
-    //    public string SHORT_PIN_FAIL_PPM { get; set; }
-    //    public string Total_Test_Items { get; set; }
-    //    public string Average_Test_Time { get; set; }
-    //    public string Clear_Count { get; set; }
-    //    public string Start { get; set; }
-    //    public string Stop { get; set; }
-    //    public List<string> OTHER_COLUMNS = new List<string>();
-    //    public List<string> OTHER_COLUMNS_VALUE = new List<string>();
-
-    //}
     public class RawDataContentFormat
     {
         private string[] infoColumns = { "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
