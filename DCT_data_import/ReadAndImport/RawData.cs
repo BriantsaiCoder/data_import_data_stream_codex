@@ -127,7 +127,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     writeToLog.writeToLog("檔名與內容的DB_Key不相符: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(3, "The filename does not match the DB_Key in the content.");
+                    return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
 
                 //  DB_Key是否已存在於資料庫
@@ -409,12 +409,16 @@ namespace DCT_data_import.ReadAndImport
                 }
 
                 
-                // 讀取net name欄位加入到此表
+                // 讀取TSMC 的 CSV net name欄位加入到此表
                 TsmcIeda tsmcIeda = new TsmcIeda();
                 List<string> netnameList = new List<string>();
                 if(fileContentFormat.lotInfo.Rows[0]["Customer"].ToString() == "TSMC")
                 {
                     netnameList = tsmcIeda.GetNetNameList(fileContentFormat.lotInfo.Rows[0]["AO_lot"].ToString());
+                    //if (netnameList.Count > 0)
+                    //{
+                    //    fileContentFormat.errMsg = "TSMC 的 CSV 讀檔失敗";
+                    //}
                 }
 
                 // 將raw data values 填入統計值的表

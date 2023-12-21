@@ -241,7 +241,7 @@ namespace DCT_data_import.ReadAndImport
         //}
         #endregion GetAseLot() end
 
-        public List<string> GetNetNameList(string aseLot)
+        public List<string> GetNetNameList(string aseLot, int recursive=0)
         {
             string ftpserver = "";
             FtpWebRequest reqFTP;
@@ -258,7 +258,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 // 取得 CSV 檔名
-                DataRow[] mappingDtRows = _lotMappingDt.Select("ase_lot='" + aseLot+"'");
+                DataRow[] mappingDtRows = _lotMappingDt.Select("ase_lot='" + aseLot + "'");
                 if (mappingDtRows.Length > 0)
                 {
                     filename = mappingDtRows[0]["csv"].ToString();  //mappingDtRows[2] 是 "csv" 欄位值
@@ -275,7 +275,7 @@ namespace DCT_data_import.ReadAndImport
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
-                
+
                 string netNameLine = "";
                 StreamReader reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
                 string line = reader.ReadLine();
@@ -290,7 +290,7 @@ namespace DCT_data_import.ReadAndImport
                 }
                 reader.Close();
                 netNameList = netNameLine.Split(',').ToList();
-                if(netNameList.Count>0) netNameList.RemoveAt(0);
+                if (netNameList.Count > 0) netNameList.RemoveAt(0);
 
                 // Kerwin 的電腦
                 if (macid == "94C6913F94BD")
@@ -304,9 +304,16 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                writeToLog.writeToLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver);
-                RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                return new List<string>();
+                if (recursive == 0)
+                {
+                    return GetNetNameList(aseLot, 1);
+                }
+                else
+                {
+                    writeToLog.writeToLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver + "  error:" + ex.ToString());
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    return new List<string>();
+                }
             }
 
             return netNameList;

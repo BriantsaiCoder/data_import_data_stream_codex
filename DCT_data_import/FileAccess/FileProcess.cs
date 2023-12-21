@@ -1052,7 +1052,7 @@ namespace DCT_data_import
                             if (!string.IsNullOrEmpty(response2.error))
                             {
                                 writeToLog.writeToLog("'INSERT INTO lots_result' error:" + response2.error);
-                                response2 = deleteRawData(webApiClient, lotId);
+                                //response2 = deleteRawData(webApiClient, lotId);
                                 return false;
                             }
                             values = "";
@@ -1081,7 +1081,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response2.error))
                     {
                         writeToLog.writeToLog("'INSERT INTO lots_result' response error:" + response2.error);
-                        response2 = deleteRawData(webApiClient, lotId);
+                        //response2 = deleteRawData(webApiClient, lotId);
                         return false;
                     }
                 }
@@ -1091,7 +1091,7 @@ namespace DCT_data_import
                 string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.writeToLog("'INSERT INTO lots_result' error:" + ex.ToString());
-                response2 = deleteRawData(webApiClient, lotId);
+                //response2 = deleteRawData(webApiClient, lotId);
                 return false;
             }
             #endregion

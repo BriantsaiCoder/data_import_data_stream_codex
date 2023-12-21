@@ -93,7 +93,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     writeToLog.writeToLog("檔名與內容的DB_Key不相符: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(3, "The filename does not match the DB_Key in the content.");
+                    return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
 
                 isDBKeyExist = fileAccess.isDBKeyExistInDB("tester_device_info", testStatusContentFormat.tester_device_info.Rows[0]["DB_Key"].ToString(), webApiClient);
