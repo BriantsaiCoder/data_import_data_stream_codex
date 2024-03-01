@@ -893,7 +893,7 @@ namespace DCT_data_import
             //else if (test_count * tableCount < 60000) cut_size = 10;
             //else if (test_count * tableCount < 100000) cut_size =2;
             //else  cut_size = 1;
-            cut_size = (test_count >0 && test_count < 20000) ? 20000 / test_count : 1;
+            cut_size = (test_count >0 && test_count < 10000) ? 10000 / test_count : 1;
 
             int lotResultCount = content.lotResult.Rows.Count;
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
@@ -1119,6 +1119,8 @@ namespace DCT_data_import
                 // 欄位名稱調整
                 if (column_name == "prober_/_handler") column_name = "prober/handler";
                 if (column_name == "l/b_id") column_name = "L/B_id";
+                if (column_name == "handler_repair_starttime") column_name = "handler_repair_start_time";
+                if (column_name == "handler_repair_endtime") column_name = "handler_repair_end_time";
 
                 string[] numTypeColumn = { "efficiency_check", "ui_flow_checksum", "yield", "lead_count", "site_qty", "bd_leak", "pg_leak", "wireclose_leak" };
                 if (numTypeColumn.Contains(column_name) && (content.tester_device_info.Rows[0][i].ToString().Trim() == "" || content.tester_device_info.Rows[0][i].ToString().Trim() == "NA"))
@@ -1657,6 +1659,88 @@ namespace DCT_data_import
 
             #endregion
 
+            #region insert `fail_pin_rate_test_result`             2024/3/1 新增
+            columns = "`fail_pin_rate_list_id`,`item_name`,`open`,`short`,`vmeas`";
+
+
+            // 開始逐一insert 
+            try
+            {
+                values = "";
+                for (int table_i = 0; table_i < content.fail_pin_rate_list_test_result.Tables.Count; table_i++)
+                {
+                    for (int i = 0; i < content.fail_pin_rate_list_test_result.Tables[table_i].Rows.Count; i++)
+                    {
+                        values += "(\"" + fail_pin_rate_list_Id[table_i].ToString() + "\",";
+                        for (int j = 0; j < content.fail_pin_rate_list_test_result.Tables[table_i].Columns.Count; j++)
+                        {
+                            if (j > 0 && string.IsNullOrEmpty(content.fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()))
+                            {
+                                values += "NULL";
+                            }
+                            else
+                            {
+                                values += "\"" + content.fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString().Trim() + "\"";
+                            }
+
+                            if (j != content.fail_pin_rate_list_test_result.Tables[table_i].Columns.Count - 1)
+                            {
+                                values += ",";
+                            }
+                        }
+                        // 每50個row就匯入一次
+                        if (i != 0 && i % 50 == 0)
+                        {
+                            values += ")";
+
+                            values = values.Substring(1, values.Length - 2);
+                            response = executeInsertWithAPI(webApiClient, "fail_pin_rate_test_result", columns, values);
+                            if (!string.IsNullOrEmpty(response.error))
+                            {
+                                response = deleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                                return false;
+                            }
+
+                            values = "";
+                        }
+                        else if (table_i != content.fail_pin_rate_list_test_result.Tables.Count - 1)
+                        {
+                            values += "),";
+                        }
+                        else
+                        {
+                            values += ")";
+                        }
+
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(values))
+                {
+                    if(values[values.Length - 1] == ',')
+                    {
+                        values = values.Substring(1, values.Length - 3);
+                    }
+                    else
+                    {
+                        values = values.Substring(1, values.Length - 2);
+                    }
+                    response = executeInsertWithAPI(webApiClient, "fail_pin_rate_test_result", columns, values);
+                    if (!string.IsNullOrEmpty(response.error))
+                    {
+                        response = deleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                string poolExceptionResult = PoolException(ex, webApiClient);
+                Console.WriteLine(ex.ToString());
+                response = deleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                return false;
+            }
+            #endregion
 
             return true;
         }
@@ -1747,6 +1831,21 @@ namespace DCT_data_import
             if (!string.IsNullOrEmpty(response.error))
             {
                 writeToLog.writeToLog("DELETE fail_pin_rate_list_pin_ball error: " + pool_excute.query + " " + response.error);
+            }
+            // 宣告 Web API body
+            pool_excute = new Pool_excute
+            {
+                pool = Program.POOL_NAME,
+                query = @"DELETE t4 
+	                                    FROM fail_pin_rate_test_result t4
+	                                    LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
+                                    WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
+            };
+            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+            response = webApiClient.ExcutePoolAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            if (!string.IsNullOrEmpty(response.error))
+            {
+                writeToLog.writeToLog("DELETE fail_pin_rate_test_result error: " + pool_excute.query + " " + response.error);
             }
             // 宣告 Web API body
             pool_excute = new Pool_excute

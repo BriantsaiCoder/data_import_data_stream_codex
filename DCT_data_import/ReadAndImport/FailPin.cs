@@ -32,11 +32,11 @@ namespace DCT_data_import.ReadAndImport
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
 
-            //// 檢查FTP連線狀態
-            //ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/";
-            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            //if (!isFtpConnected)
-            //    return new ImportResult(0, "FTP server connection failed.");
+            // 檢查FTP連線狀態
+            ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/";
+            bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            if (!isFtpConnected)
+                return new ImportResult(0, "FTP server connection failed.");
 
             string filename = "fail_pin_" + dbKey + ".csv";
             ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
@@ -61,8 +61,10 @@ namespace DCT_data_import.ReadAndImport
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
 
+                //StreamReader reader2 = new StreamReader(@"D:\ASEKH\K09865\DCT data\每一批產生之檔案\20240227_fail_pin_expansion_file\Fail Pin Rate Expansion 20240129_(Security C).csv");
+
                 FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
-                reader.Close();
+                //reader.Close();
                 if (!string.IsNullOrEmpty(failPinLogContent.errMsg))
                 {
                     return new ImportResult(2, failPinLogContent.errMsg);
@@ -130,7 +132,7 @@ namespace DCT_data_import.ReadAndImport
                         Console.WriteLine("匯入失敗: Fail Pin " + filename);
                         writeToLog.writeToLog("匯入失敗:" + ftpserver);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                        
+
                         reader.Close();
                         response.Close();
                         return new ImportResult(3, "Import failed.");
@@ -213,12 +215,22 @@ namespace DCT_data_import.ReadAndImport
                             int fail_pin_part = 1;
                             List<string> fail_pin_list = new List<string>();
                             List<string> fail_pin_log = new List<string>();
+                            DataTable test_result_dt = initDtFailPinTestResult();
+                            int row_index = -1, column_index=0;
                             for (int i = 3; i < values.Length; i++)
                             {
-                                // 以 ';' 分開fail pin log 與 remark
+                                // 以 ';' 分開fail pin log 與 remark  ，2024/3/1 新增以@分開test result
                                 if (values[i] == ";")
                                 {
                                     fail_pin_part = 2;
+                                    continue;
+                                }
+                                else if (values[i] == "@")
+                                {
+                                    fail_pin_part = 3;
+                                    test_result_dt.Rows.Add(test_result_dt.NewRow());
+                                    row_index++;
+                                    column_index = 0;
                                     continue;
                                 }
 
@@ -230,8 +242,22 @@ namespace DCT_data_import.ReadAndImport
                                 {
                                     fail_pin_log.Add(values[i]);
                                 }
+                                else if (fail_pin_part == 3)
+                                {
+                                    if(column_index>0) // column_index:     0-item_name    1-open    2-short    3-vmeas
+                                    {
+                                        double tmp_val = 0;
+                                        if(!double.TryParse(values[i], out tmp_val))
+                                        {
+                                            values[i] = null;
+                                        }
+                                    }
+                                    test_result_dt.Rows[row_index][column_index] = values[i];
+                                    column_index++;
+                                }
 
                             }
+                            failPinLogContentFormat.fail_pin_rate_list_test_result.Tables.Add(test_result_dt);
 
                             fail_pin_list_id++;
                             //  將 fail pin 與 log 存到 DataTable
@@ -271,6 +297,17 @@ namespace DCT_data_import.ReadAndImport
                 return null;
             }
             return failPinLogContentFormat;
+        }
+
+        private DataTable initDtFailPinTestResult()
+        {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("item_name", typeof(string));
+            dt.Columns.Add("open", typeof(string));
+            dt.Columns.Add("short", typeof(string));
+            dt.Columns.Add("vmeas", typeof(string));
+            
+            return dt;
         }
 
     }

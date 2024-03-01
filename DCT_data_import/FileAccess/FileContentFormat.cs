@@ -82,7 +82,8 @@ namespace DCT_data_import
         private string[] infoColumns = { "DB_Key", "Mac_Address", "IP_Address", "Area", "Factory", "Machine Type", "Machine ID", "Customer",
             "Device Production", "Device Engineer", "Test Program", "Program_path", "Lot ID", "Wafer ID", "Execution mode", "Prober / Handler",
             "L/B ID", "Dut board type", "Efficiency check", "UI Flow checksum", "Yield", "File type", " Start Time", "End Time", "Lead_count", "Site_qty",
-            "BD_Leak", "PG_Leak", "Wireclose_Leak" };
+            "BD_Leak", "PG_Leak", "Wireclose_Leak",
+            "handler_type","handler_sw_version","handler_repair_startTime","handler_repair_endTime","DOE_flag","HSO_mode","MP_API_log" ,"MP_TT_log","Smart_Delay_enable","Smart_Delay_time","ATV_Information"};
         private string[] statusColumns = { "DPW", "Duts", "CSV Name", "UPH", "Avg test time", "Max test time", "Min test time", "Avg index test time",
             "Max index test time", "Min index test time", "Diff time (die)", "End time (die)", "First time (die)", "Diff time (file)", "Conclusion file path",
             "Raw date file path", "S2S diff file path", "PASS / FAIL", "Case A Result", "Case B Result", "Case C Result", "PUI result", "PUI respond",
@@ -186,12 +187,13 @@ namespace DCT_data_import
 
     public class FailPinLogContentFormat
     {
-        private string[] infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date" };
+        private string[] infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date", "Total", "Pass", "Open", "Short","LK" };
 
         public string errMsg { get; set; }
         public DataTable fail_pin_rate_info { get; set; }
         public DataTable fail_pin_rate_list { get; set; }
         public DataTable fail_pin_rate_list_pin_ball { get; set; }
+        public DataSet fail_pin_rate_list_test_result { get; set; }
 
         public FailPinLogContentFormat()
         {
@@ -209,6 +211,8 @@ namespace DCT_data_import
             fail_pin_rate_list_pin_ball.Columns.Add("pin", typeof(string));
             fail_pin_rate_list_pin_ball.Columns.Add("ball", typeof(string));
             fail_pin_rate_list_pin_ball.Columns.Add("remark", typeof(string));
+
+            fail_pin_rate_list_test_result = new DataSet();
         }
 
         public bool compareInfo()

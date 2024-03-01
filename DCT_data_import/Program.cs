@@ -63,6 +63,7 @@ namespace DCT_data_import
                     // 如果建立pool失敗就中斷程式
                     if (!createPool(webApiClient, writeToLog)) return;
                 }
+                
 
                 Console.WriteLine("threadTesterAlive.IsAlive: " + threadTesterAlive);
                 Console.WriteLine("threadUiStatusAlive.IsAlive: " + threadUiStatusAlive);
@@ -92,7 +93,7 @@ namespace DCT_data_import
 
                 #region 固定時間通報程式還活著
                 DateTime nowTime = DateTime.Now;
-                if ((int)nowTime.DayOfWeek==1 && nowTime.Hour==8 && nowTime.Minute <10)
+                if ((int)nowTime.DayOfWeek == 1 && nowTime.Hour == 8 && nowTime.Minute < 10)
                 {
                     string mailBody = "Dear all,<br>DCT資料庫匯入程式正常執行中!<br>Thanks. <br>";
                     string mailTitle = "DCT data notification - 正常運行中";
@@ -262,7 +263,7 @@ namespace DCT_data_import
             Console.WriteLine("Tester mode end~");
 
             #region 寄信通報
-            if (/*DateTime.Now.TimeOfDay.Hours == 0 ||*/ DateTime.Now.TimeOfDay.Hours == 12)
+            if ((int)DateTime.Now.DayOfWeek%2 ==0 &&/*DateTime.Now.TimeOfDay.Hours == 0 ||*/ DateTime.Now.TimeOfDay.Hours == 12)
             {
                 if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
                 {
@@ -325,17 +326,17 @@ namespace DCT_data_import
         static string ImportUiStatusMode(FileProcess fileAccess, DbAccess dbAccess, WebApiClient webApiClient)
         {
             #region 檢查一天內是否有資料
-            int dataCount = dbAccess.SelectDataCountInDays(webApiClient, 1, "ui_status");
-            if (dataCount == 0)
-            {
-                if (DateTime.Now.TimeOfDay.Hours ==8)
-                {
-                    if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
-                    {
-                        SendMailModel("Dear all,<br><br>ui_status 已超過1天無資料匯入，請確認!<br><br>Thanks.");
-                    }
-                }
-            }
+            //int dataCount = dbAccess.SelectDataCountInDays(webApiClient, 1, "ui_status");
+            //if (dataCount == 0)
+            //{
+            //    if (DateTime.Now.TimeOfDay.Hours ==8)
+            //    {
+            //        if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
+            //        {
+            //            SendMailModel("Dear all,<br><br>ui_status 已超過1天無資料匯入，請確認!<br><br>Thanks.");
+            //        }
+            //    }
+            //}
             #endregion
             
             List<DbKeyObject> dbKeyUiStatusList = dbAccess.SelectDbKey(webApiClient, "ui_status");
