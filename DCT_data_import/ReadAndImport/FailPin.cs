@@ -32,11 +32,11 @@ namespace DCT_data_import.ReadAndImport
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
 
-            // 檢查FTP連線狀態
-            ftpserver = "ftp://" + Program.FTP_IP + "/Data_Analysis/Fail_Pin_Log/ST_RT_AT/";
-            bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            if (!isFtpConnected)
-                return new ImportResult(0, "FTP server connection failed.");
+            //// 檢查FTP連線狀態， 2024/3/4 因檢查此資料夾連線莫名錯誤，暫時不檢查此連線
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/";
+            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            //if (!isFtpConnected)
+            //    return new ImportResult(0, "FTP server connection failed.");
 
             string filename = "fail_pin_" + dbKey + ".csv";
             ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;

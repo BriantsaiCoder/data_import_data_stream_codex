@@ -1709,7 +1709,7 @@ namespace DCT_data_import
                         }
                         else
                         {
-                            values += ")";
+                            values += "),";
                         }
 
                     }
@@ -1872,7 +1872,7 @@ namespace DCT_data_import
                 ds_lot_statistic.Tables[i].Columns.Add("avg_2", typeof(decimal));
                 ds_lot_statistic.Tables[i].Columns.Add("pass_n", typeof(int));
                 if (ds_lot_statistic.Tables[i].Rows.Count < 1) continue;
-                ds_lot_statistic.Tables[i].Rows[0]["AVG"] = values[i].avg;
+                ds_lot_statistic.Tables[i].Rows[0]["AVG"] = Math.Round(values[i].avg, 9);
                 ds_lot_statistic.Tables[i].Rows[0]["avg_2"] = values[i].avg2;
                 ds_lot_statistic.Tables[i].Rows[0]["pass_n"] = values[i].pass_n;
             }

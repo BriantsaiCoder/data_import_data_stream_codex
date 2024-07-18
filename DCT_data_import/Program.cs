@@ -101,7 +101,7 @@ namespace DCT_data_import
                 }
                 #endregion 固定時間通報程式還活著
 
-                Thread.Sleep(600000);
+                Thread.Sleep(600000); // 600秒執行一次
                 threadTesterAlive = threadTesterMode.IsAlive;
                 threadUiStatusAlive = threadUiStatusMode.IsAlive;
                 threadTsmcAlive = threadTsmcMode.IsAlive;

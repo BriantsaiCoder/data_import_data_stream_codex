@@ -83,7 +83,8 @@ namespace DCT_data_import
             "Device Production", "Device Engineer", "Test Program", "Program_path", "Lot ID", "Wafer ID", "Execution mode", "Prober / Handler",
             "L/B ID", "Dut board type", "Efficiency check", "UI Flow checksum", "Yield", "File type", " Start Time", "End Time", "Lead_count", "Site_qty",
             "BD_Leak", "PG_Leak", "Wireclose_Leak",
-            "handler_type","handler_sw_version","handler_repair_startTime","handler_repair_endTime","DOE_flag","HSO_mode","MP_API_log" ,"MP_TT_log","Smart_Delay_enable","Smart_Delay_time","ATV_Information"};
+            "handler_type","handler_sw_version","handler_repair_startTime","handler_repair_endTime","DOE_flag","HSO_mode","MP_API_log" ,"MP_TT_log","Smart_Delay_enable","Smart_Delay_time","ATV_Information",
+            "NetlistInfo","TP_CheckerDetectionResults","PG_LeakageEnabled","LeakageEnabled","EnhanceTestTtemQTY" };
         private string[] statusColumns = { "DPW", "Duts", "CSV Name", "UPH", "Avg test time", "Max test time", "Min test time", "Avg index test time",
             "Max index test time", "Min index test time", "Diff time (die)", "End time (die)", "First time (die)", "Diff time (file)", "Conclusion file path",
             "Raw date file path", "S2S diff file path", "PASS / FAIL", "Case A Result", "Case B Result", "Case C Result", "PUI result", "PUI respond",

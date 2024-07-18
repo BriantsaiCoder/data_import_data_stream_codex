@@ -375,6 +375,15 @@ namespace DCT_data_import.ReadAndImport
                             {
                                 // 讀值若含有小數點"."而沒有小數位，則移除小數點
                                 if (values[i].Substring(values[i].Length - 1) == ".") values[i] = values[i].Substring(0, values[i].Length - 1);
+                                // 去除數值包含(O)(S)的括號
+                                if (values[i].Contains("(O)"))
+                                {
+                                    values[i] = values[i].Replace("(O)", "");
+                                }
+                                if (values[i].Contains("(S)"))
+                                {
+                                    values[i] = values[i].Replace("(S)", "");
+                                }
                                 rawData_list[i - rawData_part_index].Add(values[i]);
                             }
                             else if (result_part == 2 && i >= rawData_part_index + rawData_list.Count)
