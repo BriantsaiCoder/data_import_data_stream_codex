@@ -50,12 +50,13 @@ namespace DCT_data_import
             int count = 0;
 
 
+#if false /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
             Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
             Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
 
-            while (true)
+                        while (true)
             {
                 bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
                 if (!isConnect)
@@ -91,7 +92,7 @@ namespace DCT_data_import
                     threadTsmcMode.Start();
                 }
 
-                #region 固定時間通報程式還活著
+            #region 固定時間通報程式還活著
                 DateTime nowTime = DateTime.Now;
                 if ((int)nowTime.DayOfWeek == 1 && nowTime.Hour == 8 && nowTime.Minute < 10)
                 {
@@ -99,18 +100,108 @@ namespace DCT_data_import
                     string mailTitle = "DCT data notification - 正常運行中";
                     string sendResult = SendMailModel(mailBody, mailTitle);
                 }
-                #endregion 固定時間通報程式還活著
+            #endregion 固定時間通報程式還活著
 
                 Thread.Sleep(600000); // 600秒執行一次
                 threadTesterAlive = threadTesterMode.IsAlive;
                 threadUiStatusAlive = threadUiStatusMode.IsAlive;
                 threadTsmcAlive = threadTsmcMode.IsAlive;
                 Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + (++count) + " finished~");
-
-
-
             }
-            
+#else
+            bool thread1Alive = false, thread2Alive = false, thread3Alive = false, thread4Alive = false, thread5Alive = false;
+            Thread thread1 = new Thread(() => readAndImportRawData(fileAccess, webApiClient));
+            Thread thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, webApiClient));
+            Thread thread3 = new Thread(() => readAndImportUIStatus(fileAccess, webApiClient));
+            Thread thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, webApiClient));
+            Thread thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+
+            while (true)
+            {
+                Console.WriteLine("thread1.IsAlive: " + thread1Alive);
+                Console.WriteLine("thread2.IsAlive: " + thread2Alive);
+                Console.WriteLine("thread3.IsAlive: " + thread3Alive);
+                Console.WriteLine("thread4.IsAlive: " + thread4Alive);
+                Console.WriteLine("thread5.IsAlive: " + thread5Alive);
+
+                count++;
+
+                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                if (!isConnect)
+                {
+                    // 如果建立pool失敗就中斷程式
+                    if (!createPool(webApiClient, writeToLog)) return;
+                }
+
+                if (!thread1Alive)
+                {
+                    thread1.Interrupt();
+                    thread1.Abort();
+                    thread1 = new Thread(() => readAndImportRawData(fileAccess, webApiClient));
+                    thread1.Start();
+                }
+                if (!thread2Alive)
+                {
+                    thread2.Interrupt();
+                    thread2.Abort();
+                    thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, webApiClient));
+                    thread2.Start();
+                }
+                if (!thread3Alive)
+                {
+                    thread3.Interrupt();
+                    thread3.Abort();
+                    thread3 = new Thread(() => readAndImportUIStatus(fileAccess, webApiClient));
+                    thread3.Start();
+                }
+                if (!thread4Alive)
+                {
+                    thread4.Interrupt();
+                    thread4.Abort();
+                    thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, webApiClient));
+                    thread4.Start();
+                }
+                if (!thread5Alive)
+                {
+                    thread5.Interrupt();
+                    thread5.Abort();
+                    thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+                    thread5.Start();
+                }
+
+                //readAndImportRawData(fileAccess, webApiClient);
+                //readAndImportTesterStatus(fileAccess, webApiClient);
+                //readAndImportUIStatus(fileAccess, webApiClient);
+                //readAndImportFailPinLog(fileAccess, webApiClient);
+
+                //bool IfRunOver = false;
+                //while (!IfRunOver)
+                //{
+                //    bool IfTimesEnd = thread1.IsAlive;
+
+                //    if (!IfTimesEnd || IfRunOver)
+                //    {
+                //        thread1.Interrupt();
+                //        thread1.Abort();
+                //        IfTimesEnd = false;
+                //        break;
+                //    }
+                //}
+
+                //callWebApi();
+                //ftpReadFiles();
+                Thread.Sleep(600000);
+                thread1Alive = thread1.IsAlive;
+                thread2Alive = thread2.IsAlive;
+                thread3Alive = thread3.IsAlive;
+                thread4Alive = thread4.IsAlive;
+                thread5Alive = thread5.IsAlive;
+                Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + count + " finished~");
+            }
+#endif
+
+
+
             //Console.Read();
         }
         
@@ -398,5 +489,772 @@ namespace DCT_data_import
             return "";
         }
 
+        static string DownloadFile(string fileName, string newFileName, string user, string password)
+        {
+            try
+            {
+                FileStream outputStream = new FileStream(newFileName, FileMode.Create);
+
+
+                FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
+                request.Method = WebRequestMethods.Ftp.DownloadFile;
+                request.Credentials = new NetworkCredential(user, password);
+
+                FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+
+                //建立物件接收從FTP回應的資料流
+                Stream responseStream = response.GetResponseStream();
+                //建立物件讀取資料流的字元
+                StreamReader reader = new StreamReader(responseStream);
+
+                long cl = response.ContentLength;
+
+                int bufferSize = 2048;
+
+                int readCount;
+
+                byte[] buffer = new byte[bufferSize];
+
+                readCount = responseStream.Read(buffer, 0, bufferSize);
+
+                while (readCount > 0)
+                {
+                    outputStream.Write(buffer, 0, readCount);
+
+                    readCount = responseStream.Read(buffer, 0, bufferSize);
+                }
+                //Console.WriteLine(reader.ReadToEnd());
+
+                response.Close();
+                responseStream.Close();
+                outputStream.Close();
+                response.Close();
+                return response.StatusDescription;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        static string RenameFile(string fileName, string newFileName, string user, string password)
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
+            request.Method = WebRequestMethods.Ftp.Rename;
+            request.Credentials = new NetworkCredential(user, password);
+            request.RenameTo = newFileName;
+            request.Timeout = 10000;
+
+            try
+            {
+                FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+
+                response.Close();
+                return response.StatusDescription;
+            }
+            catch (Exception ex)
+            {
+                return "RenameFile() Fail";
+            }
+
+        }
+
+        static string DeleteFile(string fileName, string user, string password)
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
+            request.Method = WebRequestMethods.Ftp.DeleteFile;
+            request.Credentials = new NetworkCredential(user, password);
+
+            using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+            {
+                return response.StatusDescription;
+            }
+        }
+
+        static void readAndImportRawData(FileProcess fileAccess, WebApiClient webApiClient)
+        {
+            String ftpserver;
+            FtpWebRequest reqFTP;
+            FtpWebResponse response;
+            Stream responseStream;
+            StreamReader reader;
+            string names;
+            List<string> list_filename;
+            string[] fileNameSplit;
+            WriteToLog writeToLog = new WriteToLog();
+            CompareTool compareTool = new CompareTool();
+            bool compare_result = false;
+            CalculateSPC calculateSPC = new CalculateSPC();
+            List<StatisticItem> avg_2;
+            string downloadStatus, deleteStatus;
+            Stopwatch stopWatch = new Stopwatch();
+            TimeSpan ts2 = stopWatch.Elapsed;
+
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
+
+
+            //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/";
+            ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/";
+            reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+            reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
+            reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+            response = (FtpWebResponse)reqFTP.GetResponse();
+
+            responseStream = response.GetResponseStream();
+            reader = new StreamReader(responseStream);
+
+            names = reader.ReadToEnd();
+            list_filename = names.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            int countRepeatFileCompareTrue = 0;
+            int countRepeatFileCompareFalse = 0;
+
+            for (int i = list_filename.Count - 1; i >= 0; i--)
+            {
+                //if (list_filename[i] != "test_result_ASEF1-5070-B68-172.22.105.28_TMQJ89A-004C1L1T2DSANAAN-S-Fixed_20240203-103907.csv") continue;
+                //if (!list_filename[i].Contains("TMQ")) continue;
+                //if (!list_filename[i].Contains("Mustang")) continue;
+
+                string[] fnSplit = list_filename[i].Split('_');
+                string date1 = fnSplit[fnSplit.Length - 1].Split('-')[0];
+                int outInt = 0;
+                int.TryParse(date1, out outInt);
+                //if (outInt < 20240401 || outInt > 20240430) continue;
+
+                Console.Write("Raw " + (list_filename.Count - i).ToString() + " : ");
+
+                // 確認 pool 連線是否正常
+                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                if (!isConnect)
+                {
+                    // 如果建立pool失敗就中斷程式
+                    if (!createPool(webApiClient, writeToLog)) return;
+                }
+
+                //if (list_filename.Count - i == 100)
+                //{
+                //    reader.Close();
+                //    response.Close();
+                //    GC.Collect();
+                //    Console.WriteLine("Raw休息一下");
+                //    return;
+                //}
+
+                try
+                {
+                    fileNameSplit = list_filename[i].Split('.');
+                    if (fileNameSplit[fileNameSplit.Length - 1] != "csv") continue;
+                    bool fileExist = false;//fileAccess.isFileNameExistInDB(fileNameSplit[0], webApiClient);
+                    bool import_result = false;
+                    bool isDBKeyExist = false;
+
+                    //string[] str_split = list_filename[i].Split('_');
+                    //string str_datetime = str_split[str_split.Length - 1].Split('-')[0];
+                    //DateTime fileTime = DateTime.Parse(str_datetime.Substring(0,4)+"-"+ str_datetime.Substring(4,2) + "-"+ str_datetime.Substring(6,2));
+
+                    //int countDaysAgo = (DateTime.Now - fileTime).Days;
+                    //if (countDaysAgo > 60) continue;
+
+                    //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i];
+                    ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + list_filename[i];
+                    // 取得編碼格式
+                    reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+                    response = (FtpWebResponse)reqFTP.GetResponse();
+                    responseStream = response.GetResponseStream();
+                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+                    //if (list_filename[i]=="test_result_ASEF1-5070-B68-172.22.105.28_TMQJ89A-004C1L1T2DSANAAN-S-Fixed_20240205-152653.csv")
+                    //{
+                    //    int a = 0;
+                    //}
+
+                    if (!fileExist)
+                    {
+                        RawDataContentFormat rawDataContentFormat = fileAccess.FileReadRawData(reader);
+                        reader.Close();
+
+                        if (rawDataContentFormat == null || rawDataContentFormat.lotInfo.Rows.Count < 1)
+                        {
+                            Console.WriteLine("Raw data 讀檔失敗:  " + list_filename[i]);
+                            writeToLog.writeToLog("Raw data  讀檔失敗: " + ftpserver);
+                            //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            Thread.Sleep(500);
+                            continue;
+                        }
+                        if (!rawDataContentFormat.compareInfo())
+                        {
+                            Console.WriteLine("Raw data 之 information 欄位名稱不符:  " + list_filename[i]);
+                            writeToLog.writeToLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
+                            //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            Thread.Sleep(500);
+                            continue;
+                        }
+                        if (!rawDataContentFormat.compareStatistic())
+                        {
+                            Console.WriteLine("Raw data 之 statistic 欄位名稱不符:  " + list_filename[i]);
+                            writeToLog.writeToLog("Raw data 之 statistic 欄位名稱不符:" + ftpserver);
+                            //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            Thread.Sleep(500);
+                            continue;
+                        }
+                        //fileAccess.caculatePpk(rawDataContentFormat.lotStatistic);
+                        //if (rawDataContentFormat.lotResult.Rows.Count < 1)
+                        //{
+                        //    Console.WriteLine("Lot Result 無資料");
+                        //}
+
+                        isDBKeyExist = fileAccess.isDBKeyExistInDB("lots_info", rawDataContentFormat.lotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
+                        if (isDBKeyExist)
+                        {
+                            //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
+                            Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compare_result + "   檔名:" + list_filename[i]);
+                            //////writeToLog.writeToLog("資料庫已存在此資料:" + ftpserver);
+                            //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+
+                            //if(compare_result)
+                            //{
+                            //    countRepeatFileCompareTrue++;
+                            //    deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                            //}
+                            //else
+                            //{
+                            //    countRepeatFileCompareFalse++;
+                            //}
+
+                            // Kerwin 的電腦
+                            if (macid == "94C6913F94BD")
+                            {
+                                // 下載檔案到本地端
+                                //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            }
+
+                            //// 刪除已存在的的CSV檔案
+                            //deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+
+                            Thread.Sleep(500);
+                        }
+                        else
+                        {
+                            //// 計算平方和
+                            //list_square_sum = calculateSPC.SquareSum(rawDataContentFormat);
+                            // 計算均方和
+                            avg_2 = calculateSPC.AverageOfSumSquare(rawDataContentFormat);
+                            fileAccess.addColumnForDataset(rawDataContentFormat.lotStatistic, "avg_2", avg_2);
+
+                            //if(fileNameSplit[0]=="65109QH7XV01_46SMZMB002_2022_11_17_14_00_50")
+                            //{
+                            //    Console.WriteLine("");
+                            //}
+
+                            stopWatch.Reset();
+                            stopWatch.Start();
+                            // 開始匯入
+                            import_result = fileAccess.importRawData(rawDataContentFormat, webApiClient);
+                            stopWatch.Stop();
+                            ts2 = stopWatch.Elapsed;
+
+                            //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
+
+                            if (import_result)
+                            {
+                                //Console.WriteLine("匯入完成! Raw data    比對: " + compare_result + "   檔名:" + list_filename[i]);
+                                Console.WriteLine("匯入完成! Raw data    檔名:" + list_filename[i] + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
+
+                                // Kerwin 的電腦
+                                if (macid == "94C6913F94BD")
+                                {
+                                    // 下載檔案到本地端
+                                    downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                                }
+
+                                // 刪除已存在的的CSV檔案
+                                deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                            }
+                            else
+                            {
+                                Console.WriteLine("匯入失敗: Raw data " + list_filename[i]);
+                                Console.WriteLine($"匯入失敗: Raw data: {ftpserver}");
+                                writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                                //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                                RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            }
+                        }
+
+                        //reader.Close();
+                        response.Close();
+                    }
+                    else
+                    {
+                        Console.WriteLine("資料庫已存在此檔名: Raw data " + list_filename[i]);
+                        writeToLog.writeToLog("資料庫已存在此檔名:" + ftpserver);
+
+                        //// 下載檔案到本地端
+                        //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        //// 刪除已存在的的CSV檔案
+                        //deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+
+                        reader.Close();
+                        response.Close();
+
+
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+
+
+                    }
+                    //string[] allLines = reader.ReadToEnd().Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+
+                }
+                catch (Exception ex)
+                {
+                    //Console.WriteLine(ftpserver + ": " + ex.ToString());
+                    writeToLog.writeToLog(ftpserver + ": " + ex.ToString());
+                    //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                }
+                Thread.Sleep(500);
+            }
+
+            reader.Close();
+            response.Close();
+            GC.Collect();
+
+            Console.WriteLine("countRepeatFileCompareTrue:" + countRepeatFileCompareTrue.ToString() + "    countRepeatFileCompareFalse: " + countRepeatFileCompareFalse.ToString());
+            Console.WriteLine("Raw data end~");
+        }
+
+
+        static void readAndImportTesterStatus(FileProcess fileAccess, WebApiClient webApiClient)
+        {
+            String ftpserver;
+            FtpWebRequest reqFTP;
+            FtpWebResponse response;
+            Stream responseStream;
+            StreamReader reader;
+            string names;
+            List<string> list_filename;
+            string[] fileNameSplit;
+            bool isDBKeyExist = false, import_result = false;
+            WriteToLog writeToLog = new WriteToLog();
+            CompareTool compareTool = new CompareTool();
+            bool compare_result = false;
+            string downloadStatus, deleteStatus;
+
+
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
+
+
+            // Tester Status
+            //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/";
+            ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status/";
+            reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+            reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
+            reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+            response = (FtpWebResponse)reqFTP.GetResponse();
+
+            responseStream = response.GetResponseStream();
+            reader = new StreamReader(responseStream);
+
+            names = reader.ReadToEnd();
+            list_filename = names.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+
+            for (int i = list_filename.Count - 1; i >= 0; i--)
+            {
+                string[] fnSplit = list_filename[i].Split('_');
+                string date1 = fnSplit[fnSplit.Length - 1].Split('-')[0];
+                int outInt = 0;
+                int.TryParse(date1, out outInt);
+                if (outInt < 20240417) continue;
+
+                Console.Write("Tester " + (list_filename.Count - i).ToString() + " : ");
+
+                // 確認 pool 連線是否正常
+                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                if (!isConnect)
+                {
+                    // 如果建立pool失敗就中斷程式
+                    if (!createPool(webApiClient, writeToLog)) return;
+                }
+
+                try
+                {
+                    fileNameSplit = list_filename[i].Split('.');
+                    if (fileNameSplit[fileNameSplit.Length - 1] != "csv") continue;
+
+
+                    //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i];
+                    ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i];
+                    reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+                    //ftpserver = "ftp://10.16.92.67/Data_Analysis/Tester_Status/" + list_filename[i];
+                    //reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    //reqFTP.Credentials = new NetworkCredential("jacky", "jacky");
+                    response = (FtpWebResponse)reqFTP.GetResponse();
+                    responseStream = response.GetResponseStream();
+                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+                    TestStatusContentFormat testStatusContentFormat = fileAccess.FileReadTesterStatus(reader);
+                    reader.Close();
+                    if (testStatusContentFormat == null || testStatusContentFormat.tester_device_info.Rows.Count < 1)
+                    {
+                        Console.WriteLine("Tester Status 讀檔失敗:  " + list_filename[i]);
+                        writeToLog.writeToLog("Tester Status  讀檔失敗: " + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        continue;
+                    }
+                    if (!testStatusContentFormat.compareInfo())
+                    {
+                        Console.WriteLine("Tester Status 之 information 欄位名稱不符:  " + list_filename[i]);
+                        writeToLog.writeToLog("Tester Status 之 information 欄位名稱不符: " + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        Console.Read();
+                        return;
+                    }
+                    if (!testStatusContentFormat.compareStatus())
+                    {
+                        Console.WriteLine("Tester Status 之 tester_status 欄位名稱不符:  " + list_filename[i]);
+                        writeToLog.writeToLog("Tester Status 之 tester_status 欄位名稱不符: " + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        Console.Read();
+                        return;
+                    }
+                    isDBKeyExist = fileAccess.isDBKeyExistInDB("tester_device_info", testStatusContentFormat.tester_device_info.Rows[0]["DB_Key"].ToString(), webApiClient);
+                    if (isDBKeyExist)
+                    {
+                        //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
+                        Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + list_filename[i]);
+                        //Console.WriteLine("資料庫已存在此資料: Tester Status  比對" + compare_result + "   檔名:" + list_filename[i]);
+                        writeToLog.writeToLog("資料庫已存在此資料: " + ftpserver);
+
+                        // Kerwin 的電腦
+                        if (macid == "94C6913F94BD")
+                        {
+                            // 下載檔案到本地端
+                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tester_status_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        }
+                        // 刪除已存在的的CSV檔案
+                        deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                    }
+                    else
+                    {
+                        import_result = fileAccess.importTesterStatus(testStatusContentFormat, webApiClient);
+                        //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
+                        if (import_result)
+                        {
+                            //Console.WriteLine("匯入完成! Tester Status  比對" + compare_result + "   檔名: " + list_filename[i]);
+                            Console.WriteLine("匯入完成! Tester Status   檔名: " + list_filename[i]);
+
+                            // Kerwin 的電腦
+                            if (macid == "94C6913F94BD")
+                            {
+                                // 下載檔案到本地端
+                                downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tester_status_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            }
+
+                            // 刪除已存在的的CSV檔案
+                            deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                        }
+                        else
+                        {
+                            Console.WriteLine("匯入失敗: Tester Status " + list_filename[i]);
+                            writeToLog.writeToLog("匯入失敗: " + ftpserver);
+                            //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        }
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                    //Console.WriteLine(RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD));
+                    Console.WriteLine(RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD));
+                }
+
+                reader.Close();
+                response.Close();
+
+                Thread.Sleep(500);
+            }
+
+            Console.WriteLine("Tester status end~");
+        }
+
+        static void readAndImportUIStatus(FileProcess fileAccess, WebApiClient webApiClient)
+        {
+            String ftpserver;
+            FtpWebRequest reqFTP;
+            FtpWebResponse response;
+            Stream responseStream;
+            StreamReader reader;
+            string names;
+            List<string> list_filename;
+            string[] fileNameSplit;
+
+            bool isDBKeyExist = false, import_result = false;
+            CompareTool compareTool = new CompareTool();
+            WriteToLog writeToLog = new WriteToLog();
+            string downloadStatus, deleteStatus;
+
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
+
+            // Tester Status
+            //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status_Error/";
+            ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/";
+            reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+            reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
+            reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+            response = (FtpWebResponse)reqFTP.GetResponse();
+
+            responseStream = response.GetResponseStream();
+            reader = new StreamReader(responseStream);
+
+            names = reader.ReadToEnd();
+            list_filename = names.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            for (int i = list_filename.Count - 1; i >= 0; i--)
+            {
+                string[] fnSplit = list_filename[i].Split('_');
+                string date1 = fnSplit[fnSplit.Length - 6];
+                int outInt = 0;
+                int.TryParse(date1, out outInt);
+                if (outInt < 2024) continue;
+
+                Console.Write("UI_status " + (list_filename.Count - i).ToString() + " : ");
+
+                // 確認 pool 連線是否正常
+                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                if (!isConnect)
+                {
+                    // 如果建立pool失敗就中斷程式
+                    if (!createPool(webApiClient, writeToLog)) return;
+                }
+
+                try
+                {
+                    fileNameSplit = list_filename[i].Split('.');
+                    if (fileNameSplit[fileNameSplit.Length - 1] != "csv") continue;
+
+                    import_result = false;
+
+                    //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i];
+                    ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i];
+                    reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+                    response = (FtpWebResponse)reqFTP.GetResponse();
+                    responseStream = response.GetResponseStream();
+                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+                    UIStatusContentFormat uiStatusContentFormat = fileAccess.FileReadUIStatus(reader);
+                    reader.Close();
+                    if (uiStatusContentFormat == null)
+                    {
+                        Console.WriteLine("UI Status 讀取失敗: " + list_filename[i]);
+                        writeToLog.writeToLog("UI Status 讀取失敗:" + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        continue;
+                    }
+                    if (!uiStatusContentFormat.compareUiStatus())
+                    {
+                        Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + list_filename[i]);
+                        writeToLog.writeToLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        Console.Read();
+                        return;
+                    }
+
+                    import_result = fileAccess.importUIStatus(uiStatusContentFormat, webApiClient);
+                    if (import_result)
+                    {
+                        Console.WriteLine("匯入完成! UI Status " + list_filename[i]);
+                        // Kerwin 的電腦
+                        if (macid == "94C6913F94BD")
+                        {
+                            // 下載檔案到本地端
+                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\ui_status_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        }
+                        // 刪除已存在的的CSV檔案
+                        deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                    }
+                    else
+                    {
+                        Console.WriteLine("匯入失敗: UI Status " + list_filename[i]);
+                        writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                    }
+
+                    Thread.Sleep(500); reader.Close();
+                    response.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
+            }
+
+            Console.WriteLine("UI status end~");
+        }
+
+        static void readAndImportFailPinLog(FileProcess fileAccess, WebApiClient webApiClient)
+        {
+            String ftpserver;
+            FtpWebRequest reqFTP;
+            FtpWebResponse response;
+            Stream responseStream;
+            StreamReader reader;
+            string names;
+            List<string> list_filename;
+            string[] fileNameSplit;
+            bool import_result = false, isDBKeyExist = false;
+            WriteToLog writeToLog = new WriteToLog();
+            CompareTool compareTool = new CompareTool();
+            bool compare_result = false;
+            string downloadStatus, deleteStatus;
+
+            //抓mac id
+            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+            string macid = nics[0].GetPhysicalAddress().ToString();
+
+            // Fail_Pin
+            //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/";
+            ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/";
+            reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+            reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
+            reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+            response = (FtpWebResponse)reqFTP.GetResponse();
+
+            responseStream = response.GetResponseStream();
+            reader = new StreamReader(responseStream);
+
+            names = reader.ReadToEnd();
+            list_filename = names.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            // 確認 pool 連線是否正常
+            bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+            if (!isConnect)
+            {
+                // 如果建立pool失敗就中斷程式
+                if (!createPool(webApiClient, writeToLog)) return;
+            }
+
+            for (int i = list_filename.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    string[] fnSplit = list_filename[i].Split('_');
+                    string date1 = fnSplit[fnSplit.Length - 1].Split('-')[0];
+                    int outInt = 0;
+                    int.TryParse(date1, out outInt);
+                    if (outInt < 20240401) continue;
+
+                    //if (list_filename[i] != "fail_pin_ASEF3-5070-9004-172.22.181.19_MT8781V_NAZAHHB-AWOMDS-H-Q_20240312-083034.csv") continue;
+                    fileNameSplit = list_filename[i].Split('.');
+                    if (fileNameSplit[fileNameSplit.Length - 1] != "csv") continue;
+
+                    Console.Write("Fail_pin_rate " + (list_filename.Count - i).ToString() + " : ");
+
+                    //ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i];
+                    ftpserver = "ftp://" + FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i];
+                    reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    reqFTP.Credentials = new NetworkCredential(FTP_USER, FTP_PASSWORD);
+                    response = (FtpWebResponse)reqFTP.GetResponse();
+                    responseStream = response.GetResponseStream();
+                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+
+
+                    //if (i != list_filename.Count - 1) break;
+                    //string filePath = @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\20240227_fail_pin_expansion_file\Fail Pin Rate Expansion 20240129_(Security C).csv";
+                    //StreamReader reader2 = new StreamReader(filePath);
+
+                    FailPinLogContentFormat failPinLogContent = fileAccess.FileReadFailPinLog(reader);
+                    // 讀取失敗或沒有資料
+                    if (failPinLogContent == null || failPinLogContent.fail_pin_rate_info.Rows.Count < 1)
+                    {
+                        Console.WriteLine("Fail Pin Log 讀取失敗:  " + list_filename[i]);
+                        writeToLog.writeToLog("Fail Pin Log 讀取失敗: " + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        continue;
+                    }
+                    reader.Close();
+                    if (!failPinLogContent.compareInfo())
+                    {
+                        Console.WriteLine("Fail Pin Log 之 information 欄位名稱不符:  " + list_filename[i]);
+                        writeToLog.writeToLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
+                        //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        return;
+                    }
+                    isDBKeyExist = fileAccess.isDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
+                    if (isDBKeyExist)
+                    {
+                        //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
+                        Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + list_filename[i]);
+                        //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
+                        //writeToLog.writeToLog("資料庫已存在此資料: " + ftpserver);
+                        // Kerwin 的電腦
+                        if (macid == "94C6913F94BD")
+                        {
+                            // 下載檔案到本地端
+                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\fail_pin_log_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        }
+                        // 刪除已存在的的CSV檔案
+                        deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                    }
+                    else
+                    {
+                        import_result = fileAccess.importFailPinLog(failPinLogContent, webApiClient);
+                        //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
+                        if (import_result)
+                        {
+                            //Console.WriteLine("匯入完成! Fail Pin    比對: " + compare_result + "   檔名:" + list_filename[i]);
+                            Console.WriteLine("匯入完成! Fail Pin      檔名:" + list_filename[i]);
+                            // Kerwin 的電腦
+                            if (macid == "94C6913F94BD")
+                            {
+                                // 下載檔案到本地端
+                                downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\fail_pin_log_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            }
+                            // 刪除完成的CSV檔案
+                            deleteStatus = DeleteFile(ftpserver, FTP_USER, FTP_PASSWORD);
+                        }
+                        else
+                        {
+                            Console.WriteLine("匯入失敗: Fail Pin " + list_filename[i]);
+                            writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                            //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                            RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i], FTP_USER, FTP_PASSWORD);
+                        }
+                    }
+
+                    Thread.Sleep(500);
+                    reader.Close();
+                    response.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                    writeToLog.writeToLog(ex.ToString());
+                }
+            }
+
+            Console.WriteLine("Fail pin log end~");
+        }
     }
 }

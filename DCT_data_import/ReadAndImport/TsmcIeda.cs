@@ -198,7 +198,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 iedaDataFormat.errMsg = "讀檔內容錯誤";
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine($"{ex.ToString()} , {ex.Message}");
             }
 
 
