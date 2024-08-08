@@ -50,7 +50,7 @@ namespace DCT_data_import
             int count = 0;
 
 
-#if false /// ture: 有DB Key檢查; false: 沒有DB Key檢查
+#if true /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
             Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
