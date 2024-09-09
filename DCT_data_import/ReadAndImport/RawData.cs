@@ -41,6 +41,7 @@ namespace DCT_data_import.ReadAndImport
             string downloadStatus, deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
+            double readTakeTime = 0, importTakeTime = 0;
             
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
@@ -55,6 +56,7 @@ namespace DCT_data_import.ReadAndImport
             // 檢查FTP是否有此檔案
             string filename = "test_result_" + dbKey + ".csv";
             ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + filename;
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_bk/" + filename;
             bool  isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
                 return new ImportResult(0, "File not found.");
@@ -78,10 +80,19 @@ namespace DCT_data_import.ReadAndImport
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                
+
+                long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+
+
+                stopWatch.Reset();
+                stopWatch.Start();
 
                 RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
                 reader.Close();
+
+                stopWatch.Stop();
+                ts2 = stopWatch.Elapsed;
+                readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
 
                 //if (rawDataContentFormat.lotInfo.Rows[0]["Customer"].ToString() != "TSMC") return null;
 
@@ -170,8 +181,14 @@ namespace DCT_data_import.ReadAndImport
 
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
+                    importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
 
                     //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
+
+                    string dateStr = DateTime.Now.ToString("yyyyMMdd");
+                    string checkLogFileName = "DCT_data_check_log_rawData_" + dateStr + ".csv";
+                    // 寫入 file name, file size, import time, read file take time, import take time
+                    writeToLog.writeToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + ","+ readTakeTime.ToString()+","+ importTakeTime.ToString());
 
                     if (import_result)
                     {

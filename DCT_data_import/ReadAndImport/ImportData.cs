@@ -222,6 +222,50 @@ namespace DCT_data_import.ReadAndImport
             return false;
         }
 
+        public long GetFileSize(string ftpUrl , string ftpUsername, string ftpPassword)
+        {
+            long fileSize = 0;
+            // 创建 FtpWebRequest 对象
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpUrl);
+            request.Method = WebRequestMethods.Ftp.GetFileSize; // 指定获取文件大小的方法
+
+            // 提供 FTP 凭据
+            request.Credentials = new NetworkCredential(ftpUsername, ftpPassword);
+
+            try
+            {
+                // 获取响应
+                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+                {
+                    fileSize = response.ContentLength;  // 文件大小
+                }
+            }
+            catch (WebException ex)
+            {
+                // 处理可能出现的错误
+                Console.WriteLine($"FTP GetFileSize 錯誤: {ex.Status}, {ex.Message}");
+                return 0;
+            }
+
+            return fileSize;
+        }
+
+        /// <summary>
+        /// 轉換檔案大小 
+        /// </summary>
+        /// <param name="fileSize"></param>
+        /// <returns></returns>
+        public string FormatFileSize(long fileSize)
+        {
+            string[] sizes = { "B", "KB", "MB" };
+            int order = 0;
+            while (fileSize >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                fileSize = fileSize / 1024;
+            }
+            return string.Format("{0:0.##} {1}", fileSize, sizes[order]);
+        }
         #endregion Common tool
     }
 }

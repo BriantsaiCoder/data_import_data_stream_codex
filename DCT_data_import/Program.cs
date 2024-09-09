@@ -49,16 +49,22 @@ namespace DCT_data_import
             DbAccess dbAccess = new DbAccess();
             int count = 0;
 
+            bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+            if (!isConnect)
+            {
+                // 如果建立pool失敗就中斷程式
+                if (!createPool(webApiClient, writeToLog)) return;
+            }
 
 #if true /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
-            Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
-            Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+            //Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
+            //Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
 
-                        while (true)
+            while (true)
             {
-                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                isConnect = webApiClient.checkDBConnect(POOL_NAME);
                 if (!isConnect)
                 {
                     // 如果建立pool失敗就中斷程式
@@ -77,20 +83,20 @@ namespace DCT_data_import
                     threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
                     threadTesterMode.Start();
                 }
-                if (!threadUiStatusAlive)
-                {
-                    threadUiStatusMode.Interrupt();
-                    threadUiStatusMode.Abort();
-                    threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
-                    threadUiStatusMode.Start();
-                }
-                if (!threadTsmcAlive)
-                {
-                    threadTsmcMode.Interrupt();
-                    threadTsmcMode.Abort();
-                    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
-                    threadTsmcMode.Start();
-                }
+                //if (!threadUiStatusAlive)
+                //{
+                //    threadUiStatusMode.Interrupt();
+                //    threadUiStatusMode.Abort();
+                //    threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
+                //    threadUiStatusMode.Start();
+                //}
+                //if (!threadTsmcAlive)
+                //{
+                //    threadTsmcMode.Interrupt();
+                //    threadTsmcMode.Abort();
+                //    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+                //    threadTsmcMode.Start();
+                //}
 
             #region 固定時間通報程式還活著
                 DateTime nowTime = DateTime.Now;
@@ -104,8 +110,8 @@ namespace DCT_data_import
 
                 Thread.Sleep(600000); // 600秒執行一次
                 threadTesterAlive = threadTesterMode.IsAlive;
-                threadUiStatusAlive = threadUiStatusMode.IsAlive;
-                threadTsmcAlive = threadTsmcMode.IsAlive;
+                //threadUiStatusAlive = threadUiStatusMode.IsAlive;
+                //threadTsmcAlive = threadTsmcMode.IsAlive;
                 Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + (++count) + " finished~");
             }
 #else

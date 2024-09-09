@@ -97,6 +97,43 @@ namespace DCT_data_import
 
             return "";
         }
+        
+        public void writeToCheckLog(string logFilename,string content)
+        {
+            string checkLogFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\" + "check_logs";
+
+            checkLogFolder = checkLogFolder.Substring(6);
+
+            if (!Directory.Exists(checkLogFolder))
+            {
+                Directory.CreateDirectory(checkLogFolder);
+            }
+
+            string log_path = new Uri(checkLogFolder + "\\"+ logFilename).LocalPath;
+            
+            try
+            {
+                if (!File.Exists(log_path))
+                {
+                    using (StreamWriter writer = File.CreateText(log_path))
+                    {
+                        writer.WriteLine("File Name, File Size, Time, Read File Takes Time, Import Takes Time");
+                        writer.WriteLine(content);
+                    }
+                    return;
+                }
+                using (StreamWriter writer = File.AppendText(log_path))
+                {
+                    writer.WriteLine(content);
+                }
+            }
+            catch (Exception ex)
+            {
+                FailedCount++;
+                Console.WriteLine(ex.Message);
+            }
+
+        }
 
 
     }

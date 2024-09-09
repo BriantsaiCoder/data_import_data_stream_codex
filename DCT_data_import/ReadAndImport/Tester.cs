@@ -27,6 +27,9 @@ namespace DCT_data_import.ReadAndImport
             CompareTool compareTool = new CompareTool();
             bool compare_result = false;
             string downloadStatus, deleteStatus;
+            Stopwatch stopWatch = new Stopwatch();
+            TimeSpan ts2 = stopWatch.Elapsed;
+            double readTakeTime = 0, importTakeTime = 0;
 
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
@@ -41,6 +44,7 @@ namespace DCT_data_import.ReadAndImport
             // 檢查FTP是否有此檔案
             string filename = "tester_" + dbKey + ".csv";
             ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status/" + filename;
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status_bk/backup/" + filename;
             bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
                 return new ImportResult(0, "File not found.");
@@ -61,8 +65,18 @@ namespace DCT_data_import.ReadAndImport
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
 
+                long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+
+                stopWatch.Reset();
+                stopWatch.Start();
+
                 TestStatusContentFormat testStatusContentFormat = FileReadTesterStatus(reader);
                 reader.Close();
+
+                stopWatch.Stop();
+                ts2 = stopWatch.Elapsed;
+                readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
+
                 if (!string.IsNullOrEmpty(testStatusContentFormat.errMsg))
                 {
                     return new ImportResult(2, testStatusContentFormat.errMsg);
@@ -119,15 +133,28 @@ namespace DCT_data_import.ReadAndImport
                 }
                 else
                 {
+                    stopWatch.Reset();
+                    stopWatch.Start();
+
                     await Task.Run(() =>
                     {
                         import_result = fileAccess.importTesterStatus(testStatusContentFormat, webApiClient);
                     }).ConfigureAwait(false);
+
+                    stopWatch.Stop();
+                    ts2 = stopWatch.Elapsed;
+                    importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
+
+                    string dateStr = DateTime.Now.ToString("yyyyMMdd");
+                    string checkLogFileName = "DCT_data_check_log_tester_" + dateStr + ".csv";
+                    // 寫入 file name, file size, import time, read file take time, import take time
+                    writeToLog.writeToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
+
                     //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
                     if (import_result)
                     {
                         //Console.WriteLine("匯入完成! Tester Status  比對" + compare_result + "   檔名: " + list_filename[i]);
-                        Console.WriteLine("匯入完成! Tester Status   檔名: " + filename);
+                        Console.WriteLine("匯入完成! Tester Status   檔名: " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
 
                         // Kerwin 的電腦
                         if (macid == "94C6913F94BD")

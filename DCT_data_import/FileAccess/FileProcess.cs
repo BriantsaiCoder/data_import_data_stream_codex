@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime;
@@ -680,6 +681,9 @@ namespace DCT_data_import
 
         public bool isDBKeyExistInDB(string db_table_name, string db_key, WebApiClient webApiClient)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             var pool_excute = new Pool_excute
             {
                 pool = Program.POOL_NAME,
@@ -698,7 +702,8 @@ namespace DCT_data_import
             {
                 length = response.data.Count;
             }
-
+            stopwatch.Stop();
+            long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             //Console.WriteLine(json_str.data);
 
             return (length > 0);
@@ -1749,6 +1754,7 @@ namespace DCT_data_import
         {
             try
             {
+                
 
                 // 宣告 Web API body
                 Pool_excute pool_excute = new Pool_excute
@@ -1762,6 +1768,8 @@ namespace DCT_data_import
                 {
                     writeToLog.writeToLog("'INSERT INTO " + tableName + "' response error:" + response.error);
                 }
+                
+
                 return response;
             }
             catch(Exception ex)

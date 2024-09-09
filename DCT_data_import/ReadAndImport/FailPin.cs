@@ -27,6 +27,9 @@ namespace DCT_data_import.ReadAndImport
             CompareTool compareTool = new CompareTool();
             bool compare_result = false;
             string downloadStatus, deleteStatus;
+            Stopwatch stopWatch = new Stopwatch();
+            TimeSpan ts2 = stopWatch.Elapsed;
+            double readTakeTime = 0, importTakeTime = 0;
 
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
@@ -40,6 +43,7 @@ namespace DCT_data_import.ReadAndImport
 
             string filename = "fail_pin_" + dbKey + ".csv";
             ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_bk/ST_RT_AT/" + filename;
 
             try
             {
@@ -53,17 +57,27 @@ namespace DCT_data_import.ReadAndImport
                 if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
                     if (!createPool(webApiClient, writeToLog))
                         return new ImportResult(0, "MySQL database connection failed.");
-
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
+                
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
 
+                long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+
                 //StreamReader reader2 = new StreamReader(@"D:\ASEKH\K09865\DCT data\每一批產生之檔案\20240227_fail_pin_expansion_file\Fail Pin Rate Expansion 20240129_(Security C).csv");
 
+                stopWatch.Reset();
+                stopWatch.Start();
+
                 FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
+                reader.Close();
+
+                stopWatch.Stop();
+                ts2 = stopWatch.Elapsed;
+                readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
+
                 //reader.Close();
                 if (!string.IsNullOrEmpty(failPinLogContent.errMsg))
                 {
@@ -106,15 +120,29 @@ namespace DCT_data_import.ReadAndImport
                 }
                 else
                 {
+                    stopWatch.Reset();
+                    stopWatch.Start();
+
                     await Task.Run(() =>
                     {
                         import_result = fileAccess.importFailPinLog(failPinLogContent, webApiClient);
                     }).ConfigureAwait(false);
+
+                    stopWatch.Stop();
+                    ts2 = stopWatch.Elapsed;
+                    importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
+
                     //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
+
+                    string dateStr = DateTime.Now.ToString("yyyyMMdd");
+                    string checkLogFileName = "DCT_data_check_log_failPin_" + dateStr + ".csv";
+                    // 寫入 file name, file size, import time, read file take time, import take time
+                    writeToLog.writeToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
+
                     if (import_result)
                     {
                         //Console.WriteLine("匯入完成! Fail Pin    比對: " + compare_result + "   檔名:" + list_filename[i]);
-                        Console.WriteLine("匯入完成! Fail Pin      檔名:" + filename);
+                        Console.WriteLine("匯入完成! Fail Pin      檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // Kerwin 的電腦
                         if (macid == "94C6913F94BD")
                         {

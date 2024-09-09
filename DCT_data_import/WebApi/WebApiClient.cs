@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -83,6 +84,9 @@ namespace DCT_data_import
             //response.EnsureSuccessStatusCode();
             try
             {
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+
                 string path = string.Format("api/mysql/pools/execute");
 
                 // 將 data 轉為 json
@@ -114,6 +118,9 @@ namespace DCT_data_import
                     {
                         result = await response.Content.ReadAsAsync<Pool_excute_response>();
                     }
+
+                    stopwatch.Stop();
+                    long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
 
                     return result;
                 }
