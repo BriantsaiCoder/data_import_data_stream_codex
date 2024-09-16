@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -78,81 +79,150 @@ namespace DCT_data_import
         }
 
 
-        public async Task<Pool_excute_response> ExcutePoolAsync(Pool_excute pool_excute, string mode = "", string api_key="")
-        {
-            //HttpResponseMessage response = await client.PostAsJsonAsync("api/mysql/pool/execute", pool_excute);
-            //response.EnsureSuccessStatusCode();
-            try
-            {
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
+        //public async Task<Pool_excute_response> ExcutePoolAsync(Pool_excute pool_excute, string mode = "", string api_key="")
+        //{
+        //    //HttpResponseMessage response = await client.PostAsJsonAsync("api/mysql/pool/execute", pool_excute);
+        //    //response.EnsureSuccessStatusCode();
+        //    try
+        //    {
+        //        Stopwatch stopwatch = new Stopwatch();
+        //        stopwatch.Start();
 
-                string path = string.Format("api/mysql/pools/execute");
+        //        string path = string.Format("api/mysql/pools/execute");
 
-                // 將 data 轉為 json
-                string json = JsonConvert.SerializeObject(pool_excute);
-                // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
-                HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
-                // 發出 post 並取得結果
-                HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
+        //        // 將 data 轉為 json
+        //        string json = JsonConvert.SerializeObject(pool_excute);
+        //        // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
+        //        HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
+        //        // 發出 post 並取得結果
+        //        HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
+        //        response.EnsureSuccessStatusCode();
 
-                Pool_excute_response result;
-                if (response.IsSuccessStatusCode)
-                {
-                    // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
-                    string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                    //Console.WriteLine("execute pool: " + result_str);
-                    if (mode == "insert" || mode == "delete" || mode == "update")
-                    {
-                        dynamic json_obj = JObject.Parse(result_str);
-                        JArray jArray = new JArray(json_obj.data);
+        //        Pool_excute_response result;
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
+        //            string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        //            //Console.WriteLine("execute pool: " + result_str);
+        //            if (mode == "insert" || mode == "delete" || mode == "update")
+        //            {
+        //                dynamic json_obj = JObject.Parse(result_str);
+        //                JArray jArray = new JArray(json_obj.data);
 
-                        result = new Pool_excute_response
-                        {
-                            data = jArray,
-                            error = json_obj.error
-                        };
-                    }
-                    else
-                    {
-                        result = await response.Content.ReadAsAsync<Pool_excute_response>();
-                    }
+        //                result = new Pool_excute_response
+        //                {
+        //                    data = jArray,
+        //                    error = json_obj.error
+        //                };
+        //            }
+        //            else
+        //            {
+        //                result = await response.Content.ReadAsAsync<Pool_excute_response>();
+        //            }
 
-                    stopwatch.Stop();
-                    long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+        //            stopwatch.Stop();
+        //            long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
 
-                    return result;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                WriteToLog writeToLog = new WriteToLog();
-                writeToLog.writeToLog("ExcutePoolAsync error:" + pool_excute.query + "         ex:" + ex.ToString());
-                return new Pool_excute_response { error=ex.ToString()};
-            }
+        //            return result;
+        //        }
+        //        else
+        //        {
+        //            return null;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine(ex.ToString());
+        //        WriteToLog writeToLog = new WriteToLog();
+        //        writeToLog.writeToLog("ExcutePoolAsync error:" + pool_excute.query + "         ex:" + ex.ToString());
+        //        return new Pool_excute_response { error=ex.ToString()};
+        //    }
 
            
 
-            //string[] table_colums = { "Test Program", "Lot ID", "Wafer Lot", "Tester", "Date", "siteid", "device", "x", "y", "value", "bin_code", "x_Y", "ITEM NUM", "ITEM NAME" };
-            //dynamic json_obj = JObject.Parse(result_str);
-            ////Console.WriteLine(json_obj.data);
-            //Console.WriteLine(json_obj.error);
-            //dynamic json_data = JObject.Parse(json_obj.data);
-            //Console.WriteLine(json_data.Date);
+        //    //string[] table_colums = { "Test Program", "Lot ID", "Wafer Lot", "Tester", "Date", "siteid", "device", "x", "y", "value", "bin_code", "x_Y", "ITEM NUM", "ITEM NAME" };
+        //    //dynamic json_obj = JObject.Parse(result_str);
+        //    ////Console.WriteLine(json_obj.data);
+        //    //Console.WriteLine(json_obj.error);
+        //    //dynamic json_data = JObject.Parse(json_obj.data);
+        //    //Console.WriteLine(json_data.Date);
 
-            //Console.WriteLine(json_obj.data[0][table_colums[0]]);
-            //Console.WriteLine(json_obj.data[0]);
+        //    //Console.WriteLine(json_obj.data[0][table_colums[0]]);
+        //    //Console.WriteLine(json_obj.data[0]);
 
-            // return URI of the created resource.
-            //return response.Headers.Location;
+        //    // return URI of the created resource.
+        //    //return response.Headers.Location;
 
-            //return result_str;
+        //    //return result_str;
+        //}
+
+        public async Task<Pool_excute_response> ExcutePoolAsync(Pool_excute pool_excute, string mode = "select", string api_key = "")
+        {
+            string server = "10.16.92.67";
+            string port = "3306";
+            string user = "5910";
+            string password = "TID_5910!";
+            string database = "dct";
+            //string server = "10.16.93.46";
+            //string port = "3306";
+            //string user = "5910";
+            //string password = "TID_5910!";
+            //string database = "dct";
+
+            Pool_excute_response result = new Pool_excute_response();
+
+            try
+            {
+
+                DBmysql DB = new DBmysql();
+                DB.connect(server, port, user, password, database);
+
+                string cmd = pool_excute.query;
+                result = DB.excute_mysql_cmd(cmd, mode);
+
+
+                //string strDBConnectionString = string.Format("server={0};Port={1}; user id={2}; password={3}; database={4}; Charset=utf8;",
+                // server, port, user, password, database);
+                //string connMsg = "";
+
+                //DB_CRUD db = new DB_CRUD(strDBConnectionString);
+                //if (!db.DBConnect(ref connMsg))
+                //{
+                //    Console.WriteLine("connMsg: " + connMsg);
+                //}
+
+                //DataTable dt = new DataTable();
+                //string strSQL = pool_excute.query;
+                //db.ExecuteSQL(strSQL, dt);
+
+                //// DataTable 轉成 JArray
+                //result.data = DataTableToJArray(dt);
+
+                return result;
+            }
+            catch(Exception ex)
+            {
+                return new Pool_excute_response { error = ex.ToString() };
+            }
+        }
+
+        public JArray DataTableToJArray(DataTable dt)
+        {
+            JArray jArray = new JArray();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                JObject jObject = new JObject();
+
+                foreach (DataColumn column in dt.Columns)
+                {
+                    jObject[column.ColumnName] = JToken.FromObject(row[column]);
+                }
+
+                jArray.Add(jObject);
+            }
+
+            return jArray;
         }
 
         public async Task<Pool_delete_response> DeletePoolAsync(Pool_delete pool_delete, string api_key="")

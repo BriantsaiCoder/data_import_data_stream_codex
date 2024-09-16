@@ -52,11 +52,11 @@ namespace DCT_data_import.ReadAndImport
                 if (!isFileExist)
                     return new ImportResult(0, "File not found.");
 
-                // 確認 pool 連線狀態
-                bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
-                if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-                    if (!createPool(webApiClient, writeToLog))
-                        return new ImportResult(0, "MySQL database connection failed.");
+                //// 確認 pool 連線狀態
+                //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+                //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
+                //    if (!createPool(webApiClient, writeToLog))
+                //        return new ImportResult(0, "MySQL database connection failed.");
                 
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);

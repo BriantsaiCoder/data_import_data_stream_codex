@@ -85,7 +85,6 @@ namespace DCT_data_import.ReadAndImport
             {
                 values_tmp[i] = values[first_value_idx + i];
             }
-
             return values_tmp;
         }
 

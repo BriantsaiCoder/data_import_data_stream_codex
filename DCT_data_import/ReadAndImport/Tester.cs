@@ -49,11 +49,11 @@ namespace DCT_data_import.ReadAndImport
             if (!isFileExist)
                 return new ImportResult(0, "File not found.");
 
-            // 確認 pool 連線狀態
-            bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
-            if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-                if (!createPool(webApiClient, writeToLog))
-                    return new ImportResult(0, "MySQL database connection failed.");
+            //// 確認 pool 連線狀態
+            //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+            //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
+            //    if (!createPool(webApiClient, writeToLog))
+            //        return new ImportResult(0, "MySQL database connection failed.");
 
             
             try
@@ -260,10 +260,37 @@ namespace DCT_data_import.ReadAndImport
                             else
                             {
                                 DataRow dr_tester_device_info = testStatusContentFormat.tester_device_info.NewRow();
-                                for (int i = 0; i < testStatusContentFormat.tester_device_info.Columns.Count; i++)
+                                if (values.Length == 45)
                                 {
-                                    dr_tester_device_info[i] = values[i];
+                                    string[] newValues = new string[values.Length + 3];
+
+                                    for (int i = 0, j = 0; i < newValues.Length; i++)
+                                    {
+                                        if (i == 45 || i== 46 || i == 47)
+                                        {
+                                            newValues[i] = "-8888";
+                                        }
+                                        else
+                                        {
+                                            newValues[i] = values[j];
+                                            j++;
+                                        }
+                                    }
+
+
+                                    for (int i = 0; i < testStatusContentFormat.tester_device_info.Columns.Count; i++)
+                                    {
+                                        dr_tester_device_info[i] = newValues[i];
+                                    }
                                 }
+                                else
+                                {
+                                    for (int i = 0; i < testStatusContentFormat.tester_device_info.Columns.Count; i++)
+                                    {
+                                        dr_tester_device_info[i] = values[i];
+                                    }
+                                }
+
                                 testStatusContentFormat.tester_device_info.Rows.Add(dr_tester_device_info);
                             }
                             break;

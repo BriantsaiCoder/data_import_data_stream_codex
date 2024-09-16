@@ -49,12 +49,12 @@ namespace DCT_data_import
             DbAccess dbAccess = new DbAccess();
             int count = 0;
 
-            bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
-            if (!isConnect)
-            {
-                // 如果建立pool失敗就中斷程式
-                if (!createPool(webApiClient, writeToLog)) return;
-            }
+            //bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+            //if (!isConnect)
+            //{
+            //    // 如果建立pool失敗就中斷程式
+            //    if (!createPool(webApiClient, writeToLog)) return;
+            //}
 
 #if true /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
@@ -64,12 +64,12 @@ namespace DCT_data_import
 
             while (true)
             {
-                isConnect = webApiClient.checkDBConnect(POOL_NAME);
-                if (!isConnect)
-                {
-                    // 如果建立pool失敗就中斷程式
-                    if (!createPool(webApiClient, writeToLog)) return;
-                }
+                //isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                //if (!isConnect)
+                //{
+                //    // 如果建立pool失敗就中斷程式
+                //    if (!createPool(webApiClient, writeToLog)) return;
+                //}
                 
 
                 Console.WriteLine("threadTesterAlive.IsAlive: " + threadTesterAlive);

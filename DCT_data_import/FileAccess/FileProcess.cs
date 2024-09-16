@@ -834,15 +834,15 @@ namespace DCT_data_import
             try
             {
                 response2 = executeInsertWithAPI(webApiClient, "lots_info", columns, values);
-                if (!string.IsNullOrEmpty(response2.error))
-                {
-                    if(response2.error.Contains("Please initiate connection pool first using the init function"))
-                    {
-                        writeToLog.writeToLog("'INSERT INTO lots_info' error:" + response2.error);
-                        return false;
-                    }
-                    return false;
-                }
+                //if (!string.IsNullOrEmpty(response2.error))
+                //{
+                //    if(response2.error.Contains("Please initiate connection pool first using the init function"))
+                //    {
+                //        writeToLog.writeToLog("'INSERT INTO lots_info' error:" + response2.error);
+                //        return false;
+                //    }
+                //    return false;
+                //}
             }
             catch(Exception ex)
             {
@@ -856,6 +856,7 @@ namespace DCT_data_import
             string lotId = "";
             try
             {
+
                 // 取得當前 lot id 值
                 lotId = response2.data[0]["insertId"].ToString();
             }
@@ -1186,6 +1187,14 @@ namespace DCT_data_import
             string device_info_Id = "";
             try
             {
+                //string db_key = content.tester_device_info.Rows[0]["DB_Key"].ToString();
+                //pool_excute = new Pool_excute
+                //{
+                //    pool = Program.POOL_NAME,
+                //    query = "SELECT id FROM `tester_device_info` WHERE `db_key` = '" + db_key + "';"
+                //};
+                //response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+
                 device_info_Id = response.data[0]["insertId"].ToString();
             }catch(Exception ex)
             {
@@ -1514,6 +1523,7 @@ namespace DCT_data_import
 
             #endregion
 
+  
             string fail_pin_rate_info_Id = response.data[0]["insertId"].ToString();
             List<string> fail_pin_rate_list_Id = new List<string>(); 
 
@@ -1563,6 +1573,7 @@ namespace DCT_data_import
                         response = deleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
                         return false;
                     }
+                    
                     // 將此筆insert的fail_pin_rate_list_id保存至陣列
                     fail_pin_rate_list_Id.Add(response.data[0]["insertId"].ToString());
                 }
