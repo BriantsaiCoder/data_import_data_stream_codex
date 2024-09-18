@@ -360,10 +360,10 @@ namespace DCT_data_import
             Console.WriteLine("Tester mode end~");
 
             #region 寄信通報
-            if ((int)DateTime.Now.DayOfWeek%2 ==0 &&/*DateTime.Now.TimeOfDay.Hours == 0 ||*/ DateTime.Now.TimeOfDay.Hours == 12)
-            {
-                if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
-                {
+            //if ((int)DateTime.Now.DayOfWeek%2 ==0 &&/*DateTime.Now.TimeOfDay.Hours == 0 ||*/ DateTime.Now.TimeOfDay.Hours == 12)
+            //{
+                //if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
+                //{
                     #region 找出需要通報的db_key
                     //List<DbKeyObject> failDbKeyObject = dbAccess.SelectFailDbKeyResult(webApiClient, "tester");
 
@@ -413,8 +413,8 @@ namespace DCT_data_import
                     }
                     
                     #endregion 找出需要通報的db_key
-                }
-            }
+                //}
+            //}
             #endregion
 
             return "";

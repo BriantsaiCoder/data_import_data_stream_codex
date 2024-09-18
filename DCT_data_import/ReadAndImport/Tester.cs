@@ -260,37 +260,12 @@ namespace DCT_data_import.ReadAndImport
                             else
                             {
                                 DataRow dr_tester_device_info = testStatusContentFormat.tester_device_info.NewRow();
-                                if (values.Length == 45)
+
+                                for (int i = 0; i < testStatusContentFormat.tester_device_info.Columns.Count; i++)
                                 {
-                                    string[] newValues = new string[values.Length + 3];
-
-                                    for (int i = 0, j = 0; i < newValues.Length; i++)
-                                    {
-                                        if (i == 45 || i== 46 || i == 47)
-                                        {
-                                            newValues[i] = "-8888";
-                                        }
-                                        else
-                                        {
-                                            newValues[i] = values[j];
-                                            j++;
-                                        }
-                                    }
-
-
-                                    for (int i = 0; i < testStatusContentFormat.tester_device_info.Columns.Count; i++)
-                                    {
-                                        dr_tester_device_info[i] = newValues[i];
-                                    }
+                                    dr_tester_device_info[i] = values[i];
                                 }
-                                else
-                                {
-                                    for (int i = 0; i < testStatusContentFormat.tester_device_info.Columns.Count; i++)
-                                    {
-                                        dr_tester_device_info[i] = values[i];
-                                    }
-                                }
-
+                                
                                 testStatusContentFormat.tester_device_info.Rows.Add(dr_tester_device_info);
                             }
                             break;
