@@ -59,8 +59,8 @@ namespace DCT_data_import
 #if true /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
-            //Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
-            //Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+            Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
+            Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
 
             while (true)
             {
@@ -83,22 +83,22 @@ namespace DCT_data_import
                     threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
                     threadTesterMode.Start();
                 }
-                //if (!threadUiStatusAlive)
-                //{
-                //    threadUiStatusMode.Interrupt();
-                //    threadUiStatusMode.Abort();
-                //    threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
-                //    threadUiStatusMode.Start();
-                //}
-                //if (!threadTsmcAlive)
-                //{
-                //    threadTsmcMode.Interrupt();
-                //    threadTsmcMode.Abort();
-                //    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
-                //    threadTsmcMode.Start();
-                //}
+                if (!threadUiStatusAlive)
+                {
+                    threadUiStatusMode.Interrupt();
+                    threadUiStatusMode.Abort();
+                    threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
+                    threadUiStatusMode.Start();
+                }
+                if (!threadTsmcAlive)
+                {
+                    threadTsmcMode.Interrupt();
+                    threadTsmcMode.Abort();
+                    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+                    threadTsmcMode.Start();
+                }
 
-            #region 固定時間通報程式還活著
+                #region 固定時間通報程式還活著
                 DateTime nowTime = DateTime.Now;
                 if ((int)nowTime.DayOfWeek == 1 && nowTime.Hour == 8 && nowTime.Minute < 10)
                 {
@@ -108,10 +108,10 @@ namespace DCT_data_import
                 }
             #endregion 固定時間通報程式還活著
 
-                Thread.Sleep(600000); // 600秒執行一次
+                Thread.Sleep(432000); // 432000秒 --> 2H 執行一次
                 threadTesterAlive = threadTesterMode.IsAlive;
-                //threadUiStatusAlive = threadUiStatusMode.IsAlive;
-                //threadTsmcAlive = threadTsmcMode.IsAlive;
+                threadUiStatusAlive = threadUiStatusMode.IsAlive;
+                threadTsmcAlive = threadTsmcMode.IsAlive;
                 Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + (++count) + " finished~");
             }
 #else

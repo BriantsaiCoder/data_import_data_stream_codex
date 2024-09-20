@@ -86,6 +86,7 @@ namespace DCT_data_import.ReadAndImport
 
                     if (!string.IsNullOrEmpty(iedaDataFormat.errMsg))
                     {
+                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                         return new ImportResult(2, iedaDataFormat.errMsg);
                     }
 
