@@ -10,12 +10,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
-
 namespace DCT_data_import.ReadAndImport
 {
     public class FailPin : ImportData
     {
-        public async Task<ImportResult> readAndImportFailPinLog(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -25,88 +24,74 @@ namespace DCT_data_import.ReadAndImport
             bool import_result = false, isDBKeyExist = false;
             WriteToLog writeToLog = new WriteToLog();
             CompareTool compareTool = new CompareTool();
-            bool compare_result = false;
             string downloadStatus, deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
             double readTakeTime = 0, importTakeTime = 0;
-
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
-
             //// 檢查FTP連線狀態， 2024/3/4 因檢查此資料夾連線莫名錯誤，暫時不檢查此連線
             //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/";
             //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             //if (!isFtpConnected)
             //    return new ImportResult(0, "FTP server connection failed.");
-
             string filename = "fail_pin_" + dbKey + ".csv";
             ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
             //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_bk/ST_RT_AT/" + filename;
-
             try
             {
                 // 檢查FTP是否有此檔案
                 bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                 if (!isFileExist)
                     return new ImportResult(0, "File not found.");
-
                 //// 確認 pool 連線狀態
                 //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
                 //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
                 //    if (!createPool(webApiClient, writeToLog))
                 //        return new ImportResult(0, "MySQL database connection failed.");
-                
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-
                 long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-
                 //StreamReader reader2 = new StreamReader(@"D:\ASEKH\K09865\DCT data\每一批產生之檔案\20240227_fail_pin_expansion_file\Fail Pin Rate Expansion 20240129_(Security C).csv");
-
                 stopWatch.Reset();
                 stopWatch.Start();
-
                 FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
                 reader.Close();
-
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-
                 //reader.Close();
-                if (!string.IsNullOrEmpty(failPinLogContent.errMsg))
+                if (!string.IsNullOrEmpty(failPinLogContent.ErrMsg))
                 {
-                    return new ImportResult(2, failPinLogContent.errMsg);
+                    return new ImportResult(2, failPinLogContent.ErrMsg);
                 }
                 // 讀取失敗或沒有資料
-                if (failPinLogContent == null || failPinLogContent.fail_pin_rate_info.Rows.Count < 1)
+                if (failPinLogContent == null || failPinLogContent.Fail_pin_rate_info.Rows.Count < 1)
                 {
                     Console.WriteLine("Fail Pin Log 讀取失敗:  " + filename);
-                    writeToLog.writeToLog("Fail Pin Log 讀取失敗: " + ftpserver);
+                    writeToLog.WriteToDataImportLog("Fail Pin Log 讀取失敗: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. ");
                 }
-                if (!failPinLogContent.compareInfo())
+                if (!failPinLogContent.CompareInfo())
                 {
                     Console.WriteLine("Fail Pin Log 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.writeToLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
+                    writeToLog.WriteToDataImportLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
-                isDBKeyExist = fileAccess.isDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
                 if (isDBKeyExist)
                 {
                     //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);
                     //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
-                    //writeToLog.writeToLog("資料庫已存在此資料: " + ftpserver);
+                    //writeToLog.writeToDataImportLog("資料庫已存在此資料: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-
                     // Kerwin 的電腦
                     if (macid == "94C6913F94BD")
                     {
@@ -115,30 +100,24 @@ namespace DCT_data_import.ReadAndImport
                     }
                     //// 刪除已存在的的CSV檔案
                     //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
                 {
                     stopWatch.Reset();
                     stopWatch.Start();
-
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.importFailPinLog(failPinLogContent, webApiClient);
+                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, webApiClient);
                     }).ConfigureAwait(false);
-
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-
                     //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
-
                     string dateStr = DateTime.Now.ToString("yyyyMMdd");
                     string checkLogFileName = "DCT_data_check_log_failPin_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time
-                    writeToLog.writeToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
-
+                    writeToLog.WriteToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
                     if (import_result)
                     {
                         //Console.WriteLine("匯入完成! Fail Pin    比對: " + compare_result + "   檔名:" + list_filename[i]);
@@ -151,100 +130,87 @@ namespace DCT_data_import.ReadAndImport
                         }
                         // 刪除完成的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-
                         reader.Close();
                         response.Close();
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: Fail Pin " + filename);
-                        writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-
                         reader.Close();
                         response.Close();
                         return new ImportResult(3, "Import failed.");
                     }
                 }
-                
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.writeToLog(ex.ToString());
+                writeToLog.WriteToDataImportLog(ex.ToString());
                 RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
-
             GC.Collect();
             //Console.WriteLine("Fail pin log end~");
             return new ImportResult(1, "");
         }
-
         public FailPinLogContentFormat FileReadFailPinLog(StreamReader reader)
         {
             FailPinLogContentFormat failPinLogContentFormat = new FailPinLogContentFormat();
             try
             {
                 string data_format = "";
-
                 //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 //{
                 //    using (var reader = new StreamReader(stream))
                 //    {
                 int content_part = 1;
                 int fail_pin_list_id = 0;
-
-
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
-                    var values = eraseSpecificChar(line);
-
+                    var values = EraseSpecificChar(line);
                     if (values == null)
                     {
                         continue;
                     }
                     if (values.Length < 1) continue;
-
                     // 看到關鍵字 "Data format" ，取得pin/ball類型
                     if (values[0] == "Data format")
                     {
                         data_format = values[1];
                     }
-
                     // 看到關鍵字 "DUT"
                     if (values[0] == "DUT")
                     {
                         content_part = 2;
                         continue;
                     }
-
                     // fail pin rate的上半部分
                     if (content_part == 1)
                     {
-                        failPinLogContentFormat.fail_pin_rate_info.Columns.Add(values[0], typeof(string));
-                        failPinLogContentFormat.fail_pin_rate_info.Rows[0][values[0]] = (values.Length > 1) ? values[1] : "";
+                        failPinLogContentFormat.Fail_pin_rate_info.Columns.Add(values[0], typeof(string));
+                        failPinLogContentFormat.Fail_pin_rate_info.Rows[0][values[0]] = (values.Length > 1) ? values[1] : "";
                     }
                     // fail pin rate的下半部分
                     else if (content_part == 2)
                     {
                         if (values.Length >= 3)
                         {
-                            DataRow dr_fail_pin_rate_list = failPinLogContentFormat.fail_pin_rate_list.NewRow();
+                            DataRow dr_fail_pin_rate_list = failPinLogContentFormat.Fail_pin_rate_list.NewRow();
                             // 欄位 DUT, Site, Fail Type
                             for (int i = 0; i < 3; i++)
                             {
                                 dr_fail_pin_rate_list[i] = values[i];
                             }
-                            failPinLogContentFormat.fail_pin_rate_list.Rows.Add(dr_fail_pin_rate_list);
-
+                            failPinLogContentFormat.Fail_pin_rate_list.Rows.Add(dr_fail_pin_rate_list);
                             // 讀取 fail pin 與 log 存到 List
                             int fail_pin_part = 1;
                             List<string> fail_pin_list = new List<string>();
                             List<string> fail_pin_log = new List<string>();
-                            DataTable test_result_dt = initDtFailPinTestResult();
-                            int row_index = -1, column_index=0;
+                            DataTable test_result_dt = InitDtFailPinTestResult();
+                            int row_index = -1, column_index = 0;
                             for (int i = 3; i < values.Length; i++)
                             {
                                 // 以 ';' 分開fail pin log 與 remark  ，2024/3/1 新增以@分開test result
@@ -261,7 +227,6 @@ namespace DCT_data_import.ReadAndImport
                                     column_index = 0;
                                     continue;
                                 }
-
                                 if (fail_pin_part == 1)
                                 {
                                     fail_pin_list.Add(values[i]);
@@ -272,10 +237,10 @@ namespace DCT_data_import.ReadAndImport
                                 }
                                 else if (fail_pin_part == 3)
                                 {
-                                    if(column_index>0) // column_index:     0-item_name    1-open    2-short    3-vmeas
+                                    if (column_index > 0) // column_index:     0-item_name    1-open    2-short    3-vmeas
                                     {
                                         double tmp_val = 0;
-                                        if(!double.TryParse(values[i], out tmp_val))
+                                        if (!double.TryParse(values[i], out tmp_val))
                                         {
                                             values[i] = null;
                                         }
@@ -283,15 +248,13 @@ namespace DCT_data_import.ReadAndImport
                                     test_result_dt.Rows[row_index][column_index] = values[i];
                                     column_index++;
                                 }
-
                             }
-                            failPinLogContentFormat.fail_pin_rate_list_test_result.Tables.Add(test_result_dt);
-
+                            failPinLogContentFormat.Fail_pin_rate_list_test_result.Tables.Add(test_result_dt);
                             fail_pin_list_id++;
                             //  將 fail pin 與 log 存到 DataTable
                             for (int i = 0; i < fail_pin_list.Count; i++)
                             {
-                                DataRow dr_fail_pin_rate_list_pin_ball = failPinLogContentFormat.fail_pin_rate_list_pin_ball.NewRow();
+                                DataRow dr_fail_pin_rate_list_pin_ball = failPinLogContentFormat.Fail_pin_rate_list_pin_ball.NewRow();
                                 string[] value_split = fail_pin_list[i].Split('(', ')');
                                 if (data_format == "Pin")
                                 {
@@ -305,19 +268,13 @@ namespace DCT_data_import.ReadAndImport
                                 }
                                 dr_fail_pin_rate_list_pin_ball["fail_pin_rate_list_id"] = fail_pin_list_id;
                                 dr_fail_pin_rate_list_pin_ball["remark"] = String.Join(",", fail_pin_log.ToArray());
-
-                                failPinLogContentFormat.fail_pin_rate_list_pin_ball.Rows.Add(dr_fail_pin_rate_list_pin_ball);
+                                failPinLogContentFormat.Fail_pin_rate_list_pin_ball.Rows.Add(dr_fail_pin_rate_list_pin_ball);
                             }
-
                         }
                     }
-
-
                 }
-
                 //    }
                 //}
-
             }
             catch (Exception ex)
             {
@@ -326,17 +283,14 @@ namespace DCT_data_import.ReadAndImport
             }
             return failPinLogContentFormat;
         }
-
-        private DataTable initDtFailPinTestResult()
+        private DataTable InitDtFailPinTestResult()
         {
             DataTable dt = new DataTable();
             dt.Columns.Add("item_name", typeof(string));
             dt.Columns.Add("open", typeof(string));
             dt.Columns.Add("short", typeof(string));
             dt.Columns.Add("vmeas", typeof(string));
-            
             return dt;
         }
-
     }
 }

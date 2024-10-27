@@ -6,20 +6,17 @@ using System.Net.Mail;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace DCT_data_import
 {
-
     public class EmailModels
     {
-        public string subject { get; set; }
-        public string body { get; set; }
-        public List<string> tomanlist { get; set; }
-        public List<string> cclist { get; set; }
-        public List<string> bcclist { get; set; }
-        public List<string> filelist { get; set; }
-        public string sResult { get; set; }
-
+        public string Subject { get; set; }
+        public string Body { get; set; }
+        public List<string> ToList { get; set; }
+        public List<string> CCList { get; set; }
+        public List<string> BccList { get; set; }
+        public List<string> FileList { get; set; }
+        public string SendResult { get; set; }
         public Boolean SendEmail()
         {
             int i = 0;
@@ -27,8 +24,6 @@ namespace DCT_data_import
             Ping tPingControl = new Ping();
             PingReply tReply = tPingControl.Send(tIP);
             tPingControl.Dispose();
-
-
             if (tReply.Status == IPStatus.Success)
             {
                 string tolog = string.Empty;
@@ -41,74 +36,70 @@ namespace DCT_data_import
                     //設定編碼
                     mailObj.SubjectEncoding = Encoding.UTF8;
                     //設定標題
-                    mailObj.Subject = subject;
+                    mailObj.Subject = Subject;
                     //設定內文
-                    mailObj.Body = body;
+                    mailObj.Body = Body;
                     //設定寄件人
                     mailObj.From = new MailAddress("CTRD5900@aseglobal.com", "CTRD Sender", System.Text.Encoding.UTF8);
                     //設定to名單
-                    for (i = 0; i < tomanlist.Count(); i++)
+                    for (i = 0; i < ToList.Count(); i++)
                     {
-                        mailObj.To.Add(tomanlist[i]);
+                        mailObj.To.Add(ToList[i]);
                         if (i == 0)
                         {
-                            tolog = tomanlist[i];
+                            tolog = ToList[i];
                         }
                         else
                         {
-                            tolog = tolog + "," + tomanlist[i];
+                            tolog = tolog + "," + ToList[i];
                         }
-
                     }
-
                     //設定cc名單
-                    if (cclist != null)
+                    if (CCList != null)
                     {
-                        for (i = 0; i < cclist.Count(); i++)
+                        for (i = 0; i < CCList.Count(); i++)
                         {
-                            mailObj.CC.Add(cclist[i]);
+                            mailObj.CC.Add(CCList[i]);
                             if (i == 0)
                             {
-                                cclog = cclist[i];
+                                cclog = CCList[i];
                             }
                             else
                             {
-                                cclog = cclog + "," + cclist[i];
+                                cclog = cclog + "," + CCList[i];
                             }
                         }
                     }
-
                     //設定bcc名單
-                    if (bcclist != null)
+                    if (BccList != null)
                     {
-                        for (i = 0; i < bcclist.Count(); i++)
+                        for (i = 0; i < BccList.Count(); i++)
                         {
-                            mailObj.Bcc.Add(bcclist[i]);
+                            mailObj.Bcc.Add(BccList[i]);
                             if (i == 0)
                             {
-                                bcclog = bcclist[i];
+                                bcclog = BccList[i];
                             }
                             else
                             {
-                                bcclog = bcclog + "," + bcclist[i];
+                                bcclog = bcclog + "," + BccList[i];
                             }
                         }
                     }
-
                     //設定夾檔
-                    if (filelist != null)
+                    if (FileList != null)
                     {
-                        for (i = 0; i < filelist.Count(); i++)
+                        for (i = 0; i < FileList.Count(); i++)
                         {
-                            Console.WriteLine(filelist[i]);
-                            mailObj.Attachments.Add(new System.Net.Mail.Attachment(filelist[i]));
+                            Console.WriteLine(FileList[i]);
+                            mailObj.Attachments.Add(new System.Net.Mail.Attachment(FileList[i]));
                             if (i == 0)
                             {
-                                filelog = filelist[i];
+                                filelog = FileList[i];
                             }
                             else
                             {
-                                filelog = filelog + "," + filelist[i];
+                                filelog = filelog + "," + FileList[i];
                             }
                         }
                     }
@@ -116,25 +107,19 @@ namespace DCT_data_import
                     mailObj.IsBodyHtml = true;
                     SmtpClient mysmtp = new SmtpClient("10.12.10.31");
                     mysmtp.Send(mailObj);
-
                 }
                 catch (Exception ex)
                 {
-                    sResult = ex.ToString();
+                    SendResult = ex.ToString();
                     return false;
                 }
-
-
             }
             else
             {
-                sResult = "Connect email server fail!";
+                SendResult = "Connect email server fail!";
                 return false;
             }
-
-
-
-            sResult = "Sent the email success!";
+            SendResult = "Sent the email success!";
             return true;
         }
     }

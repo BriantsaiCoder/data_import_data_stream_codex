@@ -6,12 +6,11 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
-
 namespace DCT_data_import.ReadAndImport
 {
     public class ImportData
     {
-        protected bool isValidFtpConnection(string requestUri, string ftpUser, string ftpPassword)
+        protected bool IsValidFtpConnection(string requestUri, string ftpUser, string ftpPassword)
         {
             FtpWebRequest request;
             FtpWebResponse response;
@@ -25,7 +24,7 @@ namespace DCT_data_import.ReadAndImport
                 response.Close();
                 return true;
             }
-            catch (WebException ex)
+            catch (WebException)
             {
                 return false;
             }
@@ -34,7 +33,6 @@ namespace DCT_data_import.ReadAndImport
                 request = null;
             }
         }
-
         protected bool CheckIfFileExistsOnServer(string requestUri, string ftpUser, string ftpPassword)
         {
             FtpWebRequest request;
@@ -56,13 +54,11 @@ namespace DCT_data_import.ReadAndImport
             }
             return false;
         }
-
-        protected string[] eraseSpecificChar(string str_line)
+        protected string[] EraseSpecificChar(string str_line)
         {
             string[] values = str_line.Split(',', '\0', '\r', '\n');
             // 去除空白值
             string[] values_tmp1 = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
-
             int first_value_idx = -1, last_value_idx = -1;
             //去除頭尾空白
             for (int i = 0; i < values.Length; i++)
@@ -78,7 +74,6 @@ namespace DCT_data_import.ReadAndImport
                 }
             }
             if (first_value_idx == -1) return null;
-
             string[] values_tmp = new string[0] { };
             Array.Resize(ref values_tmp, last_value_idx - first_value_idx + 1);
             for (int i = 0; i <= last_value_idx - first_value_idx; i++)
@@ -87,20 +82,17 @@ namespace DCT_data_import.ReadAndImport
             }
             return values_tmp;
         }
-
         #region Comman tool
         public string DeleteFile(string fileName, string user, string password)
         {
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
             request.Method = WebRequestMethods.Ftp.DeleteFile;
             request.Credentials = new NetworkCredential(user, password);
-
             using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
             {
                 return response.StatusDescription;
             }
         }
-
         public string RenameFile(string fileName, string newFileName, string user, string password)
         {
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
@@ -108,97 +100,78 @@ namespace DCT_data_import.ReadAndImport
             request.Credentials = new NetworkCredential(user, password);
             request.RenameTo = newFileName;
             request.Timeout = 10000;
-
             try
             {
                 FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-
                 response.Close();
                 return response.StatusDescription;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return "RenameFile() Fail";
             }
-
         }
-
         public string DownloadFile(string fileName, string newFileName, string user, string password)
         {
             try
             {
                 FileStream outputStream = new FileStream(newFileName, FileMode.Create);
-
-
                 FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
                 request.Method = WebRequestMethods.Ftp.DownloadFile;
                 request.Credentials = new NetworkCredential(user, password);
-
                 FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-
                 //建立物件接收從FTP回應的資料流
                 Stream responseStream = response.GetResponseStream();
                 //建立物件讀取資料流的字元
                 StreamReader reader = new StreamReader(responseStream);
-
                 long cl = response.ContentLength;
-
                 int bufferSize = 2048;
-
                 int readCount;
-
                 byte[] buffer = new byte[bufferSize];
-
                 readCount = responseStream.Read(buffer, 0, bufferSize);
-
                 while (readCount > 0)
                 {
                     outputStream.Write(buffer, 0, readCount);
-
                     readCount = responseStream.Read(buffer, 0, bufferSize);
                 }
                 //Console.WriteLine(reader.ReadToEnd());
-
                 response.Close();
                 responseStream.Close();
                 outputStream.Close();
                 response.Close();
                 return response.StatusDescription;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return null;
             }
         }
-
-
-        public bool createPool(WebApiClient webApiClient, WriteToLog writeToLog)
+        public bool CreatePool(WebApiClient webApiClient, WriteToLog writeToLog)
         {
             Pool pool = new Pool
             {
-                pool_name = Program.POOL_NAME,
-                host = Program.HOST,
-                port = Program.PORT,
-                user = Program.USER,
-                password = Program.PASSWORD,
-                database = Program.DATABASE
+                Pool_name = Program.POOL_NAME,
+                Host = Program.HOST,
+                Port = Program.PORT,
+                User = Program.USER,
+                Password = Program.PASSWORD,
+                Database = Program.DATABASE
             };
             try
             {
                 var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
-                if (create_response.error != null)
+                if (create_response.Error != null)
                 {
-                    throw new Exception("Pool 建立失敗: " + create_response.error);
+                    throw new Exception("Pool 建立失敗: " + create_response.Error);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.writeToLog("Pool 建立失敗: " + ex.ToString());
+                writeToLog.WriteToDataImportLog("Pool 建立失敗: " + ex.ToString());
                 webApiClient.client.Dispose();
                 return false;
             }
-
             return true;
         }
         public bool IsChinese(string input)
@@ -208,7 +181,6 @@ namespace DCT_data_import.ReadAndImport
             {
                 input = input.Substring(1);
             }
-
             // 判斷字符串中是否包含中文字符
             foreach (char c in input)
             {
@@ -217,20 +189,16 @@ namespace DCT_data_import.ReadAndImport
                     return true;
                 }
             }
-
             return false;
         }
-
-        public long GetFileSize(string ftpUrl , string ftpUsername, string ftpPassword)
+        public long GetFileSize(string ftpUrl, string ftpUsername, string ftpPassword)
         {
             long fileSize = 0;
             // 创建 FtpWebRequest 对象
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpUrl);
             request.Method = WebRequestMethods.Ftp.GetFileSize; // 指定获取文件大小的方法
-
             // 提供 FTP 凭据
             request.Credentials = new NetworkCredential(ftpUsername, ftpPassword);
-
             try
             {
                 // 获取响应
@@ -245,12 +213,10 @@ namespace DCT_data_import.ReadAndImport
                 Console.WriteLine($"FTP GetFileSize 錯誤: {ex.Status}, {ex.Message}");
                 return 0;
             }
-
             return fileSize;
         }
-
         /// <summary>
-        /// 轉換檔案大小 
+        /// 轉換檔案大小
         /// </summary>
         /// <param name="fileSize"></param>
         /// <returns></returns>

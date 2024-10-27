@@ -13,28 +13,24 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
-
 namespace DCT_data_import
 {
     public class WebApiClient
     {
         public HttpClient client = new HttpClient();
-        private string authKey { get; set; }
-        private string authValue { get; set; }
-        private string tokenFile = @"C:\temp\DCT_api_token_value.log";
-
+        private string AuthKey { get; set; }
+        private string AuthValue { get; set; }
+        private readonly string _tokenFile = @"C:\temp\DCT_api_token_value.log";
         public WebApiClient()
         {
-            authKey = ConfigurationManager.ConnectionStrings["AuthKey"].ConnectionString;
-            authValue = GetTokenFromFile();
+            AuthKey = ConfigurationManager.ConnectionStrings["AuthKey"].ConnectionString;
+            AuthValue = GetTokenFromFile();
             client.BaseAddress = new Uri(ConfigurationManager.ConnectionStrings["ApiUrl"].ConnectionString);
             client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Add(authKey, authValue);
+            client.DefaultRequestHeaders.Add(AuthKey, AuthValue);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
-        
-
-        public async Task<Pool_get_all_response> GetPoolAsync(string api_key="")
+        public async Task<Pool_get_all_response> GetPoolAsync(string api_key = "")
         {
             string path = string.Format("/api/mysql/pools/get-all");
             HttpResponseMessage response = await client.GetAsync(path).ConfigureAwait(false);
@@ -46,13 +42,13 @@ namespace DCT_data_import
                 //正確回傳: result_str = {"data":{"pool_szie":1,"pool_name":["actdata"]},"error":null}
                 Pool_get_all_response result = await response.Content.ReadAsAsync<Pool_get_all_response>();
                 return result;
-            }else
+            }
+            else
             {
                 return null;
             }
         }
-
-        public async Task<Pool_create_response> CreatePoolAsync(Pool pool, string api_key="")
+        public async Task<Pool_create_response> CreatePoolAsync(Pool pool, string api_key = "")
         {
             string path = string.Format("api/mysql/pools");
             // 將 data 轉為 json
@@ -62,23 +58,19 @@ namespace DCT_data_import
             //client.DefaultRequestHeaders.Add("api-key", api_key);
             HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
             //response.EnsureSuccessStatusCode();
-
             if (response.IsSuccessStatusCode)
             {
                 // 取得response的資料
                 string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                 //Console.WriteLine("create pool: " + result_str);
                 Pool_create_response result = await response.Content.ReadAsAsync<Pool_create_response>();
-
                 return result;
             }
             else
             {
-                return new Pool_create_response { data = null, error = "Failed to fetch API data" };
+                return new Pool_create_response { Data = null, Error = "Failed to fetch API data" };
             }
         }
-
-
         //public async Task<Pool_excute_response> ExcutePoolAsync(Pool_excute pool_excute, string mode = "", string api_key="")
         //{
         //    //HttpResponseMessage response = await client.PostAsJsonAsync("api/mysql/pool/execute", pool_excute);
@@ -87,9 +79,7 @@ namespace DCT_data_import
         //    {
         //        Stopwatch stopwatch = new Stopwatch();
         //        stopwatch.Start();
-
         //        string path = string.Format("api/mysql/pools/execute");
-
         //        // 將 data 轉為 json
         //        string json = JsonConvert.SerializeObject(pool_excute);
         //        // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
@@ -97,7 +87,6 @@ namespace DCT_data_import
         //        // 發出 post 並取得結果
         //        HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
         //        response.EnsureSuccessStatusCode();
-
         //        Pool_excute_response result;
         //        if (response.IsSuccessStatusCode)
         //        {
@@ -108,7 +97,6 @@ namespace DCT_data_import
         //            {
         //                dynamic json_obj = JObject.Parse(result_str);
         //                JArray jArray = new JArray(json_obj.data);
-
         //                result = new Pool_excute_response
         //                {
         //                    data = jArray,
@@ -119,10 +107,8 @@ namespace DCT_data_import
         //            {
         //                result = await response.Content.ReadAsAsync<Pool_excute_response>();
         //            }
-
         //            stopwatch.Stop();
         //            long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-
         //            return result;
         //        }
         //        else
@@ -134,29 +120,22 @@ namespace DCT_data_import
         //    {
         //        Console.WriteLine(ex.ToString());
         //        WriteToLog writeToLog = new WriteToLog();
-        //        writeToLog.writeToLog("ExcutePoolAsync error:" + pool_excute.query + "         ex:" + ex.ToString());
+        //        writeToLog.writeToDataImportLog("ExcutePoolAsync error:" + pool_excute.query + "         ex:" + ex.ToString());
         //        return new Pool_excute_response { error=ex.ToString()};
         //    }
-
-           
-
         //    //string[] table_colums = { "Test Program", "Lot ID", "Wafer Lot", "Tester", "Date", "siteid", "device", "x", "y", "value", "bin_code", "x_Y", "ITEM NUM", "ITEM NAME" };
         //    //dynamic json_obj = JObject.Parse(result_str);
         //    ////Console.WriteLine(json_obj.data);
         //    //Console.WriteLine(json_obj.error);
         //    //dynamic json_data = JObject.Parse(json_obj.data);
         //    //Console.WriteLine(json_data.Date);
-
         //    //Console.WriteLine(json_obj.data[0][table_colums[0]]);
         //    //Console.WriteLine(json_obj.data[0]);
-
         //    // return URI of the created resource.
         //    //return response.Headers.Location;
-
         //    //return result_str;
         //}
-
-        public async Task<Pool_excute_response> ExcutePoolAsync(Pool_excute pool_excute, string mode = "select", string api_key = "")
+        public async Task<Pool_execute_response> ExecutePoolAsync(Pool_execute pool_execute, string mode = "select", string api_key = "")
         {
             string server = "10.16.92.67";
             string port = "3306";
@@ -168,93 +147,69 @@ namespace DCT_data_import
             //string user = "5910";
             //string password = "TID_5910!";
             //string database = "dct";
-
-            Pool_excute_response result = new Pool_excute_response();
-
+            Pool_execute_response result = new Pool_execute_response();
             try
             {
-
                 DBmysql DB = new DBmysql();
-                DB.connect(server, port, user, password, database);
-
-                string cmd = pool_excute.query;
-                result = DB.excute_mysql_cmd(cmd, mode);
-
-
+                DB.Connect(server, port, user, password, database);
+                string cmd = pool_execute.Query;
+                result = DB.Excute_mysql_cmd(cmd, mode);
                 //string strDBConnectionString = string.Format("server={0};Port={1}; user id={2}; password={3}; database={4}; Charset=utf8;",
                 // server, port, user, password, database);
                 //string connMsg = "";
-
                 //DB_CRUD db = new DB_CRUD(strDBConnectionString);
                 //if (!db.DBConnect(ref connMsg))
                 //{
                 //    Console.WriteLine("connMsg: " + connMsg);
                 //}
-
                 //DataTable dt = new DataTable();
                 //string strSQL = pool_excute.query;
                 //db.ExecuteSQL(strSQL, dt);
-
                 //// DataTable 轉成 JArray
                 //result.data = DataTableToJArray(dt);
-
                 return result;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                return new Pool_excute_response { error = ex.ToString() };
+                return new Pool_execute_response { Error = ex.ToString() };
             }
         }
-
         public JArray DataTableToJArray(DataTable dt)
         {
             JArray jArray = new JArray();
-
             foreach (DataRow row in dt.Rows)
             {
                 JObject jObject = new JObject();
-
                 foreach (DataColumn column in dt.Columns)
                 {
                     jObject[column.ColumnName] = JToken.FromObject(row[column]);
                 }
-
                 jArray.Add(jObject);
             }
-
             return jArray;
         }
-
-        public async Task<Pool_delete_response> DeletePoolAsync(Pool_delete pool_delete, string api_key="")
+        public async Task<Pool_delete_response> DeletePoolAsync(Pool_delete pool_delete, string api_key = "")
         {
-            string path = string.Format("api/mysql/pools/delete/{0}", pool_delete.pool);
-
+            string path = string.Format("api/mysql/pools/delete/{0}", pool_delete.Pool);
             // 發出 post 並取得結果
             HttpResponseMessage response = await client.DeleteAsync(path).ConfigureAwait(false);
-
             if (response.IsSuccessStatusCode)
             {
                 // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
                 string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                 //Console.WriteLine("delete pool: " + result_str);
                 Pool_delete_response result = await response.Content.ReadAsAsync<Pool_delete_response>();
-
                 return result;
             }
             else
             {
                 return null;
             }
-
             //HttpStatusCode httpStatusCode = response.StatusCode;
-
             //// return URI of the created resource.
             //return response.Headers.Location;
         }
-
-
-
-        public bool checkDBConnect(string pool_name)
+        public bool CheckDBConnect(string pool_name)
         {
             try
             {
@@ -265,34 +220,28 @@ namespace DCT_data_import
                 {
                     Pool_signin poolSignin = new Pool_signin
                     {
-                        username = ConfigurationManager.ConnectionStrings["ApiUser"].ConnectionString,
-                        password = ConfigurationManager.ConnectionStrings["ApiPassword"].ConnectionString
+                        UserName = ConfigurationManager.ConnectionStrings["ApiUser"].ConnectionString,
+                        Password = ConfigurationManager.ConnectionStrings["ApiPassword"].ConnectionString
                     };
-                    Signin_response signinResponse = getApiKeyValueAsync(poolSignin).GetAwaiter().GetResult();
-
+                    Signin_response signinResponse = GetApiKeyValueAsync(poolSignin).GetAwaiter().GetResult();
                     if (signinResponse != null)
                     {
-                        // 取得 token value 
-                        authValue = signinResponse.token;
+                        // 取得 token value
+                        AuthValue = signinResponse.Token;
                         // 將 token value 寫入暫存檔
-                        bool writeTokenResult = WriteTokenToFile(authValue);
-
-                        client.DefaultRequestHeaders.Remove(authKey);
-                        client.DefaultRequestHeaders.Add(authKey, authValue);
-
+                        bool writeTokenResult = WriteTokenToFile(AuthValue);
+                        client.DefaultRequestHeaders.Remove(AuthKey);
+                        client.DefaultRequestHeaders.Add(AuthKey, AuthValue);
                         getPoolResponse = GetPoolAsync().GetAwaiter().GetResult();
                     }
                     else
                     {
                         return false;
                     }
-
                 }
-                JArray pool_name_jarray = (JArray)getPoolResponse.data["pool_name"];
+                JArray pool_name_jarray = (JArray)getPoolResponse.Data["pool_name"];
                 List<string> pool_name_list = pool_name_jarray.ToObject<List<string>>();
-
                 bool contains_in = pool_name_list.Contains(pool_name);
-
                 return contains_in;
             }
             catch (Exception ex)
@@ -301,11 +250,9 @@ namespace DCT_data_import
                 return false;
             }
         }
-
-        public async Task<Signin_response> getApiKeyValueAsync(Pool_signin pool_Signin)
+        public async Task<Signin_response> GetApiKeyValueAsync(Pool_signin pool_Signin)
         {
             string path = string.Format("/signin");
-
             // 將 data 轉為 json
             string json = JsonConvert.SerializeObject(pool_Signin);
             // 將轉為 string 的 json 依編碼並指定 content type 存為 httpcontent
@@ -313,15 +260,12 @@ namespace DCT_data_import
             // 發出 post 並取得結果
             HttpResponseMessage response = await client.PostAsync(path, contentPost).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-
             Signin_response result;
             if (response.IsSuccessStatusCode)
             {
                 // 將回應結果內容取出並轉為 string 再透過 linqpad 輸出
                 string result_str = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-
                 result = await response.Content.ReadAsAsync<Signin_response>();
-
                 return result;
             }
             else
@@ -329,62 +273,53 @@ namespace DCT_data_import
                 return null;
             }
         }
-
-
         private bool WriteTokenToFile(string token)
         {
             try
             {
-                if (!File.Exists(tokenFile))
+                if (!File.Exists(_tokenFile))
                 {
-                    using (StreamWriter writer = File.CreateText(tokenFile))
+                    using (StreamWriter writer = File.CreateText(_tokenFile))
                     {
                         writer.WriteLine(token);
                     }
                 }
                 else
                 {
-                    using (StreamWriter writer = new StreamWriter(tokenFile, false))
+                    using (StreamWriter writer = new StreamWriter(_tokenFile, false))
                     {
                         writer.WriteLine(token);
                     }
                 }
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 return false;
             }
-
-
             return true;
         }
-
         private string GetTokenFromFile()
         {
             try
             {
-                if (!File.Exists(tokenFile))
+                if (!File.Exists(_tokenFile))
                 {
                     return "no token";
                 }
                 else
                 {
-                    using (StreamReader reader = new StreamReader(tokenFile))
+                    using (StreamReader reader = new StreamReader(_tokenFile))
                     {
                         return reader.ReadLine();
                     }
                 }
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 return " read token error";
             }
-
         }
-
     }
 }

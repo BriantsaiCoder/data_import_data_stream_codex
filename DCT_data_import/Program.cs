@@ -187,25 +187,25 @@ namespace DCT_data_import
         {
             Pool pool = new Pool
             {
-                pool_name = POOL_NAME,
-                host = HOST,
-                port = PORT,
-                user = USER,
-                password = PASSWORD,
-                database = DATABASE
+                Pool_name = POOL_NAME,
+                Host = HOST,
+                Port = PORT,
+                User = USER,
+                Password = PASSWORD,
+                Database = DATABASE
             };
             try
             {
                 var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
-                if (create_response.error != null)
+                if (create_response.Error != null)
                 {
-                    throw new Exception("Pool 建立失敗: " + create_response.error);
+                    throw new Exception("Pool 建立失敗: " + create_response.Error);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.writeToLog("Pool 建立失敗: " + ex.ToString());
+                writeToLog.WriteToDataImportLog("Pool 建立失敗: " + ex.ToString());
                 webApiClient.client.Dispose();
                 return false;
             }
@@ -219,25 +219,25 @@ namespace DCT_data_import
             string strWorkPath = System.IO.Path.GetDirectoryName(strAppPath);
             ReadWriteINIfile _readWriteINIfile = new ReadWriteINIfile(strWorkPath + "\\dct_import_mail_list.ini");
             EmailModels Email_class = new EmailModels();
-            Email_class.subject = mailTitle;
-            Email_class.body = mailBody;
+            Email_class.Subject = mailTitle;
+            Email_class.Body = mailBody;
             // 換行<br>
             // 空白&nbsp
             List<string> to_name_list = _readWriteINIfile.ReadINI("mail_list", "mail_to").Split(',').ToList();
-            Email_class.tomanlist = to_name_list;
+            Email_class.ToList = to_name_list;
             List<string> cc_name_list = _readWriteINIfile.ReadINI("mail_list", "mail_cc").Split(',').ToList();
-            Email_class.cclist = cc_name_list;
+            Email_class.CCList = cc_name_list;
             List<string> bcc_name_list = _readWriteINIfile.ReadINI("mail_list", "mail_bcc").Split(',').ToList();
-            Email_class.bcclist = bcc_name_list;
+            Email_class.BccList = bcc_name_list;
             List<string> filelist = new List<string>();
             if (Email_class.SendEmail())
             {
-                writeToLog.writeToLog("寄信成功!");
+                writeToLog.WriteToDataImportLog("寄信成功!");
                 return "OK";
             }
             else
             {
-                writeToLog.writeToLog("寄信失敗!");
+                writeToLog.WriteToDataImportLog("寄信失敗!");
                 return "FAIL";
             }
         }
@@ -262,39 +262,39 @@ namespace DCT_data_import
             ImportResult importResult1, importResult2, importResult3;
             for (int i = 0; i < dbKeyList.Count; i++)
             {
-                Console.WriteLine((i + 1).ToString() + ".DB_Key=" + dbKeyList[i].dbKey + "  ");
-                if (dbKeyList[i].checkStatus == 2 || dbKeyList[i].checkStatus == 3 || dbKeyList[i].checkStatus == 6 || dbKeyList[i].checkStatus == 7)
+                Console.WriteLine((i + 1).ToString() + ".DB_Key=" + dbKeyList[i].DbKey + "  ");
+                if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7)
                 {
-                    if (dbKeyList[i].testResult == 0)
+                    if (dbKeyList[i].TestResult == 0)
                     {
-                        importResult2 = rawData.readAndImportRawData(fileAccess, webApiClient, dbKeyList[i].dbKey).GetAwaiter().GetResult();
+                        importResult2 = rawData.ReadAndImportRawData(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                     }
                     else
                     {
-                        importResult2 = new ImportResult(dbKeyList[i].testResult, "");
+                        importResult2 = new ImportResult(dbKeyList[i].TestResult, "");
                     }
                 }
                 else
                 {
                     importResult2 = new ImportResult(0, "");
                 }
-                if (dbKeyList[i].checkStatus >= 4 && dbKeyList[i].checkStatus <= 7 && dbKeyList[i].tester == 0)
+                if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0)
                 {
-                    importResult1 = tester.readAndImportTesterStatus(fileAccess, webApiClient, dbKeyList[i].dbKey).GetAwaiter().GetResult();
+                    importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                 }
                 else
                 {
-                    importResult1 = new ImportResult(dbKeyList[i].tester, "");
+                    importResult1 = new ImportResult(dbKeyList[i].Tester, "");
                 }
-                if (dbKeyList[i].checkStatus == 1 || dbKeyList[i].checkStatus == 3 || dbKeyList[i].checkStatus == 5 || dbKeyList[i].checkStatus == 7)
+                if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7)
                 {
-                    if (dbKeyList[i].failPin == 0)
+                    if (dbKeyList[i].FailPin == 0)
                     {
-                        importResult3 = failPin.readAndImportFailPinLog(fileAccess, webApiClient, dbKeyList[i].dbKey).GetAwaiter().GetResult();
+                        importResult3 = failPin.ReadAndImportFailPinLog(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                     }
                     else
                     {
-                        importResult3 = new ImportResult(dbKeyList[i].failPin, "");
+                        importResult3 = new ImportResult(dbKeyList[i].FailPin, "");
                     }
                 }
                 else
@@ -302,10 +302,10 @@ namespace DCT_data_import
                     importResult3 = new ImportResult(0, "");
                 }
                 remark = "";
-                remark += (string.IsNullOrEmpty(importResult1.messege)) ? "" : "tester: " + importResult1.messege + "  ";
-                remark += (string.IsNullOrEmpty(importResult2.messege)) ? "" : "test result: " + importResult2.messege + "  ";
-                remark += (string.IsNullOrEmpty(importResult3.messege)) ? "" : "fail pin: " + importResult3.messege;
-                updateImportStatus = dbAccess.UpdateDbKeyImportStatus(webApiClient, dbKeyList[i].dbKey, importResult1.result, importResult2.result, importResult3.result, remark);
+                remark += (string.IsNullOrEmpty(importResult1.Message)) ? "" : "tester: " + importResult1.Message + "  ";
+                remark += (string.IsNullOrEmpty(importResult2.Message)) ? "" : "test result: " + importResult2.Message + "  ";
+                remark += (string.IsNullOrEmpty(importResult3.Message)) ? "" : "fail pin: " + importResult3.Message;
+                updateImportStatus = dbAccess.UpdateDbKeyImportStatus(webApiClient, dbKeyList[i].DbKey, importResult1.Result, importResult2.Result, importResult3.Result, remark);
                 Console.WriteLine("Update tester import status:" + updateImportStatus);
             }
             Console.WriteLine("Tester mode end~");
@@ -345,7 +345,7 @@ namespace DCT_data_import
                 string mailBody = "Dear all,<br>下列資料發生異常，請確認檔案內容<br>";
                 for (int i = 0; i < failDbKeyFromFile.Count; i++)
                 {
-                    mailBody += (i + 1).ToString() + ".    DB_Key:" + failDbKeyFromFile[i].dbKey + ",   <b>" + failDbKeyFromFile[i].remark + "</b><br>";
+                    mailBody += (i + 1).ToString() + ".    DB_Key:" + failDbKeyFromFile[i].DbKey + ",   <b>" + failDbKeyFromFile[i].Remark + "</b><br>";
                 }
                 mailBody += "Thanks. <br>";
                 string sendResult = SendMailModel(mailBody);
@@ -383,11 +383,11 @@ namespace DCT_data_import
             ImportResult importResult4;
             for (int i = 0; i < dbKeyUiStatusList.Count; i++)
             {
-                Console.WriteLine((i + 1).ToString() + ".DB_Key_ui_status=" + dbKeyUiStatusList[i].dbKey + "  ");
-                importResult4 = uiStatus.readAndImportUIStatus(fileAccess, webApiClient, dbKeyUiStatusList[i].dbKey);
+                Console.WriteLine((i + 1).ToString() + ".DB_Key_ui_status=" + dbKeyUiStatusList[i].DbKey + "  ");
+                importResult4 = uiStatus.ReadAndImportUIStatus(fileAccess, webApiClient, dbKeyUiStatusList[i].DbKey);
                 remark = "";
-                remark += (string.IsNullOrEmpty(importResult4.messege)) ? "" : "ui status:" + importResult4.messege;
-                updateImportStatus = dbAccess.UpdateDbKeyUiStatusImportStatus(webApiClient, dbKeyUiStatusList[i].dbKey, importResult4.result, remark);
+                remark += (string.IsNullOrEmpty(importResult4.Message)) ? "" : "ui status:" + importResult4.Message;
+                updateImportStatus = dbAccess.UpdateDbKeyUiStatusImportStatus(webApiClient, dbKeyUiStatusList[i].DbKey, importResult4.Result, remark);
                 Console.WriteLine("Update ui_status import status:" + updateImportStatus);
             }
             Console.WriteLine("ui_status mode end~");
@@ -424,7 +424,7 @@ namespace DCT_data_import
         {
             ImportResult importResult;
             TsmcIeda tsmcIeda = new TsmcIeda();
-            importResult = tsmcIeda.readAndImportIeda(fileAccess, webApiClient, "");
+            importResult = tsmcIeda.ReadAndImportIeda(fileAccess, webApiClient, "");
             return "";
         }
         static string DownloadFile(string fileName, string newFileName, string user, string password)
@@ -535,7 +535,7 @@ namespace DCT_data_import
                 //if (outInt < 20240401 || outInt > 20240430) continue;
                 Console.Write("Raw " + (list_filename.Count - i).ToString() + " : ");
                 // 確認 pool 連線是否正常
-                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                bool isConnect = webApiClient.CheckDBConnect(POOL_NAME);
                 if (!isConnect)
                 {
                     // 如果建立pool失敗就中斷程式
@@ -577,28 +577,28 @@ namespace DCT_data_import
                     {
                         RawDataContentFormat rawDataContentFormat = fileAccess.FileReadRawData(reader);
                         reader.Close();
-                        if (rawDataContentFormat == null || rawDataContentFormat.lotInfo.Rows.Count < 1)
+                        if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
                         {
                             Console.WriteLine("Raw data 讀檔失敗:  " + list_filename[i]);
-                            writeToLog.writeToLog("Raw data  讀檔失敗: " + ftpserver);
+                            writeToLog.WriteToDataImportLog("Raw data  讀檔失敗: " + ftpserver);
                             //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             Thread.Sleep(500);
                             continue;
                         }
-                        if (!rawDataContentFormat.compareInfo())
+                        if (!rawDataContentFormat.CompareInfo())
                         {
                             Console.WriteLine("Raw data 之 information 欄位名稱不符:  " + list_filename[i]);
-                            writeToLog.writeToLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
+                            writeToLog.WriteToDataImportLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
                             //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             Thread.Sleep(500);
                             continue;
                         }
-                        if (!rawDataContentFormat.compareStatistic())
+                        if (!rawDataContentFormat.CompareStatistic())
                         {
                             Console.WriteLine("Raw data 之 statistic 欄位名稱不符:  " + list_filename[i]);
-                            writeToLog.writeToLog("Raw data 之 statistic 欄位名稱不符:" + ftpserver);
+                            writeToLog.WriteToDataImportLog("Raw data 之 statistic 欄位名稱不符:" + ftpserver);
                             //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             Thread.Sleep(500);
@@ -609,12 +609,12 @@ namespace DCT_data_import
                         //{
                         //    Console.WriteLine("Lot Result 無資料");
                         //}
-                        isDBKeyExist = fileAccess.isDBKeyExistInDB("lots_info", rawDataContentFormat.lotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
+                        isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
                         if (isDBKeyExist)
                         {
                             //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
                             Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compare_result + "   檔名:" + list_filename[i]);
-                            //////writeToLog.writeToLog("資料庫已存在此資料:" + ftpserver);
+                            //////writeToLog.writeToDataImportLog("資料庫已存在此資料:" + ftpserver);
                             //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             //if(compare_result)
                             //{
@@ -641,7 +641,7 @@ namespace DCT_data_import
                             //list_square_sum = calculateSPC.SquareSum(rawDataContentFormat);
                             // 計算均方和
                             avg_2 = calculateSPC.AverageOfSumSquare(rawDataContentFormat);
-                            fileAccess.addColumnForDataset(rawDataContentFormat.lotStatistic, "avg_2", avg_2);
+                            fileAccess.AddColumnForDataset(rawDataContentFormat.LotStatistic, "avg_2", avg_2);
                             //if(fileNameSplit[0]=="65109QH7XV01_46SMZMB002_2022_11_17_14_00_50")
                             //{
                             //    Console.WriteLine("");
@@ -649,7 +649,7 @@ namespace DCT_data_import
                             stopWatch.Reset();
                             stopWatch.Start();
                             // 開始匯入
-                            import_result = fileAccess.importRawData(rawDataContentFormat, webApiClient);
+                            import_result = fileAccess.ImportRawData(rawDataContentFormat, webApiClient);
                             stopWatch.Stop();
                             ts2 = stopWatch.Elapsed;
                             //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
@@ -670,7 +670,7 @@ namespace DCT_data_import
                             {
                                 Console.WriteLine("匯入失敗: Raw data " + list_filename[i]);
                                 Console.WriteLine($"匯入失敗: Raw data: {ftpserver}");
-                                writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                                writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
                                 //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                                 RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             }
@@ -681,7 +681,7 @@ namespace DCT_data_import
                     else
                     {
                         Console.WriteLine("資料庫已存在此檔名: Raw data " + list_filename[i]);
-                        writeToLog.writeToLog("資料庫已存在此檔名:" + ftpserver);
+                        writeToLog.WriteToDataImportLog("資料庫已存在此檔名:" + ftpserver);
                         //// 下載檔案到本地端
                         //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         //// 刪除已存在的的CSV檔案
@@ -695,7 +695,7 @@ namespace DCT_data_import
                 catch (Exception ex)
                 {
                     //Console.WriteLine(ftpserver + ": " + ex.ToString());
-                    writeToLog.writeToLog(ftpserver + ": " + ex.ToString());
+                    writeToLog.WriteToDataImportLog(ftpserver + ": " + ex.ToString());
                     //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                 }
@@ -744,7 +744,7 @@ namespace DCT_data_import
                 if (outInt < 20240417) continue;
                 Console.Write("Tester " + (list_filename.Count - i).ToString() + " : ");
                 // 確認 pool 連線是否正常
-                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                bool isConnect = webApiClient.CheckDBConnect(POOL_NAME);
                 if (!isConnect)
                 {
                     // 如果建立pool失敗就中斷程式
@@ -766,39 +766,39 @@ namespace DCT_data_import
                     reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
                     TestStatusContentFormat testStatusContentFormat = fileAccess.FileReadTesterStatus(reader);
                     reader.Close();
-                    if (testStatusContentFormat == null || testStatusContentFormat.tester_device_info.Rows.Count < 1)
+                    if (testStatusContentFormat == null || testStatusContentFormat.Tester_device_info.Rows.Count < 1)
                     {
                         Console.WriteLine("Tester Status 讀檔失敗:  " + list_filename[i]);
-                        writeToLog.writeToLog("Tester Status  讀檔失敗: " + ftpserver);
+                        writeToLog.WriteToDataImportLog("Tester Status  讀檔失敗: " + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         continue;
                     }
-                    if (!testStatusContentFormat.compareInfo())
+                    if (!testStatusContentFormat.CompareInfo())
                     {
                         Console.WriteLine("Tester Status 之 information 欄位名稱不符:  " + list_filename[i]);
-                        writeToLog.writeToLog("Tester Status 之 information 欄位名稱不符: " + ftpserver);
+                        writeToLog.WriteToDataImportLog("Tester Status 之 information 欄位名稱不符: " + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         Console.Read();
                         return;
                     }
-                    if (!testStatusContentFormat.compareStatus())
+                    if (!testStatusContentFormat.CompareStatus())
                     {
                         Console.WriteLine("Tester Status 之 tester_status 欄位名稱不符:  " + list_filename[i]);
-                        writeToLog.writeToLog("Tester Status 之 tester_status 欄位名稱不符: " + ftpserver);
+                        writeToLog.WriteToDataImportLog("Tester Status 之 tester_status 欄位名稱不符: " + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         Console.Read();
                         return;
                     }
-                    isDBKeyExist = fileAccess.isDBKeyExistInDB("tester_device_info", testStatusContentFormat.tester_device_info.Rows[0]["DB_Key"].ToString(), webApiClient);
+                    isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), webApiClient);
                     if (isDBKeyExist)
                     {
                         //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
                         Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + list_filename[i]);
                         //Console.WriteLine("資料庫已存在此資料: Tester Status  比對" + compare_result + "   檔名:" + list_filename[i]);
-                        writeToLog.writeToLog("資料庫已存在此資料: " + ftpserver);
+                        writeToLog.WriteToDataImportLog("資料庫已存在此資料: " + ftpserver);
                         // Kerwin 的電腦
                         if (macid == "94C6913F94BD")
                         {
@@ -810,7 +810,7 @@ namespace DCT_data_import
                     }
                     else
                     {
-                        import_result = fileAccess.importTesterStatus(testStatusContentFormat, webApiClient);
+                        import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, webApiClient);
                         //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
                         if (import_result)
                         {
@@ -828,7 +828,7 @@ namespace DCT_data_import
                         else
                         {
                             Console.WriteLine("匯入失敗: Tester Status " + list_filename[i]);
-                            writeToLog.writeToLog("匯入失敗: " + ftpserver);
+                            writeToLog.WriteToDataImportLog("匯入失敗: " + ftpserver);
                             //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Tester_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         }
@@ -883,7 +883,7 @@ namespace DCT_data_import
                 if (outInt < 2024) continue;
                 Console.Write("UI_status " + (list_filename.Count - i).ToString() + " : ");
                 // 確認 pool 連線是否正常
-                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                bool isConnect = webApiClient.CheckDBConnect(POOL_NAME);
                 if (!isConnect)
                 {
                     // 如果建立pool失敗就中斷程式
@@ -906,21 +906,21 @@ namespace DCT_data_import
                     if (uiStatusContentFormat == null)
                     {
                         Console.WriteLine("UI Status 讀取失敗: " + list_filename[i]);
-                        writeToLog.writeToLog("UI Status 讀取失敗:" + ftpserver);
+                        writeToLog.WriteToDataImportLog("UI Status 讀取失敗:" + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         continue;
                     }
-                    if (!uiStatusContentFormat.compareUiStatus())
+                    if (!uiStatusContentFormat.CompareUiStatus())
                     {
                         Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + list_filename[i]);
-                        writeToLog.writeToLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
+                        writeToLog.WriteToDataImportLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         Console.Read();
                         return;
                     }
-                    import_result = fileAccess.importUIStatus(uiStatusContentFormat, webApiClient);
+                    import_result = fileAccess.ImportUIStatus(uiStatusContentFormat, webApiClient);
                     if (import_result)
                     {
                         Console.WriteLine("匯入完成! UI Status " + list_filename[i]);
@@ -936,7 +936,7 @@ namespace DCT_data_import
                     else
                     {
                         Console.WriteLine("匯入失敗: UI Status " + list_filename[i]);
-                        writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     }
@@ -979,7 +979,7 @@ namespace DCT_data_import
             names = reader.ReadToEnd();
             list_filename = names.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
             // 確認 pool 連線是否正常
-            bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+            bool isConnect = webApiClient.CheckDBConnect(POOL_NAME);
             if (!isConnect)
             {
                 // 如果建立pool失敗就中斷程式
@@ -1010,30 +1010,30 @@ namespace DCT_data_import
                     //StreamReader reader2 = new StreamReader(filePath);
                     FailPinLogContentFormat failPinLogContent = fileAccess.FileReadFailPinLog(reader);
                     // 讀取失敗或沒有資料
-                    if (failPinLogContent == null || failPinLogContent.fail_pin_rate_info.Rows.Count < 1)
+                    if (failPinLogContent == null || failPinLogContent.Fail_pin_rate_info.Rows.Count < 1)
                     {
                         Console.WriteLine("Fail Pin Log 讀取失敗:  " + list_filename[i]);
-                        writeToLog.writeToLog("Fail Pin Log 讀取失敗: " + ftpserver);
+                        writeToLog.WriteToDataImportLog("Fail Pin Log 讀取失敗: " + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         continue;
                     }
                     reader.Close();
-                    if (!failPinLogContent.compareInfo())
+                    if (!failPinLogContent.CompareInfo())
                     {
                         Console.WriteLine("Fail Pin Log 之 information 欄位名稱不符:  " + list_filename[i]);
-                        writeToLog.writeToLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
+                        writeToLog.WriteToDataImportLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
                         //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         return;
                     }
-                    isDBKeyExist = fileAccess.isDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
+                    isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
                     if (isDBKeyExist)
                     {
                         //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
                         Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + list_filename[i]);
                         //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
-                        //writeToLog.writeToLog("資料庫已存在此資料: " + ftpserver);
+                        //writeToLog.writeToDataImportLog("資料庫已存在此資料: " + ftpserver);
                         // Kerwin 的電腦
                         if (macid == "94C6913F94BD")
                         {
@@ -1045,7 +1045,7 @@ namespace DCT_data_import
                     }
                     else
                     {
-                        import_result = fileAccess.importFailPinLog(failPinLogContent, webApiClient);
+                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, webApiClient);
                         //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
                         if (import_result)
                         {
@@ -1063,7 +1063,7 @@ namespace DCT_data_import
                         else
                         {
                             Console.WriteLine("匯入失敗: Fail Pin " + list_filename[i]);
-                            writeToLog.writeToLog("匯入失敗:" + ftpserver);
+                            writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
                             //RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                             RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                         }
@@ -1075,7 +1075,7 @@ namespace DCT_data_import
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
-                    writeToLog.writeToLog(ex.ToString());
+                    writeToLog.WriteToDataImportLog(ex.ToString());
                 }
             }
             Console.WriteLine("Fail pin log end~");

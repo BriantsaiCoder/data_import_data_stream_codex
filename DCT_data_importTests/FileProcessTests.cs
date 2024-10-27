@@ -83,7 +83,7 @@ namespace DCT_data_import.Tests
             FileProcess fileProcess = new FileProcess();
 
             // act
-            string[] values = fileProcess.eraseSpecificChar(",,,,,, Spec MAX, 3, 9999, 9999, 9999, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 9999, 9999, 9999, 3, 9999, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999,");
+            string[] values = fileProcess.EraseSpecificChar(",,,,,, Spec MAX, 3, 9999, 9999, 9999, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 9999, 9999, 9999, 3, 9999, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999,");
 
             string[] values_tmp_space = values.Where(x => string.IsNullOrEmpty(x)).ToArray();
             string[] values_tmp_comma = values.Where(x => x == ",").ToArray();
@@ -101,7 +101,7 @@ namespace DCT_data_import.Tests
             DateTime dateTime;
 
             // act
-            string datetime = fileProcess.customizeDateTimeParser("Jun_06_2022_12_08_22");
+            string datetime = fileProcess.CustomizeDateTimeParser("Jun_06_2022_12_08_22");
 
 
             // assert

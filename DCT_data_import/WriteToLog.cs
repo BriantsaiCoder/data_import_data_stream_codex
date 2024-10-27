@@ -9,7 +9,7 @@ namespace DCT_data_import
     public class WriteToLog
     {
         int FailedCount = 0;
-        public void writeToLog(string message)
+        public void WriteToDataImportLog(string message)
         {
             //string log_path = @"C:\temp\HL_System_WEB_Log.txt";
             //string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\DCT_data_import_Log.txt").LocalPath;
@@ -57,7 +57,7 @@ namespace DCT_data_import
             {
                 for (int i = 0; i < failDbKeyObject.Count; i++)
                 {
-                    writetext.WriteLine((i + 1).ToString() + ".    DB_Key:" + failDbKeyObject[i].dbKey + ",       " + failDbKeyObject[i].remark);
+                    writetext.WriteLine((i + 1).ToString() + ".    DB_Key:" + failDbKeyObject[i].DbKey + ",       " + failDbKeyObject[i].Remark);
                 }
             }
             return path;
@@ -81,7 +81,7 @@ namespace DCT_data_import
             }
             return "";
         }
-        public void writeToCheckLog(string logFilename, string content)
+        public void WriteToCheckLog(string logFilename, string content)
         {
             string checkLogFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\" + "check_logs";
             checkLogFolder = checkLogFolder.Substring(6);

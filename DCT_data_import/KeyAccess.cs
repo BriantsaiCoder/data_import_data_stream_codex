@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
-
 namespace DCT_data_import
 {
     public class KeyAccess
@@ -16,24 +15,20 @@ namespace DCT_data_import
         public static string USER = "5910";
         public static string PASSWORD = "5910";
         public static string DATABASE = "dct_test";
-        
-
         //private string POOL_NAME = ConfigurationManager.ConnectionStrings["PoolName"].ConnectionString;
         //private string HOST = ConfigurationManager.ConnectionStrings["Host"].ConnectionString;
         //private string PORT = ConfigurationManager.ConnectionStrings["Port"].ConnectionString;
         //private string USER = ConfigurationManager.ConnectionStrings["User"].ConnectionString;
         //private string PASSWORD = ConfigurationManager.ConnectionStrings["Password"].ConnectionString;
         //private string DATABASE = ConfigurationManager.ConnectionStrings["Database"].ConnectionString;
-        private WebApiClient webApiClient;
-
+        private readonly WebApiClient _webApiClient;
         public KeyAccess()
         {
-            webApiClient = new WebApiClient();
+            _webApiClient = new WebApiClient();
         }
-
         public string InsertDbKey(string mode, string dbKey)
         {
-            Pool_excute_response response;
+            Pool_execute_response response;
             string sql = "";
             long timeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             try
@@ -51,24 +46,22 @@ namespace DCT_data_import
                 {
                     return "FAIL. Please give the mode ['tester' or 'ui_status']";
                 }
-
                 bool isDbKeyExist = IsDbKeyExist(mode, dbKey);  // 已存在: true  不存在: false
                 if (isDbKeyExist)
                 {
                     return "FAIL. The db_key=" + dbKey + " already exists in the database";
                 }
-
                 // 宣告 Web API body
-                Pool_excute poolExcute = new Pool_excute
+                Pool_execute poolExcute = new Pool_execute
                 {
-                    pool = POOL_NAME,
-                    query = sql
+                    Pool = POOL_NAME,
+                    Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                response = webApiClient.ExcutePoolAsync(poolExcute, "insert").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                response = _webApiClient.ExecutePoolAsync(poolExcute, "insert").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    return "FAIL. " + response.error;
+                    return "FAIL. " + response.Error;
                 }
             }
             catch (Exception ex)
@@ -77,10 +70,9 @@ namespace DCT_data_import
             }
             return "OK. ";
         }
-
         public string UpdateCheckStatus(string mode, string dbKey, int checkStatus)
         {
-            Pool_excute_response response;
+            Pool_execute_response response;
             string sql = "";
             try
             {
@@ -96,25 +88,22 @@ namespace DCT_data_import
                 {
                     return "FAIL. Please give the mode ['tester' or 'ui_status']";
                 }
-
                 bool isDbKeyExist = IsDbKeyExist(mode, dbKey);  // 已存在: true  不存在: false
                 if (!isDbKeyExist)
                 {
                     return "FAIL. The db_key='" + dbKey + "' does not yet exist in the database. ";
                 }
-
                 // 確認有這個db_key後，執行update。
-                Pool_excute poolExcute = new Pool_excute
+                Pool_execute poolExcute = new Pool_execute
                 {
-                    pool = POOL_NAME,
-                    query = sql
+                    Pool = POOL_NAME,
+                    Query = sql
                 };
-                response = webApiClient.ExcutePoolAsync(poolExcute, "update").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                response = _webApiClient.ExecutePoolAsync(poolExcute, "update").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    return "FAIL. " + response.error;
+                    return "FAIL. " + response.Error;
                 }
-
             }
             catch (Exception ex)
             {
@@ -122,12 +111,10 @@ namespace DCT_data_import
             }
             return "OK. ";
         }
-
         public bool IsDbKeyExist(string mode, string dbKey)
         {
-            Pool_excute_response response;
+            Pool_execute_response response;
             string queryDbKey = "";
-
             if (mode == "tester")
             {
                 queryDbKey = "SELECT db_key FROM db_key WHERE db_key='" + dbKey + "'";
@@ -136,21 +123,19 @@ namespace DCT_data_import
             {
                 queryDbKey = "SELECT db_key FROM db_key_ui_status WHERE db_key='" + dbKey + "'";
             }
-
             // 查詢是否有這個db_key
-            Pool_excute poolExcute = new Pool_excute
+            Pool_execute poolExcute = new Pool_execute
             {
-                pool = POOL_NAME,
-                query = queryDbKey
+                Pool = POOL_NAME,
+                Query = queryDbKey
             };
-            response = webApiClient.ExcutePoolAsync(poolExcute, "select").GetAwaiter().GetResult();
-            if (!string.IsNullOrEmpty(response.error))
+            response = _webApiClient.ExecutePoolAsync(poolExcute, "select").GetAwaiter().GetResult();
+            if (!string.IsNullOrEmpty(response.Error))
             {
-                Console.WriteLine("IsDbKeyExist() execution error: " + response.error);
+                Console.WriteLine("IsDbKeyExist() execution error: " + response.Error);
                 return true;
             }
-
-            if (response.data.Count < 1)
+            if (response.Data.Count < 1)
             {
                 return false;
             }
@@ -159,7 +144,5 @@ namespace DCT_data_import
                 return true;
             }
         }
-
-
     }
 }

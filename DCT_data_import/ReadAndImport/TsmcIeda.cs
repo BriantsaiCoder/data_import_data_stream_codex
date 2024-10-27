@@ -19,7 +19,7 @@ namespace DCT_data_import.ReadAndImport
             // 設定全域變數中的DataTable _lotMappingDt
             GetLotMapping();
         }
-        public ImportResult readAndImportIeda(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public ImportResult ReadAndImportIeda(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
         {
             string ftpserver = "";
             FtpWebRequest reqFTP;
@@ -50,7 +50,7 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception)
             {
-                writeToLog.writeToLog("TSMC 之 IEDA 讀取檔案清單錯誤:" + ftpserver);
+                writeToLog.WriteToDataImportLog("TSMC 之 IEDA 讀取檔案清單錯誤:" + ftpserver);
             }
             // 查詢所有檔案
             for (int i = list_filename.Count - 1; i >= 0; i--)
@@ -66,10 +66,10 @@ namespace DCT_data_import.ReadAndImport
                     responseStream = response.GetResponseStream();
                     reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
                     IedaDataFormat iedaDataFormat = FileReadIeda(reader);
-                    if (!string.IsNullOrEmpty(iedaDataFormat.errMsg))
+                    if (!string.IsNullOrEmpty(iedaDataFormat.ErrMsg))
                     {
                         RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                        return new ImportResult(2, iedaDataFormat.errMsg);
+                        return new ImportResult(2, iedaDataFormat.ErrMsg);
                     }
                     stopWatch.Reset();
                     stopWatch.Start();
@@ -97,7 +97,7 @@ namespace DCT_data_import.ReadAndImport
                 catch (Exception)
                 {
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    writeToLog.writeToLog("TSMC 之 IEDA 讀檔失敗:" + ftpserver);
+                    writeToLog.WriteToDataImportLog("TSMC 之 IEDA 讀檔失敗:" + ftpserver);
                 }
             }
             return new ImportResult(1, "");
@@ -119,8 +119,8 @@ namespace DCT_data_import.ReadAndImport
                     if (r == 0)  // iEDA title part
                     {
                         int charIdx = 0;
-                        DataRow dr = iedaDataFormat.iedaTitle.NewRow();
-                        for (int j = 1; j < iedaDataFormat.iedaTitle.Columns.Count; j++)
+                        DataRow dr = iedaDataFormat.IedaTitle.NewRow();
+                        for (int j = 1; j < iedaDataFormat.IedaTitle.Columns.Count; j++)
                         {
                             dr[j] = split_lines[r].Substring(charIdx, iedaDataFormat.titleColumnsDataSize[j]).Trim();
                             charIdx += iedaDataFormat.titleColumnsDataSize[j];
@@ -132,24 +132,24 @@ namespace DCT_data_import.ReadAndImport
                         {
                             dr["ase_lot"] = mappingDtRows[0]["ase_lot"];
                         }
-                        iedaDataFormat.iedaTitle.Rows.Add(dr);
+                        iedaDataFormat.IedaTitle.Rows.Add(dr);
                     }
                     else // iEDA content part
                     {
                         int charIdx = 0;
-                        DataRow dr = iedaDataFormat.iedaContent.NewRow();
-                        for (int j = 1; j < iedaDataFormat.iedaContent.Columns.Count; j++)
+                        DataRow dr = iedaDataFormat.IedaContent.NewRow();
+                        for (int j = 1; j < iedaDataFormat.IedaContent.Columns.Count; j++)
                         {
                             dr[j] = split_lines[r].Substring(charIdx, iedaDataFormat.contentColumnsDataSize[j]).Trim();
                             charIdx += iedaDataFormat.contentColumnsDataSize[j];
                         }
-                        iedaDataFormat.iedaContent.Rows.Add(dr);
+                        iedaDataFormat.IedaContent.Rows.Add(dr);
                     }
                 }
             }
             catch (Exception ex)
             {
-                iedaDataFormat.errMsg = "讀檔內容錯誤";
+                iedaDataFormat.ErrMsg = "讀檔內容錯誤";
                 Console.WriteLine($"{ex.ToString()} , {ex.Message}");
             }
             //Console.ReadLine();
@@ -244,7 +244,7 @@ namespace DCT_data_import.ReadAndImport
                 }
                 else
                 {
-                    writeToLog.writeToLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver + "  error:" + ex.ToString());
+                    writeToLog.WriteToDataImportLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver + "  error:" + ex.ToString());
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new List<string>();
                 }
@@ -298,32 +298,32 @@ namespace DCT_data_import.ReadAndImport
         }
         public bool ImportIeda(IedaDataFormat content, WebApiClient webApiClient)
         {
-            if (content.iedaTitle.Rows.Count < 1 || content.iedaContent.Rows.Count < 1) return false;
+            if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = "", values = "";
-            Pool_excute_response response2;
+            Pool_execute_response response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
             #region insert ieda 的 title 表格
             try
             {
-                for (int i = 0; i < content.iedaTitle.Columns.Count; i++)
+                for (int i = 0; i < content.IedaTitle.Columns.Count; i++)
                 {
-                    columns += "`" + content.iedaTitle.Columns[i].ColumnName.Trim() + "`";
-                    values += "'" + fileProcess.ConvertEmptyToDefaultString(content.iedaTitle.Rows[0][i].ToString()) + "'";
+                    columns += "`" + content.IedaTitle.Columns[i].ColumnName.Trim() + "`";
+                    values += "'" + fileProcess.ConvertEmptyToDefaultString(content.IedaTitle.Rows[0][i].ToString()) + "'";
                     //values += "'" + content.iedaTitle.Rows[0][i].ToString().Trim() + "'";
-                    if (i != content.iedaTitle.Columns.Count - 1)
+                    if (i != content.IedaTitle.Columns.Count - 1)
                     {
                         columns += ",";
                         values += ",";
                     }
                 }
-                response2 = fileProcess.executeInsertWithAPI(webApiClient, "ieda_title", columns, values);
-                if (!string.IsNullOrEmpty(response2.error))
+                response2 = fileProcess.ExecuteInsertWithAPI(webApiClient, "ieda_title", columns, values);
+                if (!string.IsNullOrEmpty(response2.Error))
                 {
-                    if (response2.error.Contains("Please initiate connection pool first using the init function"))
+                    if (response2.Error.Contains("Please initiate connection pool first using the init function"))
                     {
-                        writeToLog.writeToLog("'INSERT INTO ieda_title' error:" + response2.error);
+                        writeToLog.WriteToDataImportLog("'INSERT INTO ieda_title' error:" + response2.Error);
                         return false;
                     }
                     return false;
@@ -332,7 +332,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 //Console.WriteLine(ex.ToString());
-                writeToLog.writeToLog("'INSERT INTO ieda_title' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO ieda_title' error:" + ex.ToString());
                 return false;
             }
             #endregion
@@ -340,11 +340,11 @@ namespace DCT_data_import.ReadAndImport
             string titleId = "";
             try
             {
-                titleId = response2.data[0]["insertId"].ToString();
+                titleId = response2.Data[0]["insertId"].ToString();
             }
             catch (Exception ex)
             {
-                writeToLog.writeToLog("'取得當前 lot id 值 error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'取得當前 lot id 值 error:" + ex.ToString());
                 Console.WriteLine(ex.ToString());
                 return false;
             }
@@ -353,42 +353,42 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 columns = "";
-                for (int i = 0; i < content.iedaContent.Columns.Count; i++)
+                for (int i = 0; i < content.IedaContent.Columns.Count; i++)
                 {
-                    columns += "`" + content.iedaContent.Columns[i].ColumnName.Trim() + "`";
-                    values += "'" + fileProcess.ConvertEmptyToDefaultString(content.iedaContent.Rows[0][i].ToString()) + "'";
+                    columns += "`" + content.IedaContent.Columns[i].ColumnName.Trim() + "`";
+                    values += "'" + fileProcess.ConvertEmptyToDefaultString(content.IedaContent.Rows[0][i].ToString()) + "'";
                     //values += "'" + content.iedaContent.Rows[0][i].ToString().Trim() + "'";
-                    if (i != content.iedaContent.Columns.Count - 1)
+                    if (i != content.IedaContent.Columns.Count - 1)
                     {
                         columns += ",";
                     }
                 }
                 values = "";
-                for (int i = 0; i < content.iedaContent.Rows.Count; i++)
+                for (int i = 0; i < content.IedaContent.Rows.Count; i++)
                 {
                     values += "('" + fileProcess.ConvertEmptyToDefaultString(titleId) + "',";
                     //values += "('" + titleId + "',";
-                    for (int j = 1; j < content.iedaContent.Columns.Count; j++)
+                    for (int j = 1; j < content.IedaContent.Columns.Count; j++)
                     {
-                        values += "'" + fileProcess.ConvertEmptyToDefaultString(content.iedaContent.Rows[i][j].ToString()) + "'";
+                        values += "'" + fileProcess.ConvertEmptyToDefaultString(content.IedaContent.Rows[i][j].ToString()) + "'";
                         //values += "'" + content.iedaContent.Rows[i][j].ToString() + "'";
-                        if (j != content.iedaContent.Columns.Count - 1)
+                        if (j != content.IedaContent.Columns.Count - 1)
                         {
                             values += ",";
                         }
                     }
-                    if (i != content.iedaContent.Rows.Count - 1)
+                    if (i != content.IedaContent.Rows.Count - 1)
                     {
                         values += "),";
                     }
                 }
                 values = values.Substring(1, values.Length - 1);
-                response2 = fileProcess.executeInsertWithAPI(webApiClient, "ieda_content", columns, values);
-                if (!string.IsNullOrEmpty(response2.error))
+                response2 = fileProcess.ExecuteInsertWithAPI(webApiClient, "ieda_content", columns, values);
+                if (!string.IsNullOrEmpty(response2.Error))
                 {
-                    if (response2.error.Contains("Please initiate connection pool first using the init function"))
+                    if (response2.Error.Contains("Please initiate connection pool first using the init function"))
                     {
-                        writeToLog.writeToLog("'INSERT INTO ieda_content' error:" + response2.error);
+                        writeToLog.WriteToDataImportLog("'INSERT INTO ieda_content' error:" + response2.Error);
                         return false;
                     }
                     return false;
@@ -397,7 +397,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 //Console.WriteLine(ex.ToString());
-                writeToLog.writeToLog("'INSERT INTO ieda_content' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO ieda_content' error:" + ex.ToString());
                 return false;
             }
             #endregion

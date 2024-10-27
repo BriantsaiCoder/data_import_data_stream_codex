@@ -28,18 +28,18 @@ namespace DCT_data_import
             try
             {
                 // 宣告 Web API body
-                Pool_excute pool_excute = new Pool_excute
+                Pool_execute pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = sql
+                    Pool = Program.POOL_NAME,
+                    Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("SELECT `db_key` error! ");
+                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                 }
-                if (int.TryParse(response.data[0]["count_id"].ToString(), out count))
+                if (int.TryParse(response.Data[0]["count_id"].ToString(), out count))
                 {
                     return count;
                 }
@@ -76,27 +76,27 @@ namespace DCT_data_import
             try
             {
                 // 宣告 Web API body
-                Pool_excute pool_excute = new Pool_excute
+                Pool_execute pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = sql
+                    Pool = Program.POOL_NAME,
+                    Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("SELECT `db_key` error! ");
+                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                 }
-                for (int i = 0; i < response.data.Count; i++)
+                for (int i = 0; i < response.Data.Count; i++)
                 {
                     //Console.WriteLine(response.data[i]["id"].ToString() + ", "+response.data[i]["db_key"].ToString());
                     if (mode == "tester")
                     {
-                        dbKeyList.Add(new DbKeyObject(int.Parse(response.data[i]["id"].ToString()), response.data[i]["db_key"].ToString(), int.Parse(response.data[i]["tester"].ToString()), int.Parse(response.data[i]["test_result"].ToString()), int.Parse(response.data[i]["fail_pin"].ToString()), int.Parse(response.data[i]["check_status"].ToString())));
+                        dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
                     }
                     else
                     {
-                        dbKeyList.Add(new DbKeyObject(int.Parse(response.data[i]["id"].ToString()), response.data[i]["db_key"].ToString(), int.Parse(response.data[i]["check_status"].ToString())));
+                        dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["check_status"].ToString())));
                     }
                 }
             }
@@ -115,21 +115,21 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Pool_excute pool_excute = new Pool_excute
+                Pool_execute pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = "SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "';"
+                    Pool = Program.POOL_NAME,
+                    Query = "SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "';"
                 };
-                Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("SELECT `db_key` error! ");
-                    return "Fail. Execution 'select' error: " + response.error;
+                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
+                    return "Fail. Execution 'select' error: " + response.Error;
                 }
-                if (response.data.Count > 0)
+                if (response.Data.Count > 0)
                 {
-                    id = response.data[0]["id"].ToString();
-                    checkStatus = response.data[0]["check_status"].ToString();
+                    id = response.Data[0]["id"].ToString();
+                    checkStatus = response.Data[0]["check_status"].ToString();
                 }
                 else
                 {
@@ -154,19 +154,19 @@ namespace DCT_data_import
                 }
                 //importStatus = (importResult.ToString() == checkStatus) ? "1" : "2";
                 // 更新 import check 相關資訊
-                pool_excute = new Pool_excute
+                pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = "UPDATE db_key " +
+                    Pool = Program.POOL_NAME,
+                    Query = "UPDATE db_key " +
                     "SET tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
                     "import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
                     "WHERE `db_key`='" + dbKey + "';"
                 };
-                response = webApiClient.ExcutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("UPDATE `db_key` error! ");
-                    return "Fail. Execution 'update' error: " + response.error;
+                    writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
+                    return "Fail. Execution 'update' error: " + response.Error;
                 }
             }
             catch (Exception ex)
@@ -184,21 +184,21 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Pool_excute pool_excute = new Pool_excute
+                Pool_execute pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = "SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "';"
+                    Pool = Program.POOL_NAME,
+                    Query = "SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "';"
                 };
-                Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("SELECT `db_key` error! ");
-                    return "Fail. Execution 'select' error: " + response.error;
+                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
+                    return "Fail. Execution 'select' error: " + response.Error;
                 }
-                if (response.data.Count > 0)
+                if (response.Data.Count > 0)
                 {
-                    id = response.data[0]["id"].ToString();
-                    checkStatus = response.data[0]["check_status"].ToString();
+                    id = response.Data[0]["id"].ToString();
+                    checkStatus = response.Data[0]["check_status"].ToString();
                 }
                 else
                 {
@@ -224,19 +224,19 @@ namespace DCT_data_import
                 //// 寫入寄信暫存檔
                 //writeToLog.WriteToMailTemp(dbKey + "," + dbKey);
                 // 更新 import check 相關資訊
-                pool_excute = new Pool_excute
+                pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = "UPDATE db_key_ui_status " +
+                    Pool = Program.POOL_NAME,
+                    Query = "UPDATE db_key_ui_status " +
                     "SET ui_status='" + uiStatus.ToString() + "', " +
                     "import_status='" + importStatus + "',mail='" + mail + "',remark='" + remark + "' " +
                     "WHERE `db_key`='" + dbKey + "';"
                 };
-                response = webApiClient.ExcutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("UPDATE `db_key` error! ");
-                    return "Fail. Execution 'update' error: " + response.error;
+                    writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
+                    return "Fail. Execution 'update' error: " + response.Error;
                 }
             }
             catch (Exception ex)
@@ -269,21 +269,21 @@ namespace DCT_data_import
             }
             try
             {
-                Pool_excute pool_excute = new Pool_excute
+                Pool_execute pool_excute = new Pool_execute
                 {
-                    pool = Program.POOL_NAME,
-                    query = sql
+                    Pool = Program.POOL_NAME,
+                    Query = sql
                 };
-                Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.error))
+                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.writeToLog("SELECT `db_key` error! ");
+                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                 }
-                for (int i = 0; i < response.data.Count; i++)
+                for (int i = 0; i < response.Data.Count; i++)
                 {
                     //Console.WriteLine(response.data[i]["db_key"].ToString());
-                    remark = (response.data[i]["check_status"].ToString() == "0") ? "未更新check status" : response.data[i]["remark"].ToString();
-                    dbKeyObject.Add(new DbKeyObject(int.Parse(response.data[i]["id"].ToString()), response.data[i]["db_key"].ToString(), remark));
+                    remark = (response.Data[i]["check_status"].ToString() == "0") ? "未更新check status" : response.Data[i]["remark"].ToString();
+                    dbKeyObject.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), remark));
                 }
             }
             catch (Exception ex)
@@ -329,24 +329,24 @@ namespace DCT_data_import
                     {
                         sql = "UPDATE db_key " +
                             "SET mail=1 " +
-                            "WHERE `id`='" + item.id + "';";
+                            "WHERE `id`='" + item.Id + "';";
                     }
                     else if (mode == "ui_status")
                     {
                         sql = "UPDATE db_key_ui_status " +
                             "SET mail=1 " +
-                            "WHERE `id`='" + item.id + "';";
+                            "WHERE `id`='" + item.Id + "';";
                     }
-                    Pool_excute pool_excute = new Pool_excute
+                    Pool_execute pool_excute = new Pool_execute
                     {
-                        pool = Program.POOL_NAME,
-                        query = sql
+                        Pool = Program.POOL_NAME,
+                        Query = sql
                     };
-                    Pool_excute_response response = webApiClient.ExcutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
-                    if (!string.IsNullOrEmpty(response.error))
+                    Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
+                    if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.writeToLog("UPDATE `db_key` error!  id=" + item.id + ",  db_key=" + item.dbKey);
-                        return "Fail." + response.error;
+                        writeToLog.WriteToDataImportLog("UPDATE `db_key` error!  id=" + item.Id + ",  db_key=" + item.DbKey);
+                        return "Fail." + response.Error;
                     }
                 }
             }
