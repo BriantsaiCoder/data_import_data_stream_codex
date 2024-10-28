@@ -1591,7 +1591,7 @@ namespace DCT_data_import
                 Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO " + tableName + "' response error:" + response.Error);
+                    writeToLog.WriteToDataImportLog("'INSERT INTO " + tableName + "' Query:" + pool_excute.Query + "' response error:" + response.Error);
                 }
                 return response;
             }
