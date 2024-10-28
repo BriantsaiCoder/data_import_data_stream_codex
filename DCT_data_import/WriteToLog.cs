@@ -11,14 +11,21 @@ namespace DCT_data_import
         int FailedCount = 0;
         public void WriteToDataImportLog(string message)
         {
+            string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
+            string log_path = Path.Combine(logDirectory, $"DCT_data_import_Log_{DateTime.Now:yyyy_MM_dd}.txt");
             //string log_path = @"C:\temp\HL_System_WEB_Log.txt";
             //string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\DCT_data_import_Log.txt").LocalPath;
-            string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + $"\\data_import_logs\\DCT_data_import_Log_{DateTime.Now.ToString("yyyy_MM_dd")}.txt").LocalPath;
+            // string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + $"\\data_import_logs\\DCT_data_import_Log_{DateTime.Now.ToString("yyyy_MM_dd")}.txt").LocalPath;
             //using (var mutex = new Mutex(false, log_path.Replace("\\", "")))
             //{
             //    var hasHandle = false;
             try
             {
+                // 檢查資料夾是否存在，若不存在則建立
+                if (!Directory.Exists(logDirectory))
+                {
+                    Directory.CreateDirectory(logDirectory);
+                }
                 //hasHandle = mutex.WaitOne(Timeout.Infinite, false);
                 if (!File.Exists(log_path))
                 {
