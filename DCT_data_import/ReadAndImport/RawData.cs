@@ -314,11 +314,12 @@ namespace DCT_data_import.ReadAndImport
                                 // 解析'*'字號
                                 if (i == 0 && values[i].Contains("*"))
                                 {
-                                    dr_lotResult["retest_loc"] = "R";
+                                    dr_lotResult["retest_loc"] = "Y";
                                     dr_lotResult[i] = values[i].Remove(0, 1);
                                 }
                                 else
                                 {
+                                    dr_lotResult["retest_loc"] = "N";
                                     dr_lotResult[i] = values[i];
                                 }
                             }
