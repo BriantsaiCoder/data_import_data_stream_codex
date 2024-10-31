@@ -67,7 +67,8 @@ namespace DCT_data_import
             string sql = "";
             if (mode == "tester")
             {
-                sql = "SELECT id, db_key, tester, test_result, fail_pin, check_status FROM `db_key` WHERE `check_status`>0 AND `import_status` =0 AND mail=0;";
+                //sql = "SELECT id, db_key, tester, test_result, fail_pin, check_status FROM `db_key` WHERE `check_status`>0 AND `import_status` =0 AND mail=0;";
+                sql = "SELECT id, db_key, recovery_rate, tester, test_result, fail_pin, check_status FROM `db_key` WHERE `check_status`>0 AND `import_status` =0 AND mail=0;";
             }
             else if (mode == "ui_status")
             {
@@ -92,7 +93,8 @@ namespace DCT_data_import
                     //Console.WriteLine(response.data[i]["id"].ToString() + ", "+response.data[i]["db_key"].ToString());
                     if (mode == "tester")
                     {
-                        dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
+                        //dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
+                        dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["recovery_rate"].ToString()), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
                     }
                     else
                     {
@@ -107,10 +109,11 @@ namespace DCT_data_import
             }
             return dbKeyList;
         }
-        public string UpdateDbKeyImportStatus(WebApiClient webApiClient, string dbKey, int tester, int testResult, int failPin, string remark)
+        public string UpdateDbKeyImportStatus(WebApiClient webApiClient, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
-            int importResult = 4 * tester + 2 * testResult + failPin;
+            //int importResult = 4 * tester + 2 * testResult + failPin;
+            int importResult = 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
             string id, checkStatus, importStatus = "1", mail = "0";
             try
             {
@@ -133,7 +136,7 @@ namespace DCT_data_import
                 }
                 else
                 {
-                    return "Fail. There is no infomation which db_key is '" + dbKey + "'";
+                    return "Fail. There is no information which db_key is '" + dbKey + "'";
                 }
                 // 檢查確認碼
                 //if (importResult < int.Parse(checkStatus))
@@ -143,11 +146,11 @@ namespace DCT_data_import
                 /*else */
                 if (importResult == int.Parse(checkStatus))
                 {
-                    importStatus = "1";
+                    importStatus = "1"; // import successfully
                 }
                 else
                 {
-                    importStatus = "2";
+                    importStatus = "2"; // import fail
                     mail = "1";
                     // 寫入寄信暫存檔
                     writeToLog.WriteToMailTemp(dbKey + "," + remark);
@@ -157,10 +160,14 @@ namespace DCT_data_import
                 pool_excute = new Pool_execute
                 {
                     Pool = Program.POOL_NAME,
-                    Query = "UPDATE db_key " +
-                    "SET tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
+                    Query = "UPDATE db_key " + "SET recovery_rate=" + recoveryRate.ToString() +
+                    ",tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
                     "import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
                     "WHERE `db_key`='" + dbKey + "';"
+                    //Query = "UPDATE db_key " +
+                    //"SET tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
+                    //"import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
+                    //"WHERE `db_key`='" + dbKey + "';"
                 };
                 response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
