@@ -29,7 +29,7 @@ namespace DCT_data_import.ReadAndImport
             Stream responseStream;
             StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
-            CompareTool compareTool = new CompareTool();
+            //CompareTool compareTool = new CompareTool();
             bool compareResult = false;
             CalculateSPC calculateSPC = new CalculateSPC();
             List<StatisticItem> avg2;
@@ -72,25 +72,25 @@ namespace DCT_data_import.ReadAndImport
                 long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                 stopWatch.Reset();
                 stopWatch.Start();
-                RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
+                RecoveryRateDataContentFormat recoveryRateDataContentFormat = FileReadRecoveryRateData(reader);
                 reader.Close();
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
                 //if (rawDataContentFormat.lotInfo.Rows[0]["Customer"].ToString() != "TSMC") return null;
-                if (!string.IsNullOrEmpty(rawDataContentFormat.ErrMsg))
+                if (!string.IsNullOrEmpty(recoveryRateDataContentFormat.ErrMsg))
                 {
-                    return new ImportResult(2, rawDataContentFormat.ErrMsg);
+                    return new ImportResult(2, recoveryRateDataContentFormat.ErrMsg);
                 }
-                if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
+                if (recoveryRateDataContentFormat == null || recoveryRateDataContentFormat.LotInfo.Rows.Count < 1)
                 {
                     Console.WriteLine("Raw data 讀檔失敗:  " + filename);
                     writeToLog.WriteToDataImportLog("Raw data  讀檔失敗: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
-                    return new ImportResult(2, "File content is missing. " + rawDataContentFormat.ErrMsg);
+                    return new ImportResult(2, "File content is missing. " + recoveryRateDataContentFormat.ErrMsg);
                 }
-                if (!rawDataContentFormat.CompareInfo())
+                if (!recoveryRateDataContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Raw data 之 information 欄位名稱不符:  " + filename);
                     writeToLog.WriteToDataImportLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
@@ -111,14 +111,14 @@ namespace DCT_data_import.ReadAndImport
                 //{
                 //    Console.WriteLine("Lot Result 無資料");
                 //}
-                if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
+                if (!dbKey.Equals(recoveryRateDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
                 {
                     writeToLog.WriteToDataImportLog("檔名與內容的DB_Key不相符: " + ftpserver);
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", recoveryRateDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
                 if (isDBKeyExist)
                 {
                     //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
@@ -195,9 +195,9 @@ namespace DCT_data_import.ReadAndImport
             //Console.WriteLine("Raw data end~");
             return new ImportResult(1, "");
         }
-        private RawDataContentFormat FileReadRawData(StreamReader reader)
+        private RecoveryRateDataContentFormat FileReadRecoveryRateData(StreamReader reader)
         {
-            RawDataContentFormat fileContentFormat = new RawDataContentFormat();
+            RecoveryRateDataContentFormat fileContentFormat = new RecoveryRateDataContentFormat();
             try
             {
                 // 存放第二部分統計值的 Dictionary

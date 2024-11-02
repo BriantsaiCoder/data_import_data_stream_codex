@@ -6,6 +6,59 @@ using System.Text;
 using System.Threading.Tasks;
 namespace DCT_data_import
 {
+    public class RecoveryRateDataContentFormat
+    {
+        private readonly string[] infoColumns = { "DB Key", "Area", "Factory", "OS Machine", "Customer", "Program", "AO Lot", "Mode", "Date" };
+        private readonly string[] recoveryRateColumns = { "Test_Item", "Defect_mode", "reTestPass", "FailPinCount", "Total_Unit", "Recovery rate(%)" };
+        public string ErrMsg { get; set; }
+        public DataTable LotInfo { get; set; }
+        //public DataSet LotStatistic { get; set; }
+        public DataTable LotRecoveryRate { get; set; }
+        public RecoveryRateDataContentFormat(string errMsg = "")
+        {
+            ErrMsg = errMsg;
+            LotInfo = new DataTable();
+            // 因info只有一列資料，故先建立一個空DataRow
+            DataRow dr = LotInfo.NewRow();
+            LotInfo.Rows.Add(dr);
+            //LotStatistic = new DataSet();
+            LotRecoveryRate = new DataTable();
+        }
+        // 比對 infoColumns 與 lotInfo 的欄位
+        public bool CompareInfo()
+        {
+            if (LotInfo.Rows.Count < 1) return false;
+            string[] columnNames = LotInfo.Columns.Cast<DataColumn>()
+                                 .Select(x => x.ColumnName)
+                                 .ToArray();
+            bool result = true; // infoColumns.SequenceEqual(columnNames);
+            for (int i = 0; i < LotInfo.Columns.Count; i++)
+            {
+                if (!infoColumns.Contains(LotInfo.Columns[i].ColumnName))
+                {
+                    return false;
+                }
+            }
+            return result;
+        }
+        // 比對 recoveryRateColumns 與 LotRecoveryRate 的欄位
+        public bool CompareRecoveryRate()
+        {
+            if (LotRecoveryRate.Rows.Count < 1) return false;
+            string[] columnNames = LotRecoveryRate.Columns.Cast<DataColumn>()
+                                 .Select(x => x.ColumnName)
+                                 .ToArray();
+            bool result = true; // recoveryRateColumns.SequenceEqual(columnNames);
+            for (int i = 0; i < LotRecoveryRate.Columns.Count; i++)
+            {
+                if (!recoveryRateColumns.Contains(LotRecoveryRate.Columns[i].ColumnName))
+                {
+                    return false;
+                }
+            }
+            return result;
+        }
+    }
     public class RawDataContentFormat
     {
         private readonly string[] infoColumns = { "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
