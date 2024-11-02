@@ -255,15 +255,25 @@ namespace DCT_data_import
                 }
             #endregion
             List<DbKeyObject> dbKeyList = dbAccess.SelectDbKey(webApiClient, "tester");
+            RecoveryRate recoveryRate = new RecoveryRate();
             RawData rawData = new RawData();
             Tester tester = new Tester();
             FailPin failPin = new FailPin();
             string updateImportStatus, remark;
-            ImportResult importResult1, importResult2, importResult3;
+            ImportResult importResult, importResult1, importResult2, importResult3;
             for (int i = 0; i < dbKeyList.Count; i++)
             {
                 Console.WriteLine((i + 1).ToString() + ".DB_Key=" + dbKeyList[i].DbKey + "  ");
-                if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7)
+                if (dbKeyList[i].CheckStatus >= 8 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].RecoveryRate == 0)
+                {
+                    importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                }
+                else
+                {
+                    importResult = new ImportResult(dbKeyList[i].RecoveryRate, "");
+                }
+                if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7 || dbKeyList[i].CheckStatus == 10 || dbKeyList[i].CheckStatus == 11 || dbKeyList[i].CheckStatus == 14 || dbKeyList[i].CheckStatus == 15)
+                //if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7)
                 {
                     if (dbKeyList[i].TestResult == 0)
                     {
@@ -278,7 +288,8 @@ namespace DCT_data_import
                 {
                     importResult2 = new ImportResult(0, "");
                 }
-                if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0)
+                if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0 || dbKeyList[i].CheckStatus >= 12 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].Tester == 0)
+                //if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0)
                 {
                     importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                 }
@@ -286,7 +297,8 @@ namespace DCT_data_import
                 {
                     importResult1 = new ImportResult(dbKeyList[i].Tester, "");
                 }
-                if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7)
+                if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7 || dbKeyList[i].CheckStatus == 9 || dbKeyList[i].CheckStatus == 11 || dbKeyList[i].CheckStatus == 13 || dbKeyList[i].CheckStatus == 15)
+                //if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7)
                 {
                     if (dbKeyList[i].FailPin == 0)
                     {
@@ -302,10 +314,11 @@ namespace DCT_data_import
                     importResult3 = new ImportResult(0, "");
                 }
                 remark = "";
+                remark += (string.IsNullOrEmpty(importResult.Message)) ? "" : "recovery rate: " + importResult.Message + "  ";
                 remark += (string.IsNullOrEmpty(importResult1.Message)) ? "" : "tester: " + importResult1.Message + "  ";
                 remark += (string.IsNullOrEmpty(importResult2.Message)) ? "" : "test result: " + importResult2.Message + "  ";
                 remark += (string.IsNullOrEmpty(importResult3.Message)) ? "" : "fail pin: " + importResult3.Message;
-                updateImportStatus = dbAccess.UpdateDbKeyImportStatus(webApiClient, dbKeyList[i].DbKey, importResult1.Result, importResult2.Result, importResult3.Result, remark);
+                updateImportStatus = dbAccess.UpdateDbKeyImportStatus(webApiClient, dbKeyList[i].DbKey, importResult.Result, importResult1.Result, importResult2.Result, importResult3.Result, remark);
                 Console.WriteLine("Update tester import status:" + updateImportStatus);
             }
             Console.WriteLine("Tester mode end~");

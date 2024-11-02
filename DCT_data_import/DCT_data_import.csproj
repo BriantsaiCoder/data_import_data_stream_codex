@@ -95,6 +95,7 @@
   <ItemGroup>
     <Compile Include="DbAccess.cs" />
     <Compile Include="MySQL_api\DBmysql.cs" />
+    <Compile Include="ReadAndImport\RecoveryRate.cs" />
     <Compile Include="ReadAndImport\TsmcIeda.cs" />
     <Compile Include="WebApi\ApiObject.cs" />
     <Compile Include="CalculateSPC.cs" />
