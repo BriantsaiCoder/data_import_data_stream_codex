@@ -33,6 +33,7 @@ namespace DCT_data_import
         public static string FTP_IP = ConfigurationManager.ConnectionStrings["FtpIp"].ConnectionString;
         public static string FTP_USER = ConfigurationManager.ConnectionStrings["FtpUser"].ConnectionString;
         public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"].ConnectionString;
+        public static bool OFFLINE = true; // true: 連本機資料庫; false: 連Server資料庫
         static void Main(string[] args)
         {
             FileProcess fileAccess = new FileProcess();
@@ -261,6 +262,7 @@ namespace DCT_data_import
             FailPin failPin = new FailPin();
             string updateImportStatus, remark;
             ImportResult importResult, importResult1, importResult2, importResult3;
+            importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, webApiClient, "ASE07-5070-027-10.10.204.111_AAH@A255080014-0-S_20241102-195239").GetAwaiter().GetResult();
             for (int i = 0; i < dbKeyList.Count; i++)
             {
                 Console.WriteLine((i + 1).ToString() + ".DB_Key=" + dbKeyList[i].DbKey + "  ");

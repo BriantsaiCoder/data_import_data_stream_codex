@@ -137,10 +137,22 @@ namespace DCT_data_import
         //}
         public async Task<Pool_execute_response> ExecutePoolAsync(Pool_execute pool_execute, string mode = "select", string api_key = "")
         {
-            string server = "10.16.92.67";
+            string server = string.Empty;
+            string user = string.Empty;
+            string password = string.Empty;
+            if (Program.OFFLINE)
+            {
+                server = "localhost";
+                user = "root";
+                user = "root";
+            }
+            else
+            {
+                server = "10.16.92.67";
+                user = "5910";
+                password = "TID_5910!";
+            }
             string port = "3306";
-            string user = "5910";
-            string password = "TID_5910!";
             string database = "dct";
             //string server = "10.16.93.46";
             //string port = "3306";

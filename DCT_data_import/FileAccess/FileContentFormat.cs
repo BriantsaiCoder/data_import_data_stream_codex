@@ -21,7 +21,6 @@ namespace DCT_data_import
             // 因info只有一列資料，故先建立一個空DataRow
             DataRow dr = LotInfo.NewRow();
             LotInfo.Rows.Add(dr);
-            //LotStatistic = new DataSet();
             LotRecoveryRate = new DataTable();
         }
         // 比對 infoColumns 與 lotInfo 的欄位
