@@ -144,7 +144,7 @@ namespace DCT_data_import
             {
                 server = "localhost";
                 user = "root";
-                user = "root";
+                password = "root";
             }
             else
             {

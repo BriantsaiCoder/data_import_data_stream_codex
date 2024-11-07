@@ -90,7 +90,13 @@ namespace DCT_data_import
                 }
                 for (int i = 0; i < response.Data.Count; i++)
                 {
-                    //Console.WriteLine(response.data[i]["id"].ToString() + ", "+response.data[i]["db_key"].ToString());
+                    //Console.WriteLine("id = " + response.Data[i]["id"].ToString());
+                    //Console.WriteLine("db_key = " + response.Data[i]["db_key"].ToString());
+                    //Console.WriteLine("recovery_rate = " + response.Data[i]["recovery_rate"].ToString());
+                    //Console.WriteLine("tester = " + response.Data[i]["tester"].ToString());
+                    //Console.WriteLine("test_result = " + response.Data[i]["test_result"].ToString());
+                    //Console.WriteLine("fail_pin = " + response.Data[i]["fail_pin"].ToString());
+                    //Console.WriteLine("check_status = " + response.Data[i]["check_status"].ToString());
                     if (mode == "tester")
                     {
                         //dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));

@@ -12,8 +12,8 @@ namespace DCT_data_import
         private readonly string[] recoveryRateColumns = { "Test_Item", "Defect_mode", "reTestPass", "FailPinCount", "Total_Unit", "Recovery rate(%)" };
         public string ErrMsg { get; set; }
         public DataTable LotInfo { get; set; }
-        //public DataSet LotStatistic { get; set; }
         public DataTable LotRecoveryRate { get; set; }
+        public DataTable FinalRecoveryRateTable { get; set; }
         public RecoveryRateDataContentFormat(string errMsg = "")
         {
             ErrMsg = errMsg;
@@ -22,6 +22,7 @@ namespace DCT_data_import
             DataRow dr = LotInfo.NewRow();
             LotInfo.Rows.Add(dr);
             LotRecoveryRate = new DataTable();
+            FinalRecoveryRateTable = new DataTable();
         }
         // 比對 infoColumns 與 lotInfo 的欄位
         public bool CompareInfo()
@@ -38,6 +39,7 @@ namespace DCT_data_import
                     return false;
                 }
             }
+
             return result;
         }
         // 比對 recoveryRateColumns 與 LotRecoveryRate 的欄位

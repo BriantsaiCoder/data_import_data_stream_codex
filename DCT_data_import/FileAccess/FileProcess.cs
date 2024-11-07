@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -696,6 +698,112 @@ namespace DCT_data_import
             {
                 return DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
             }
+        }
+        public string ValidateDateTime(string input)
+        {
+            string format = "yyyy-MM-dd HH:mm:ss";
+            if (DateTime.TryParseExact(input, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime result))
+            {
+                return result.ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            else
+            {
+                return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            }
+        }
+        // Recovery Rate 匯入資料庫
+        public bool ImportRecoveryData(RecoveryRateDataContentFormat content, WebApiClient webApiClient)
+        {
+            if (content.LotInfo.Rows.Count < 1 || content.LotRecoveryRate.Rows.Count < 1) return false;
+            #region insert recovery rate 的 data
+            int cut_size = (content.FinalRecoveryRateTable.Rows.Count > 5000) ? 5000 : content.FinalRecoveryRateTable.Rows.Count;
+            // assign 需要 insert 的 欄位名稱
+            string columns = "", values = "";
+            Pool_execute_response response2;
+            for (int i = 0; i < content.FinalRecoveryRateTable.Columns.Count; i++)
+            {
+                string column_name = content.FinalRecoveryRateTable.Columns[i].ColumnName.ToLower();
+                //column_name = column_name.Split('(', ')')[0];
+                // 欄位名稱調整
+                if (column_name == "DB Key".ToLower()) column_name = "db_key";
+                if (column_name == "OS Machine".ToLower()) column_name = "os_machine";
+                if (column_name == "AO Lot".ToLower()) column_name = "ao_lot";
+                if (column_name == "reTestPass".ToLower()) column_name = "re_test_pass";
+                if (column_name == "FailPinCount".ToLower()) column_name = "fail_pin_count";
+                if (column_name == "Recovery rate(%)".ToLower()) column_name = "recovery_rate";
+                columns += "`" + column_name.Trim() + "`";
+                if (i != content.FinalRecoveryRateTable.Columns.Count - 1)
+                {
+                    columns += ",";
+                }
+            }
+            try
+            {
+                // 開始逐一insert recovery rate data
+                values = "";
+                for (int i = 0; i < content.FinalRecoveryRateTable.Rows.Count; i++)
+                {
+                    values += "(\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim()) + "\",";
+                    for (int j = 1; j < content.FinalRecoveryRateTable.Columns.Count; j++)
+                    { // 處理日期格式
+                        if (string.Equals(content.FinalRecoveryRateTable.Columns[j].ColumnName.ToLower(), "date", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // 日期格式解析正確
+                            content.FinalRecoveryRateTable.Rows[i][j] = ValidateDateTime(content.FinalRecoveryRateTable.Rows[i][j].ToString());
+                        }
+                        values += "\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][j].ToString().Trim()) + "\"";
+                        if (j != content.FinalRecoveryRateTable.Columns.Count - 1)
+                        {
+                            values += ",";
+                        }
+                    }
+                    // 每cut_size個row就匯入一次
+                    if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
+                    {
+                        values += ")";
+                        values = values.Substring(1, values.Length - 2);
+                        response2 = ExecuteInsertWithAPI(webApiClient, "recovery_rate", columns, values);
+                        if (!string.IsNullOrEmpty(response2.Error))
+                        {
+                            writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + response2.Error);
+                            return false;
+                        }
+                        values = "";
+                    }
+                    else if (i != content.FinalRecoveryRateTable.Rows.Count - 1)
+                    {
+                        values += "),";
+                    }
+                    else
+                    {
+                        values += ")";
+                    }
+                }
+                if (!string.IsNullOrEmpty(values))
+                {
+                    values = values.Substring(1, values.Length - 2);
+                    // 如果最後一個字元是')' 則移除
+                    string last_str = values.Substring(values.Length - 1);
+                    if (last_str == ")")
+                    {
+                        values = values.Substring(0, values.Length - 1);
+                    }
+                    response2 = ExecuteInsertWithAPI(webApiClient, "recovery_rate", columns, values);
+                    if (!string.IsNullOrEmpty(response2.Error))
+                    {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                string poolExceptionResult = PoolException(ex, webApiClient);
+                writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + ex.ToString());
+                return false;
+            }
+            #endregion
+            return true;
         }
         // RawData 匯入資料庫
         public bool ImportRawData(RawDataContentFormat content, WebApiClient webApiClient)
