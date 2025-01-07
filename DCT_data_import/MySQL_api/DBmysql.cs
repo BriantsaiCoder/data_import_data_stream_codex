@@ -10,92 +10,66 @@ namespace DCT_data_import
 {
     public class DBmysql
     {
-        string Mysql_host = string.Empty;
-        private MySqlConnection mSQL;
-        private MySqlCommand SQLcmd;
-        private readonly MySqlDataReader receiveSQLdata;
+        private static readonly object lockObj = new object();
+        private string Mysql_host = string.Empty;
+
         public void Connect(string IP, string Port, string user, string password, string dbName)
         {
-            Mysql_host = $"server={IP};port={Port}; user id={user}; password={password}; database={dbName};sslMode=none";
-            //Mysql_host = $"server={IP};port={Port}; user id={user}; password={password}; database={dbName}";
-            mSQL = new MySqlConnection(Mysql_host);
-            try
-            {
-                mSQL.Open();
-                //Console.WriteLine($"{IP} Connect Successful !!!");
-            }
-            catch (MySql.Data.MySqlClient.MySqlException ex)
-            {
-                switch (ex.Number)
-                {
-                    case 0:
-                        Console.WriteLine("無法連線到資料庫.");
-                        break;
-                    case 1045:
-                        Console.WriteLine("使用者帳號或密碼錯誤,請再試一次.");
-                        break;
-                    default:
-                        Console.WriteLine("Connect Error : " + ex.Number);
-                        break;
-                }
-            }
+            MySqlConnectionManager.Initialize(IP, Port, user, password, dbName);
         }
-        public void Close()
-        {
-            try
-            {
-                mSQL.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error closing connection: " + ex.Message);
-            }
-        }
+
         public Pool_execute_response Excute_mysql_cmd(string cmd_string, string mode = "select")
         {
             Pool_execute_response response = new Pool_execute_response();
             response.Data = new JArray();
             try
             {
-                SQLcmd = new MySqlCommand(cmd_string, mSQL);
-                if (mode == "select")
+                // 使用新的連線物件
+                using (MySqlConnection localConnection = new MySqlConnection(MySqlConnectionManager.ConnectionString))
                 {
-                    SQLcmd.ExecuteNonQuery();
-                    using (MySqlDataReader receiveSQLdata = SQLcmd.ExecuteReader())
+                    localConnection.Open();
+                    MySqlCommand SQLcmd = new MySqlCommand(cmd_string, localConnection);
+
+                    if (mode == "select")
                     {
-                        // 将数据存储到 JArray
-                        JArray jsonArray = new JArray();
-                        while (receiveSQLdata.Read())
+                        lock (lockObj) // 加鎖，確保執行緒安全
                         {
-                            JObject row = new JObject();
-                            // 逐列读取
-                            for (int i = 0; i < receiveSQLdata.FieldCount; i++)
+                            using (MySqlDataReader receiveSQLdata = SQLcmd.ExecuteReader())
                             {
-                                string columnName = receiveSQLdata.GetName(i);
-                                object columnValue = receiveSQLdata.GetValue(i);
-                                row[columnName] = JToken.FromObject(columnValue);
+                                // 將資料存儲到 JArray
+                                JArray jsonArray = new JArray();
+                                while (receiveSQLdata.Read())
+                                {
+                                    JObject row = new JObject();
+                                    // 逐列讀取
+                                    for (int i = 0; i < receiveSQLdata.FieldCount; i++)
+                                    {
+                                        string columnName = receiveSQLdata.GetName(i);
+                                        object columnValue = receiveSQLdata.GetValue(i);
+                                        row[columnName] = JToken.FromObject(columnValue);
+                                    }
+                                    // 將行資料添加到 JArray 中
+                                    jsonArray.Add(row);
+                                }
+                                response.Data = jsonArray;
                             }
-                            // 将行数据添加到 JArray 中
-                            jsonArray.Add(row);
                         }
-                        response.Data = jsonArray;
+                    }
+                    else
+                    {
+                        int affectedRows = SQLcmd.ExecuteNonQuery();
+                        long insertId = SQLcmd.LastInsertedId;  // 獲取自動生成的主鍵ID
+                        JObject resultObj = new JObject();  // 用於存放回傳結果
+                                                            // 設定回傳的 JSON 結果
+                        resultObj["fieldCount"] = 0; // MySQL 的插入操作 fieldCount 通常為 0
+                        resultObj["affectedRows"] = affectedRows;
+                        resultObj["insertId"] = insertId;
+                        resultObj["info"] = "";  // 可能為空
+                        resultObj["serverStatus"] = 2;  // 模擬結果值，通常 2 代表連接正常
+                        resultObj["warningStatus"] = 0;  // 假設沒有警告
+                        response.Data.Add(resultObj);
                     }
                 }
-                else
-                {
-                    int affectedRows = SQLcmd.ExecuteNonQuery();
-                    long insertId = SQLcmd.LastInsertedId;  // 獲取自動生成的主鍵ID
-                    JObject resultObj = new JObject();  // 用於存放回傳結果
-                                                        // 設定回傳的 JSON 結果
-                    resultObj["fieldCount"] = 0; // MySQL 的插入操作 fieldCount 通常為 0
-                    resultObj["affectedRows"] = affectedRows;
-                    resultObj["insertId"] = insertId;
-                    resultObj["info"] = "";  // 可能为空
-                    resultObj["serverStatus"] = 2;  // 模擬結果值，通常 2 代表连接正常
-                    resultObj["warningStatus"] = 0;  // 假設沒有警告
-                    response.Data.Add(resultObj);
-                }
-                //receiveSQLdata.Close();
             }
             catch (Exception ex)
             {
@@ -104,9 +78,16 @@ namespace DCT_data_import
             return response;
         }
     }
-    //public class PoolExcuteResponse
-    //{
-    //    public JArray data { get; set; }
-    //    public string error { get; set; }
-    //}
+
+    public class MySqlConnectionManager
+    {
+        private static string connectionString;
+
+        public static string ConnectionString { get { return connectionString; } }
+
+        public static void Initialize(string IP, string Port, string user, string password, string dbName)
+        {
+            connectionString = $"server={IP};port={Port};user id={user};password={password};database={dbName};sslMode=none;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;";
+        }
+    }
 }

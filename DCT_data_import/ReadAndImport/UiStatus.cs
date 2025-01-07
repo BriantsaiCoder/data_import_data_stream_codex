@@ -25,6 +25,9 @@ namespace DCT_data_import.ReadAndImport
             CompareTool compareTool = new CompareTool();
             WriteToLog writeToLog = new WriteToLog();
             string downloadStatus, deleteStatus;
+            Stopwatch stopWatch = new Stopwatch();
+            TimeSpan ts2 = stopWatch.Elapsed;
+            double readTakeTime = 0, importTakeTime = 0;
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
@@ -73,10 +76,15 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "ui_status field name not match.");
                 }
+                stopWatch.Reset();
+                stopWatch.Start();
                 import_result = fileAccess.ImportUIStatus(uiStatusContentFormat, webApiClient);
+                stopWatch.Stop();
+                ts2 = stopWatch.Elapsed;
+                importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
                 if (import_result)
                 {
-                    Console.WriteLine("匯入完成! UI Status " + filename);
+                    Console.WriteLine("匯入完成! UI Status " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                     // Kerwin 的電腦
                     if (macid == "94C6913F94BD")
                     {
