@@ -95,6 +95,7 @@ namespace DCT_data_import.ReadAndImport
         }
         public string RenameFile(string fileName, string newFileName, string user, string password)
         {
+            WriteToLog writeToLog = new WriteToLog();
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
             request.Method = WebRequestMethods.Ftp.Rename;
             request.Credentials = new NetworkCredential(user, password);
@@ -106,8 +107,9 @@ namespace DCT_data_import.ReadAndImport
                 response.Close();
                 return response.StatusDescription;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                writeToLog.WriteToDataImportLog("RenameFile() Fail, Exception :" + ex.Message);
                 return "RenameFile() Fail";
             }
         }
