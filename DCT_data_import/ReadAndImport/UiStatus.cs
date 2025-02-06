@@ -27,7 +27,7 @@ namespace DCT_data_import.ReadAndImport
             string downloadStatus, deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
-            double readTakeTime = 0, importTakeTime = 0;
+            double importTakeTime = 0;
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
@@ -38,7 +38,19 @@ namespace DCT_data_import.ReadAndImport
             //    return new ImportResult(0, "FTP server connection failed.");
             // 檢查FTP是否有此檔案
             string filename = "ui_status_" + dbKeyUiStatus + ".csv";
-            ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
+            string errorDir = string.Empty;
+            ftpserver = "ftp://" + Program.FTP_IP;
+            if (Program.Environment == "Dev")
+            {
+                ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/UI_Status/" + filename;
+                errorDir = "/DCT_Log/DCT_DB_DATA_Dev/UI_Status_Error/";
+            }
+            else if (Program.Environment == "Prod")
+            {
+                ftpserver += "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
+                errorDir = "/DCT_Log/DCT_DB_DATA/UI_Status_Error/";
+            }
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
             bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
                 return new ImportResult(0, "File not found.");
@@ -50,7 +62,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 import_result = false;
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
+                //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
@@ -66,14 +78,14 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("UI Status 讀取失敗: " + filename);
                     writeToLog.WriteToDataImportLog("UI Status 讀取失敗:" + ftpserver);
-                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing.");
                 }
                 if (!uiStatusContentFormat.CompareUiStatus())
                 {
                     Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + filename);
                     writeToLog.WriteToDataImportLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
-                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "ui_status field name not match.");
                 }
                 stopWatch.Reset();
@@ -100,7 +112,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("匯入失敗: UI Status " + filename);
                     writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
-                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/UI_Status_Error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     reader.Close();
                     response.Close();
                     return new ImportResult(3, "Import failed.");
@@ -111,6 +123,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
             GC.Collect();

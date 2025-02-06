@@ -36,9 +36,19 @@ namespace DCT_data_import.ReadAndImport
             TimeSpan ts2 = stopWatch.Elapsed;
             string names;
             List<string> list_filename = new List<string>();
+            string errorDir = string.Empty;
+            ftpserver = "ftp://" + Program.FTP_IP;
+            if (Program.Environment == "Dev")
+            {
+                ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/IEDA/";
+            }
+            else if (Program.Environment == "Prod")
+            {
+                ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/";
+            }
+            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/";
             try
             {
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/";
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
@@ -59,7 +69,18 @@ namespace DCT_data_import.ReadAndImport
                 string filename = list_filename[i];
                 try
                 {
-                    ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
+                    ftpserver = "ftp://" + Program.FTP_IP;
+                    if (Program.Environment == "Dev")
+                    {
+                        ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/IEDA/" + filename;
+                        errorDir = "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/IEDA_error/";
+                    }
+                    else if (Program.Environment == "Prod")
+                    {
+                        ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
+                        errorDir = "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/";
+                    }
+                    //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
                     reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                     reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                     response = (FtpWebResponse)reqFTP.GetResponse();
@@ -68,7 +89,7 @@ namespace DCT_data_import.ReadAndImport
                     IedaDataFormat iedaDataFormat = FileReadIeda(reader);
                     if (!string.IsNullOrEmpty(iedaDataFormat.ErrMsg))
                     {
-                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                         return new ImportResult(2, iedaDataFormat.ErrMsg);
                     }
                     stopWatch.Reset();
@@ -91,12 +112,12 @@ namespace DCT_data_import.ReadAndImport
                     }
                     else
                     {
-                        RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
                 }
                 catch (Exception)
                 {
-                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     writeToLog.WriteToDataImportLog("TSMC 之 IEDA 讀檔失敗:" + ftpserver);
                 }
             }
@@ -193,6 +214,18 @@ namespace DCT_data_import.ReadAndImport
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
             List<string> netNameList = new List<string>();
+            string errorDir = string.Empty;
+            ftpserver = "ftp://" + Program.FTP_IP;
+            if (Program.Environment == "Dev")
+            {
+                ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/CSV/";
+                errorDir = "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/CSV_error/";
+            }
+            else if (Program.Environment == "Prod")
+            {
+                ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV/";
+                errorDir = "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/";
+            }
             try
             {
                 // 取得 CSV 檔名
@@ -205,7 +238,8 @@ namespace DCT_data_import.ReadAndImport
                 {
                     return netNameList;
                 }
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV/" + filename;
+                ftpserver += filename;
+                //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV/" + filename;
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 //reqFTP.Timeout = 5000;//設定5秒超時
                 //reqFTP.ReadWriteTimeout = 5000;
@@ -245,7 +279,7 @@ namespace DCT_data_import.ReadAndImport
                 else
                 {
                     writeToLog.WriteToDataImportLog("TSMC 之 CSV 讀檔錯誤:" + ftpserver + "  error:" + ex.ToString());
-                    RenameFile(ftpserver, "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new List<string>();
                 }
             }
@@ -260,7 +294,16 @@ namespace DCT_data_import.ReadAndImport
             StreamReader reader;
             try
             {
-                ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/lot_mapping.csv";
+                ftpserver = "ftp://" + Program.FTP_IP;
+                if (Program.Environment == "Dev")
+                {
+                    ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/LotID/lot_mapping.csv";
+                }
+                else if (Program.Environment == "Prod")
+                {
+                    ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/lot_mapping.csv";
+                }
+                //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/lot_mapping.csv";
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
