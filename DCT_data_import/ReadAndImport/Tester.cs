@@ -53,7 +53,12 @@ namespace DCT_data_import.ReadAndImport
             //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status/" + filename;
             bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
+            {
+                Console.WriteLine("Tester Status File not found:  " + filename);
+                writeToLog.WriteToDataImportLog("Tester Status File not found: " + ftpserver);
+                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
+            }
             //// 確認 pool 連線狀態
             //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
             //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式

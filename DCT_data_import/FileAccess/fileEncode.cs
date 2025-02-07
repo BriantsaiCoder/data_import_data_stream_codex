@@ -3,19 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace DCT_data_import
 {
     public class fileEncode
     {//獲得檔案編碼格式的類
-        public static System.Text.Encoding GetFileEncodeType(string filename)
+        public static Encoding GetFileEncodeType(string filename)
         {
             System.IO.FileStream fs = new System.IO.FileStream(filename, System.IO.FileMode.Open, System.IO.FileAccess.Read);
             System.IO.BinaryReader br = new System.IO.BinaryReader(fs);
             Byte[] buffer = br.ReadBytes(2);
             br.Close();
             fs.Close();
-
             if (buffer[0] >= 0xEF)
             {
                 if (buffer[0] == 0xEF && buffer[1] == 0xBB)
@@ -29,7 +27,6 @@ namespace DCT_data_import
                 else if (buffer[0] == 0xFF && buffer[1] == 0xFE)
                 {
                     return System.Text.Encoding.Unicode;
-
                 }
                 else
                 {
@@ -41,6 +38,5 @@ namespace DCT_data_import
                 return System.Text.Encoding.Default;
             }
         }
-
     }
 }
