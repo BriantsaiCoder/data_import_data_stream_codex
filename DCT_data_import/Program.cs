@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using static DCT_data_import.ApiObject;
 using System.IO;
 using System.Net;
 using System.Threading;
-using System.Net.NetworkInformation;
-using System.Diagnostics;
 using System.Configuration;
 using DCT_data_import.ReadAndImport;
 using System.Reflection;
@@ -44,7 +41,7 @@ namespace DCT_data_import
             int count = 0;
             //Tester tester = new Tester();
             //ImportResult importResult1;
-            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-9010-172.22.181.25_AD90-PL793-11-O_20241116-150118").GetAwaiter().GetResult();
+            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-9010-172.22.181.25_AD90-PL793-11-O_20250321-150116").GetAwaiter().GetResult();
             //Console.WriteLine("importResult1.Result: " + importResult1.Result);
             //Console.ReadLine();
             //bool isConnect = webApiClient.checkDBConnect(POOL_NAME);

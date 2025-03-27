@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 namespace DCT_data_import
 {
     public class RecoveryRateDataContentFormat
@@ -126,7 +122,7 @@ namespace DCT_data_import
             "L/B ID", "Dut board type", "Efficiency check", "UI Flow checksum", "Yield", "File type", " Start Time", "End Time", "Lead_count", "Site_qty",
             "BD_Leak", "PG_Leak", "Wireclose_Leak",
             "handler_type","handler_sw_version","handler_repair_startTime","handler_repair_endTime","DOE_flag","HSO_mode","MP_API_log" ,"MP_TT_log","Smart_Delay_enable","Smart_Delay_time","ATV_Information",
-            "NetlistInfo","TP_CheckerDetectionResults","PG_LeakageEnabled","LeakageEnabled","EnhanceTestTtemQTY","First_Yield","shortFailAnalysisFlag","OSVersion","DCT_Type","DCT_Qty", "DCT_CH_Qty","LB_Type","ConnecterType"};
+            "NetlistInfo","TP_CheckerDetectionResults","PG_LeakageEnabled","LeakageEnabled","EnhanceTestTtemQTY","First_Yield","shortFailAnalysisFlag","OSVersion","DCT_Type","DCT_Qty", "DCT_CH_Qty","LB_Type","ConnecterType","Short_Plate_Check_Status","Short_Plate_Check_Pin_qty_match","TP_HighRiskLot","TP_WarningLot","TP_OverkillQTY"};
         private readonly string[] _statusColumns = { "DPW", "Duts", "CSV Name", "UPH", "Avg test time", "Max test time", "Min test time", "Avg index test time",
             "Max index test time", "Min index test time", "Diff time (die)", "End time (die)", "First time (die)", "Diff time (file)", "Conclusion file path",
             "Raw date file path", "S2S diff file path", "PASS / FAIL", "Case A Result", "Case B Result", "Case C Result", "PUI result", "PUI respond",
