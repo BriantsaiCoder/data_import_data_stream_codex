@@ -41,7 +41,7 @@ namespace DCT_data_import
             int count = 0;
             //Tester tester = new Tester();
             //ImportResult importResult1;
-            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-9010-172.22.181.25_AD90-PL793-11-O_20250321-150116").GetAwaiter().GetResult();
+            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-026-172.21.84.46_MT6897Z_ZAHJC-H-D_20250314-152944").GetAwaiter().GetResult();
             //Console.WriteLine("importResult1.Result: " + importResult1.Result);
             //Console.ReadLine();
             //bool isConnect = webApiClient.checkDBConnect(POOL_NAME);

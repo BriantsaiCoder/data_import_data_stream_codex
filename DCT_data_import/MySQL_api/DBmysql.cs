@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json.Linq;
 using static DCT_data_import.ApiObject;
@@ -11,13 +7,10 @@ namespace DCT_data_import
     public class DBmysql
     {
         private static readonly object lockObj = new object();
-        private string Mysql_host = string.Empty;
-
         public void Connect(string IP, string Port, string user, string password, string dbName)
         {
             MySqlConnectionManager.Initialize(IP, Port, user, password, dbName);
         }
-
         public Pool_execute_response Excute_mysql_cmd(string cmd_string, string mode = "select")
         {
             Pool_execute_response response = new Pool_execute_response();
@@ -29,7 +22,6 @@ namespace DCT_data_import
                 {
                     localConnection.Open();
                     MySqlCommand SQLcmd = new MySqlCommand(cmd_string, localConnection);
-
                     if (mode == "select")
                     {
                         lock (lockObj) // 加鎖，確保執行緒安全
@@ -73,18 +65,16 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                response.Error = "Error : " + ex.StackTrace + "_" + ex.Message;
+                //response.Error = ex.Message;
+                response.Error = $"{ex.Message}\n{", StackTrace:" + ex.StackTrace}";
             }
             return response;
         }
     }
-
     public class MySqlConnectionManager
     {
         private static string connectionString;
-
         public static string ConnectionString { get { return connectionString; } }
-
         public static void Initialize(string IP, string Port, string user, string password, string dbName)
         {
             connectionString = $"server={IP};port={Port};user id={user};password={password};database={dbName};sslMode=none;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;";

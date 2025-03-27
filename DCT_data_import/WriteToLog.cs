@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import
 {
@@ -31,19 +32,29 @@ namespace DCT_data_import
                 {
                     string swVersion = @"DCT_data_import v." + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
                     //File.Create(log_path);
-                    using (StreamWriter writer = File.CreateText(log_path))
+                    using (StreamWriter writer = new StreamWriter(log_path, false, Encoding.UTF8))
                     {
-                        writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + swVersion);
-                        writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + message);
+                        writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {swVersion}");
+                        writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {message}");
                     }
+                    //using (StreamWriter writer = File.CreateText(log_path))
+                    //{
+                    //    writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + swVersion);
+                    //    writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
+                    //}
                     return;
                 }
                 //File.AppendAllText(log_path, DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + message);
                 // Write file using StreamWriter
-                using (StreamWriter writer = File.AppendText(log_path))
+                using (StreamWriter writer = new StreamWriter(log_path, true, Encoding.UTF8))
                 {
-                    writer.WriteLineAsync(DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + message);
+                    writer.WriteLineAsync($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {message}");
                 }
+                //using (StreamWriter writer = File.AppendText(log_path))
+                //{
+                //    //writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
+                //    writer.WriteLineAsync(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
+                //}
             }
             catch (Exception ex)
             {

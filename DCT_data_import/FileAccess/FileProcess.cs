@@ -1,17 +1,12 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import
 {
@@ -1699,7 +1694,7 @@ namespace DCT_data_import
                 Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO " + tableName + "' Query:" + pool_excute.Query + "' response error:" + response.Error);
+                    writeToLog.WriteToDataImportLog("'INSERT INTO '" + tableName + "', 'Query:" + pool_excute.Query + "' , response error:" + response.Error);
                 }
                 return response;
             }
