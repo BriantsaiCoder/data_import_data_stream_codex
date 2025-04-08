@@ -21,46 +21,49 @@ namespace DCT_data_import
                 using (MySqlConnection localConnection = new MySqlConnection(MySqlConnectionManager.ConnectionString))
                 {
                     localConnection.Open();
-                    MySqlCommand SQLcmd = new MySqlCommand(cmd_string, localConnection);
-                    if (mode == "select")
+                    using (MySqlCommand SQLcmd = new MySqlCommand(cmd_string, localConnection))                     
                     {
-                        lock (lockObj) // 加鎖，確保執行緒安全
+                        if (mode == "select")
                         {
-                            using (MySqlDataReader receiveSQLdata = SQLcmd.ExecuteReader())
+                            lock (lockObj) // 加鎖，確保執行緒安全
                             {
-                                // 將資料存儲到 JArray
-                                JArray jsonArray = new JArray();
-                                while (receiveSQLdata.Read())
+                                using (MySqlDataReader receiveSQLdata = SQLcmd.ExecuteReader())
                                 {
-                                    JObject row = new JObject();
-                                    // 逐列讀取
-                                    for (int i = 0; i < receiveSQLdata.FieldCount; i++)
+                                    // 將資料存儲到 JArray
+                                    JArray jsonArray = new JArray();
+                                    while (receiveSQLdata.Read())
                                     {
-                                        string columnName = receiveSQLdata.GetName(i);
-                                        object columnValue = receiveSQLdata.GetValue(i);
-                                        row[columnName] = JToken.FromObject(columnValue);
+                                        JObject row = new JObject();
+                                        // 逐列讀取
+                                        for (int i = 0; i < receiveSQLdata.FieldCount; i++)
+                                        {
+                                            string columnName = receiveSQLdata.GetName(i);
+                                            object columnValue = receiveSQLdata.GetValue(i);
+                                            row[columnName] = JToken.FromObject(columnValue);
+                                        }
+                                        // 將行資料添加到 JArray 中
+                                        jsonArray.Add(row);
                                     }
-                                    // 將行資料添加到 JArray 中
-                                    jsonArray.Add(row);
+                                    response.Data = jsonArray;
                                 }
-                                response.Data = jsonArray;
                             }
                         }
+                        else
+                        {
+                            int affectedRows = SQLcmd.ExecuteNonQuery();
+                            long insertId = SQLcmd.LastInsertedId;  // 獲取自動生成的主鍵ID
+                            JObject resultObj = new JObject();  // 用於存放回傳結果
+                                                                // 設定回傳的 JSON 結果
+                            resultObj["fieldCount"] = 0; // MySQL 的插入操作 fieldCount 通常為 0
+                            resultObj["affectedRows"] = affectedRows;
+                            resultObj["insertId"] = insertId;
+                            resultObj["info"] = "";  // 可能為空
+                            resultObj["serverStatus"] = 2;  // 模擬結果值，通常 2 代表連接正常
+                            resultObj["warningStatus"] = 0;  // 假設沒有警告
+                            response.Data.Add(resultObj);
+                        }
                     }
-                    else
-                    {
-                        int affectedRows = SQLcmd.ExecuteNonQuery();
-                        long insertId = SQLcmd.LastInsertedId;  // 獲取自動生成的主鍵ID
-                        JObject resultObj = new JObject();  // 用於存放回傳結果
-                                                            // 設定回傳的 JSON 結果
-                        resultObj["fieldCount"] = 0; // MySQL 的插入操作 fieldCount 通常為 0
-                        resultObj["affectedRows"] = affectedRows;
-                        resultObj["insertId"] = insertId;
-                        resultObj["info"] = "";  // 可能為空
-                        resultObj["serverStatus"] = 2;  // 模擬結果值，通常 2 代表連接正常
-                        resultObj["warningStatus"] = 0;  // 假設沒有警告
-                        response.Data.Add(resultObj);
-                    }
+                       
                 }
             }
             catch (Exception ex)
