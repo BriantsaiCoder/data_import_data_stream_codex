@@ -39,9 +39,12 @@ namespace DCT_data_import
             WriteToLog writeToLog = new WriteToLog();
             DbAccess dbAccess = new DbAccess();
             int count = 0;
+            ////TEST CASE
             //Tester tester = new Tester();
             //ImportResult importResult1;
-            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-026-172.21.84.46_MT6897Z_ZAHJC-H-D_20250314-152944").GetAwaiter().GetResult();
+            ////importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-026-172.21.84.46_MT6897Z_ZAHJC-H-D_20250314-152944").GetAwaiter().GetResult();
+            //RawData rawData = new RawData();
+            //importResult1 = rawData.ReadAndImportRawData(fileAccess, webApiClient, "ASEF1-5070-B81-172.22.105.32_TMTY34C-009C1L1T1D1CNAAN-S_Fixed_20250506-220731").GetAwaiter().GetResult();
             //Console.WriteLine("importResult1.Result: " + importResult1.Result);
             //Console.ReadLine();
             //bool isConnect = webApiClient.checkDBConnect(POOL_NAME);

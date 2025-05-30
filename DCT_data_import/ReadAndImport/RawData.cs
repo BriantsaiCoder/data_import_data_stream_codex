@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import.ReadAndImport
@@ -35,7 +34,7 @@ namespace DCT_data_import.ReadAndImport
             bool compareResult = false;
             CalculateSPC calculateSPC = new CalculateSPC();
             List<StatisticItem> avg2;
-            string downloadStatus, deleteStatus;
+            string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
             double readTakeTime = 0, importTakeTime = 0;
@@ -142,12 +141,12 @@ namespace DCT_data_import.ReadAndImport
                     Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compareResult + "   檔名:" + filename);
                     ////writeToLog.writeToDataImportLog("資料庫已存在此資料:" + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    // Kerwin 的電腦
-                    if (macid == "94C6913F94BD")
-                    {
-                        // 下載檔案到本地端
-                        //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    }
+                    //// Kerwin 的電腦
+                    //if (macid == "94C6913F94BD")
+                    //{
+                    //    // 下載檔案到本地端
+                    //    //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    //}
                     //// 刪除已存在的的CSV檔案
                     //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
@@ -178,12 +177,6 @@ namespace DCT_data_import.ReadAndImport
                     {
                         //Console.WriteLine("匯入完成! Raw data    比對: " + compare_result + "   檔名:" + list_filename[i]);
                         Console.WriteLine("匯入完成! Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-                        // Kerwin 的電腦
-                        if (macid == "94C6913F94BD")
-                        {
-                            // 下載檔案到本地端
-                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                        }
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
