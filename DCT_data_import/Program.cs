@@ -229,8 +229,8 @@ namespace DCT_data_import
         {
             WriteToLog writeToLog = new WriteToLog();
             // 寄信囉~
-            string strAppPath = System.Reflection.Assembly.GetExecutingAssembly().Location; //獲得.exe路徑
-            string strWorkPath = System.IO.Path.GetDirectoryName(strAppPath);
+            string strAppPath = Assembly.GetExecutingAssembly().Location; //獲得.exe路徑
+            string strWorkPath = Path.GetDirectoryName(strAppPath);
             ReadWriteINIfile _readWriteINIfile = new ReadWriteINIfile(strWorkPath + "\\dct_import_mail_list.ini");
             EmailModels Email_class = new EmailModels();
             Email_class.Subject = mailTitle;
@@ -369,13 +369,33 @@ namespace DCT_data_import
             // 通報
             if (failDbKeyFromFile.Count > 0)
             {
+                // 統計 Remark 出現次數
+                var remarkCountDict = new Dictionary<string, int>();
+                foreach (var item in failDbKeyFromFile)
+                {
+                    if (remarkCountDict.ContainsKey(item.Remark))
+                        remarkCountDict[item.Remark]++;
+                    else
+                        remarkCountDict[item.Remark] = 1;
+                }
+                // 移除重複 Remark，只保留第一筆
+                var distinctFailList = failDbKeyFromFile
+                    .GroupBy(x => x.Remark)
+                    .Select(g => g.First())
+                    .ToList();
+                // 將統計結果轉為 List<string>，格式為 "Remark內容 x 數量"
+                var remarkSummaryList = remarkCountDict
+                    .Select(kvp => $"{kvp.Key} x {kvp.Value}")
+                    .ToList();
+                // 組成 mailTitle
+                string mailTitle = "DCT data notification - " + string.Join(", ", remarkSummaryList);
                 string mailBody = "Dear all,<br>下列資料發生異常，請確認檔案內容<br>";
                 for (int i = 0; i < failDbKeyFromFile.Count; i++)
                 {
                     mailBody += (i + 1).ToString() + ".    DB_Key:" + failDbKeyFromFile[i].DbKey + ",   <b>" + failDbKeyFromFile[i].Remark + "</b><br>";
                 }
                 mailBody += "Thanks. <br>";
-                string sendResult = SendMailModel(mailBody);
+                string sendResult = SendMailModel(mailBody, mailTitle);
                 if (sendResult == "OK")
                 {
                     // 刪除信件暫存檔
