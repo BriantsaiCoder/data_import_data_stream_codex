@@ -143,7 +143,6 @@
     <Compile Include="FileAccess\FileContentFormat.cs" />
     <Compile Include="FileAccess\fileEncode.cs" />
     <Compile Include="FileAccess\FileProcess.cs" />
-    <Compile Include="ftp.cs" />
     <Compile Include="KeyAccess.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
