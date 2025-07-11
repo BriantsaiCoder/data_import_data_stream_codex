@@ -613,7 +613,6 @@ namespace DCT_data_import
             //JArray items = (JArray)json_str["data"];
             if (!string.IsNullOrEmpty(response.Error))
             {
-                string result = PoolException(new Exception(response.Error), webApiClient);
                 return false;
             }
             int length = 0;
@@ -793,7 +792,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + ex.ToString());
                 return false;
             }
@@ -961,7 +959,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' error:" + ex.ToString());
                 response2 = DeleteRawData(webApiClient, lotId);
@@ -1079,7 +1076,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + ex.ToString());
                 //response2 = deleteRawData(webApiClient, lotId);
@@ -1154,7 +1150,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_device_info' error:" + ex.ToString());
                 return false;
@@ -1231,7 +1226,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + ex.ToString());
                 response = DeleteTesterStatus(webApiClient, device_info_Id);
@@ -1281,7 +1275,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + ex.ToString());
                 response = DeleteTesterStatus(webApiClient, device_info_Id);
@@ -1334,7 +1327,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis'  error:" + ex.ToString());
                 response = DeleteTesterStatus(webApiClient, device_info_Id);
@@ -1410,7 +1402,6 @@ namespace DCT_data_import
                 }
                 catch (Exception ex)
                 {
-                    string poolExceptionResult = PoolException(ex, webApiClient);
                     Console.WriteLine(ex.ToString());
                     return false;
                 }
@@ -1459,7 +1450,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_info' error:" + ex.ToString());
                 return false;
@@ -1516,7 +1506,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
                 return false;
@@ -1595,7 +1584,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
                 return false;
@@ -1672,7 +1660,6 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                string poolExceptionResult = PoolException(ex, webApiClient);
                 Console.WriteLine(ex.ToString());
                 response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
                 return false;
@@ -1853,34 +1840,6 @@ namespace DCT_data_import
                 return defaultValue;
             }
             return inputValue.Trim();
-        }
-        private string PoolException(Exception ex, WebApiClient webApiClient)
-        {
-            if (ex.Message.Contains("工作已取消"))
-            {
-                Pool_delete pool_delete = new Pool_delete
-                {
-                    Pool = Program.POOL_NAME
-                };
-                Pool_delete_response response_delete = webApiClient.DeletePoolAsync(pool_delete).GetAwaiter().GetResult();
-                // 重新建立 pool
-                Pool pool = new Pool
-                {
-                    Pool_name = Program.POOL_NAME,
-                    Host = Program.HOST,
-                    Port = Program.PORT,
-                    User = Program.USER,
-                    Password = Program.PASSWORD,
-                    Database = Program.DATABASE
-                };
-                var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
-                if (create_response.Error != null)
-                {
-                    writeToLog.WriteToDataImportLog("Pool 建立失敗: " + create_response.Error);
-                    throw new Exception("Pool 建立失敗: " + create_response.Error);
-                }
-            }
-            return "";
         }
     }
 }

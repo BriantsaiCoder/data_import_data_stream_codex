@@ -1,38 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using static DCT_data_import.ApiObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class ImportData
     {
-        protected bool IsValidFtpConnection(string requestUri, string ftpUser, string ftpPassword)
-        {
-            FtpWebRequest request;
-            FtpWebResponse response;
-            try
-            {
-                request = (FtpWebRequest)WebRequest.Create(requestUri);
-                request.Method = WebRequestMethods.Ftp.ListDirectory;
-                request.Credentials = new NetworkCredential(ftpUser, ftpPassword);
-                //request.KeepAlive = true;
-                response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-                return true;
-            }
-            catch (WebException)
-            {
-                return false;
-            }
-            finally
-            {
-                request = null;
-            }
-        }
         protected bool CheckIfFileExistsOnServer(string requestUri, string ftpUser, string ftpPassword)
         {
             FtpWebRequest request;
@@ -112,69 +84,6 @@ namespace DCT_data_import.ReadAndImport
                 writeToLog.WriteToDataImportLog("RenameFile() Fail, Exception :" + ex.Message);
                 return "RenameFile() Fail";
             }
-        }
-        public string DownloadFile(string fileName, string newFileName, string user, string password)
-        {
-            try
-            {
-                FileStream outputStream = new FileStream(newFileName, FileMode.Create);
-                FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
-                request.Method = WebRequestMethods.Ftp.DownloadFile;
-                request.Credentials = new NetworkCredential(user, password);
-                FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-                //建立物件接收從FTP回應的資料流
-                Stream responseStream = response.GetResponseStream();
-                //建立物件讀取資料流的字元
-                StreamReader reader = new StreamReader(responseStream);
-                long cl = response.ContentLength;
-                int bufferSize = 2048;
-                int readCount;
-                byte[] buffer = new byte[bufferSize];
-                readCount = responseStream.Read(buffer, 0, bufferSize);
-                while (readCount > 0)
-                {
-                    outputStream.Write(buffer, 0, readCount);
-                    readCount = responseStream.Read(buffer, 0, bufferSize);
-                }
-                //Console.WriteLine(reader.ReadToEnd());
-                response.Close();
-                responseStream.Close();
-                outputStream.Close();
-                response.Close();
-                return response.StatusDescription;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-        public bool CreatePool(WebApiClient webApiClient, WriteToLog writeToLog)
-        {
-            Pool pool = new Pool
-            {
-                Pool_name = Program.POOL_NAME,
-                Host = Program.HOST,
-                Port = Program.PORT,
-                User = Program.USER,
-                Password = Program.PASSWORD,
-                Database = Program.DATABASE
-            };
-            try
-            {
-                var create_response = webApiClient.CreatePoolAsync(pool).GetAwaiter().GetResult();
-                if (create_response.Error != null)
-                {
-                    throw new Exception("Pool 建立失敗: " + create_response.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("Pool 建立失敗: " + ex.ToString());
-                webApiClient.client.Dispose();
-                return false;
-            }
-            return true;
         }
         public bool IsChinese(string input)
         {

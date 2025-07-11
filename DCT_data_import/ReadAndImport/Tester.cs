@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import.ReadAndImport
@@ -24,7 +21,7 @@ namespace DCT_data_import.ReadAndImport
             bool isDBKeyExist = false, import_result = false;
             WriteToLog writeToLog = new WriteToLog();
             CompareTool compareTool = new CompareTool();
-            string downloadStatus, deleteStatus;
+            string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
             double readTakeTime = 0, importTakeTime = 0;
@@ -148,12 +145,7 @@ namespace DCT_data_import.ReadAndImport
                     {
                         //Console.WriteLine("匯入完成! Tester Status  比對" + compare_result + "   檔名: " + list_filename[i]);
                         Console.WriteLine("匯入完成! Tester Status   檔名: " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-                        // Kerwin 的電腦
-                        if (macid == "94C6913F94BD")
-                        {
-                            // 下載檔案到本地端
-                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tester_status_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                        }
+
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();

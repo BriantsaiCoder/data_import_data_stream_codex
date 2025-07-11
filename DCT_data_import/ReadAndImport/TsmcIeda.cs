@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import.ReadAndImport
 {
@@ -27,7 +26,7 @@ namespace DCT_data_import.ReadAndImport
             Stream responseStream;
             StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
-            string downloadStatus, deleteStatus;
+            string deleteStatus;
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
@@ -101,12 +100,6 @@ namespace DCT_data_import.ReadAndImport
                     if (import_result)
                     {
                         Console.WriteLine("匯入完成! TSMC IEDA    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-                        // Kerwin 的電腦
-                        if (macid == "94C6913F94BD")
-                        {
-                            // 下載檔案到本地端
-                            downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tsmc_ieda_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                        }
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
@@ -261,12 +254,6 @@ namespace DCT_data_import.ReadAndImport
                 reader.Close();
                 netNameList = netNameLine.Split(',').ToList();
                 if (netNameList.Count > 0) netNameList.RemoveAt(0);
-                // Kerwin 的電腦
-                if (macid == "94C6913F94BD")
-                {
-                    // 下載檔案到本地端
-                    string downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tsmc_csv_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                }
                 // 刪除已成功讀完的TSMC CSV檔案
                 string deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             }
