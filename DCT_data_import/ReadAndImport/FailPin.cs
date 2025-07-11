@@ -12,7 +12,7 @@ namespace DCT_data_import.ReadAndImport
 {
     public class FailPin : ImportData
     {
-        public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
         {
             string ftpserver;
             FtpWebRequest reqFTP;
@@ -60,9 +60,9 @@ namespace DCT_data_import.ReadAndImport
                     return new ImportResult(0, "File not found.");
                 }
                 //// 確認 pool 連線狀態
-                //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+                //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
                 //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-                //    if (!createPool(webApiClient, writeToLog))
+                //    if (!createPool(DatabaseService , writeToLog))
                 //        return new ImportResult(0, "MySQL database connection failed.");
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
@@ -98,10 +98,10 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), webApiClient);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), DatabaseService );
                 if (isDBKeyExist)
                 {
-                    //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
+                    //compare_result = compareTool.compareFailPinLog(failPinLogContent, DatabaseService );
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);
                     //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
                     //writeToLog.writeToDataImportLog("資料庫已存在此資料: " + ftpserver);
@@ -117,12 +117,12 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Start();
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, webApiClient);
+                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, DatabaseService );
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-                    //compare_result = compareTool.compareFailPinLog(failPinLogContent, webApiClient);
+                    //compare_result = compareTool.compareFailPinLog(failPinLogContent, DatabaseService );
                     string dateStr = DateTime.Now.ToString("yyyyMMdd");
                     string checkLogFileName = "DCT_data_check_log_failPin_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time

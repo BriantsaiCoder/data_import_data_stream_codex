@@ -12,11 +12,11 @@ namespace DCT_data_import
 {
     public class FileProcess
     {
-        //public WebApiClient webApiClient;
+        //public DatabaseService  DatabaseService ;
         private readonly WriteToLog writeToLog;
         public FileProcess()
         {
-            //webApiClient = new WebApiClient();
+            //DatabaseService  = new DatabaseService ();
             writeToLog = new WriteToLog();
         }
         public List<string> GetStringSegments(string original, int linesPerSegment = 0)
@@ -581,14 +581,14 @@ namespace DCT_data_import
             return failPinLogContentFormat;
         }
         #endregion file read
-        public bool IsFileNameExistInDB(string fileName, WebApiClient webApiClient)
+        public bool IsFileNameExistInDB(string fileName, DatabaseService  DatabaseService )
         {
             var pool_excute = new Pool_execute
             {
                 Pool = Program.POOL_NAME,
                 Query = "SELECT file_name FROM lots_info where file_name='" + fileName + "';"
             };
-            Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute).GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
             //dynamic json_str = JObject.Parse(response.data);
             //JArray items = (JArray)json_str["data"];
             int length = 0;
@@ -599,7 +599,7 @@ namespace DCT_data_import
             //Console.WriteLine(json_str.data);
             return (length > 0);
         }
-        public bool IsDBKeyExistInDB(string db_table_name, string db_key, WebApiClient webApiClient)
+        public bool IsDBKeyExistInDB(string db_table_name, string db_key, DatabaseService  DatabaseService )
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -608,7 +608,7 @@ namespace DCT_data_import
                 Pool = Program.POOL_NAME,
                 Query = "SELECT db_key FROM " + db_table_name + " where db_key='" + db_key + "';"
             };
-            Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute).GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
             //dynamic json_str = JObject.Parse(response.data);
             //JArray items = (JArray)json_str["data"];
             if (!string.IsNullOrEmpty(response.Error))
@@ -625,7 +625,7 @@ namespace DCT_data_import
             //Console.WriteLine(json_str.data);
             return (length > 0);
         }
-        public bool IsUIStatusDataExistInDB(string mac_address, string area, string factory, string os_machine, string date, WebApiClient webApiClient)
+        public bool IsUIStatusDataExistInDB(string mac_address, string area, string factory, string os_machine, string date, DatabaseService  DatabaseService )
         {
             //string whereDate = (string.IsNullOrEmpty(date) || date == "null") ? "" : "' AND date='" + date;
             if (string.IsNullOrEmpty(date) || date == "null")
@@ -637,7 +637,7 @@ namespace DCT_data_import
                 Pool = Program.POOL_NAME,
                 Query = "SELECT id FROM ui_status WHERE mac_address='" + mac_address + "' AND area='" + area + "' AND factory='" + factory + "' AND os_machine='" + os_machine + "' AND date='" + date + "' ; "
             };
-            Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute).GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
             //dynamic json_str = JObject.Parse(response.data);
             //JArray items = (JArray)json_str["data"];
             int length = 0;
@@ -706,7 +706,7 @@ namespace DCT_data_import
             }
         }
         // Recovery Rate 匯入資料庫
-        public bool ImportRecoveryData(RecoveryRateDataContentFormat content, WebApiClient webApiClient)
+        public bool ImportRecoveryData(RecoveryRateDataContentFormat content, DatabaseService  DatabaseService )
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotRecoveryRate.Rows.Count < 1) return false;
             #region insert recovery rate 的 data
@@ -756,7 +756,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(webApiClient, "recovery_rate", columns, values);
+                        response2 = ExecuteInsertWithAPI(DatabaseService , "recovery_rate", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + response2.Error);
@@ -782,7 +782,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(webApiClient, "recovery_rate", columns, values);
+                    response2 = ExecuteInsertWithAPI(DatabaseService , "recovery_rate", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
@@ -799,7 +799,7 @@ namespace DCT_data_import
             return true;
         }
         // RawData 匯入資料庫
-        public bool ImportRawData(RawDataContentFormat content, WebApiClient webApiClient)
+        public bool ImportRawData(RawDataContentFormat content, DatabaseService  DatabaseService )
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -835,7 +835,7 @@ namespace DCT_data_import
             }
             try
             {
-                response2 = ExecuteInsertWithAPI(webApiClient, "lots_info", columns, values);
+                response2 = ExecuteInsertWithAPI(DatabaseService , "lots_info", columns, values);
                 //if (!string.IsNullOrEmpty(response2.error))
                 //{
                 //    if(response2.error.Contains("Please initiate connection pool first using the init function"))
@@ -923,13 +923,13 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(webApiClient, "lots_statistic", columns, values);
-                        if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(webApiClient, "lots_statistic_str", columns, values); // 只給舊win server使用
+                        response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic", columns, values);
+                        if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic_str", columns, values); // 只給舊win server使用
                         //Thread.Sleep(500);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                            response2 = DeleteRawData(webApiClient, lotId);
+                            response2 = DeleteRawData(DatabaseService , lotId);
                             return false;
                         }
                         values = "";
@@ -947,12 +947,12 @@ namespace DCT_data_import
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response2 = ExecuteInsertWithAPI(webApiClient, "lots_statistic", columns, values);
-                    if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(webApiClient, "lots_statistic_str", columns, values); // 只給舊win server使用
+                    response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic", columns, values);
+                    if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic_str", columns, values); // 只給舊win server使用
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                        response2 = DeleteRawData(webApiClient, lotId);
+                        response2 = DeleteRawData(DatabaseService , lotId);
                         return false;
                     }
                 }
@@ -961,7 +961,7 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' error:" + ex.ToString());
-                response2 = DeleteRawData(webApiClient, lotId);
+                response2 = DeleteRawData(DatabaseService , lotId);
                 return false;
             }
             #endregion
@@ -1037,11 +1037,11 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response2 = ExecuteInsertWithAPI(webApiClient, "lots_result", columns, values);
+                            response2 = ExecuteInsertWithAPI(DatabaseService , "lots_result", columns, values);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + response2.Error);
-                                //response2 = deleteRawData(webApiClient, lotId);
+                                //response2 = deleteRawData(DatabaseService , lotId);
                                 return false;
                             }
                             values = "";
@@ -1065,11 +1065,11 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(webApiClient, "lots_result", columns, values);
+                    response2 = ExecuteInsertWithAPI(DatabaseService , "lots_result", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' response error:" + response2.Error);
-                        //response2 = deleteRawData(webApiClient, lotId);
+                        //response2 = deleteRawData(DatabaseService , lotId);
                         return false;
                     }
                 }
@@ -1078,14 +1078,14 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + ex.ToString());
-                //response2 = deleteRawData(webApiClient, lotId);
+                //response2 = deleteRawData(DatabaseService , lotId);
                 return false;
             }
             #endregion
             return true;
         }
         // Tester Status 匯入資料庫
-        public bool ImportTesterStatus(TestStatusContentFormat content, WebApiClient webApiClient)
+        public bool ImportTesterStatus(TestStatusContentFormat content, DatabaseService  DatabaseService )
         {
             if (content.Tester_device_info.Rows.Count < 1 || content.Tester_status.Rows.Count < 1 || content.Tester_sw_version.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -1142,7 +1142,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsertWithAPI(webApiClient, "tester_device_info", columns, values);
+                response = ExecuteInsertWithAPI(DatabaseService , "tester_device_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     return false;
@@ -1164,7 +1164,7 @@ namespace DCT_data_import
                 //    pool = Program.POOL_NAME,
                 //    query = "SELECT id FROM `tester_device_info` WHERE `db_key` = '" + db_key + "';"
                 //};
-                //response = webApiClient.ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                //response = DatabaseService .ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
                 device_info_Id = response.Data[0]["insertId"].ToString();
             }
             catch (Exception ex)
@@ -1216,10 +1216,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(webApiClient, "tester_status", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "tester_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteTesterStatus(webApiClient, device_info_Id);
+                        response = DeleteTesterStatus(DatabaseService , device_info_Id);
                         return false;
                     }
                 }
@@ -1228,7 +1228,7 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + ex.ToString());
-                response = DeleteTesterStatus(webApiClient, device_info_Id);
+                response = DeleteTesterStatus(DatabaseService , device_info_Id);
                 return false;
             }
             #endregion
@@ -1265,10 +1265,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(webApiClient, "tester_sw_version", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "tester_sw_version", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteTesterStatus(webApiClient, device_info_Id);
+                        response = DeleteTesterStatus(DatabaseService , device_info_Id);
                         return false;
                     }
                 }
@@ -1277,7 +1277,7 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + ex.ToString());
-                response = DeleteTesterStatus(webApiClient, device_info_Id);
+                response = DeleteTesterStatus(DatabaseService , device_info_Id);
                 return false;
             }
             #endregion
@@ -1317,10 +1317,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(webApiClient, "tester_production_analysis", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "tester_production_analysis", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteTesterStatus(webApiClient, device_info_Id);
+                        response = DeleteTesterStatus(DatabaseService , device_info_Id);
                         return false;
                     }
                 }
@@ -1329,14 +1329,14 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis'  error:" + ex.ToString());
-                response = DeleteTesterStatus(webApiClient, device_info_Id);
+                response = DeleteTesterStatus(DatabaseService , device_info_Id);
                 return false;
             }
             #endregion
             return true;
         }
         // UI Status 匯入資料庫
-        public bool ImportUIStatus(UIStatusContentFormat content, WebApiClient webApiClient)
+        public bool ImportUIStatus(UIStatusContentFormat content, DatabaseService  DatabaseService )
         {
             if (content.UI_status.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -1386,14 +1386,14 @@ namespace DCT_data_import
                 }
                 try
                 {
-                    //isDataExist = isUIStatusDataExistInDB(mac_address, area, factory, os_machine, date, webApiClient);
+                    //isDataExist = isUIStatusDataExistInDB(mac_address, area, factory, os_machine, date, DatabaseService );
                     //if(isDataExist)
                     //{
                     //    Console.WriteLine("資料庫已存在此資料: UI Status   mac_address=" + mac_address + ", area=" + area + ", factory=" + factory + ", os_machine=" + os_machine + ", date=" + date);
                     //}
                     //else
                     //{
-                    response = ExecuteInsertWithAPI(webApiClient, "ui_status", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "ui_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         return false;
@@ -1410,7 +1410,7 @@ namespace DCT_data_import
             return true;
         }
         // Fail Pin Log 匯入資料庫
-        public bool ImportFailPinLog(FailPinLogContentFormat content, WebApiClient webApiClient)
+        public bool ImportFailPinLog(FailPinLogContentFormat content, DatabaseService  DatabaseService )
         {
             if (content.Fail_pin_rate_info.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -1442,7 +1442,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsertWithAPI(webApiClient, "fail_pin_rate_info", columns, values);
+                response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     return false;
@@ -1494,10 +1494,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(webApiClient, "fail_pin_rate_list", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_list", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                        response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                         return false;
                     }
                     // 將此筆insert的fail_pin_rate_list_id保存至陣列
@@ -1507,7 +1507,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
@@ -1554,10 +1554,10 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response = ExecuteInsertWithAPI(webApiClient, "fail_pin_rate_list_pin_ball", columns, values);
+                        response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_list_pin_ball", columns, values);
                         if (!string.IsNullOrEmpty(response.Error))
                         {
-                            response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                            response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                             return false;
                         }
                         values = "";
@@ -1574,10 +1574,10 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response = ExecuteInsertWithAPI(webApiClient, "fail_pin_rate_list_pin_ball", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_list_pin_ball", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                        response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                         return false;
                     }
                 }
@@ -1585,7 +1585,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
@@ -1622,10 +1622,10 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response = ExecuteInsertWithAPI(webApiClient, "fail_pin_rate_test_result", columns, values);
+                            response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_test_result", columns, values);
                             if (!string.IsNullOrEmpty(response.Error))
                             {
-                                response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                                 return false;
                             }
                             values = "";
@@ -1650,10 +1650,10 @@ namespace DCT_data_import
                     {
                         values = values.Substring(1, values.Length - 2);
                     }
-                    response = ExecuteInsertWithAPI(webApiClient, "fail_pin_rate_test_result", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_test_result", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                        response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                         return false;
                     }
                 }
@@ -1661,13 +1661,13 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                response = DeleteFailPinLog(webApiClient, fail_pin_rate_info_Id);
+                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
             return true;
         }
-        public Pool_execute_response ExecuteInsertWithAPI(WebApiClient webApiClient, string tableName, string columns, string values)
+        public Pool_execute_response ExecuteInsertWithAPI(DatabaseService  DatabaseService , string tableName, string columns, string values)
         {
             try
             {
@@ -1678,7 +1678,7 @@ namespace DCT_data_import
                     Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "insert").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("'INSERT INTO '" + tableName + "', 'Query:" + pool_excute.Query + "' , response error:" + response.Error);
@@ -1691,7 +1691,7 @@ namespace DCT_data_import
                 return null;
             }
         }
-        private Pool_execute_response DeleteRawData(WebApiClient webApiClient, string lot_id)
+        private Pool_execute_response DeleteRawData(DatabaseService  DatabaseService , string lot_id)
         {
             // 宣告 Web API body
             Pool_execute pool_excute = new Pool_execute
@@ -1704,14 +1704,14 @@ namespace DCT_data_import
                                     WHERE t1.id = " + lot_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error: " + pool_excute.Query + " " + response.Error);
             }
             return response;
         }
-        private Pool_execute_response DeleteTesterStatus(WebApiClient webApiClient, string device_info_id)
+        private Pool_execute_response DeleteTesterStatus(DatabaseService  DatabaseService , string device_info_id)
         {
             // 宣告 Web API body
             Pool_execute pool_excute = new Pool_execute
@@ -1725,14 +1725,14 @@ namespace DCT_data_import
                                      WHERE t1.id = " + device_info_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error: " + pool_excute.Query + " " + response.Error);
             }
             return response;
         }
-        private Pool_execute_response DeleteFailPinLog(WebApiClient webApiClient, string fail_pin_id)
+        private Pool_execute_response DeleteFailPinLog(DatabaseService  DatabaseService , string fail_pin_id)
         {
             // 宣告 Web API body
             Pool_execute pool_excute = new Pool_execute
@@ -1744,7 +1744,7 @@ namespace DCT_data_import
                                     WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error: " + pool_excute.Query + " " + response.Error);
@@ -1759,7 +1759,7 @@ namespace DCT_data_import
                                     WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            response = webApiClient.ExecutePoolAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error: " + pool_excute.Query + " " + response.Error);
@@ -1774,7 +1774,7 @@ namespace DCT_data_import
                                     WHERE t1.id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            response = webApiClient.ExecutePoolAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error: " + pool_excute.Query + " " + response.Error);

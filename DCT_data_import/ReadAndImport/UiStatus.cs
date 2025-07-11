@@ -11,7 +11,7 @@ namespace DCT_data_import.ReadAndImport
 {
     public class UiStatus : ImportData
     {
-        public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, WebApiClient webApiClient, string dbKeyUiStatus)
+        public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKeyUiStatus)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -57,9 +57,9 @@ namespace DCT_data_import.ReadAndImport
                 return new ImportResult(0, "File not found.");
             }
             // 確認 pool 連線狀態
-            //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+            //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
             //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-            //    if (!createPool(webApiClient, writeToLog))
+            //    if (!createPool(DatabaseService , writeToLog))
             //        return new ImportResult(0, "MySQL database connection failed.");
             try
             {
@@ -92,7 +92,7 @@ namespace DCT_data_import.ReadAndImport
                 }
                 stopWatch.Reset();
                 stopWatch.Start();
-                import_result = fileAccess.ImportUIStatus(uiStatusContentFormat, webApiClient);
+                import_result = fileAccess.ImportUIStatus(uiStatusContentFormat, DatabaseService );
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);

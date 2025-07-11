@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import
 {
     public class DbAccess
     {
-        public int SelectDataCountInDays(WebApiClient webApiClient, int day, string mode = "tester")
+        public int SelectDataCountInDays(DatabaseService DatabaseService, int day, string mode = "tester")
         {
             WriteToLog writeToLog = new WriteToLog();
             string sql = "";
@@ -34,7 +31,7 @@ namespace DCT_data_import
                     Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -57,10 +54,10 @@ namespace DCT_data_import
         /// <summary>
         /// 透過db_key table 擷取尚未匯入資料的flag進行匯入
         /// </summary>
-        /// <param name="webApiClient"></param>
+        /// <param name="DatabaseService "></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        public List<DbKeyObject> SelectDbKey(WebApiClient webApiClient, string mode = "")
+        public List<DbKeyObject> SelectDbKey(DatabaseService DatabaseService, string mode = "")
         {
             List<DbKeyObject> dbKeyList = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
@@ -83,7 +80,7 @@ namespace DCT_data_import
                     Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -115,7 +112,7 @@ namespace DCT_data_import
             }
             return dbKeyList;
         }
-        public string UpdateDbKeyImportStatus(WebApiClient webApiClient, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
+        public string UpdateDbKeyImportStatus(DatabaseService DatabaseService, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
             //int importResult = 4 * tester + 2 * testResult + failPin;
@@ -129,7 +126,7 @@ namespace DCT_data_import
                     Pool = Program.POOL_NAME,
                     Query = "SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "';"
                 };
-                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -175,7 +172,7 @@ namespace DCT_data_import
                     //"import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
                     //"WHERE `db_key`='" + dbKey + "';"
                 };
-                response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
+                response = DatabaseService.ExecuteSqlAsync(pool_excute, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
@@ -189,7 +186,7 @@ namespace DCT_data_import
             }
             return "OK";
         }
-        public string UpdateDbKeyUiStatusImportStatus(WebApiClient webApiClient, string dbKey, int uiStatus, string remark)
+        public string UpdateDbKeyUiStatusImportStatus(DatabaseService DatabaseService, string dbKey, int uiStatus, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
             int importResult = uiStatus;
@@ -202,7 +199,7 @@ namespace DCT_data_import
                     Pool = Program.POOL_NAME,
                     Query = "SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "';"
                 };
-                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -245,7 +242,7 @@ namespace DCT_data_import
                     "import_status='" + importStatus + "',mail='" + mail + "',remark='" + remark + "' " +
                     "WHERE `db_key`='" + dbKey + "';"
                 };
-                response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
+                response = DatabaseService.ExecuteSqlAsync(pool_excute, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
@@ -259,7 +256,7 @@ namespace DCT_data_import
             }
             return "OK";
         }
-        public List<DbKeyObject> SelectFailDbKeyResult(WebApiClient webApiClient, string mode = "")
+        public List<DbKeyObject> SelectFailDbKeyResult(DatabaseService DatabaseService, string mode = "")
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
@@ -287,7 +284,7 @@ namespace DCT_data_import
                     Pool = Program.POOL_NAME,
                     Query = sql
                 };
-                Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -328,7 +325,7 @@ namespace DCT_data_import
             }
             return dbKeyObject;
         }
-        public string UpdateMail(WebApiClient webApiClient, List<DbKeyObject> dbKeyObject, string mode = "")
+        public string UpdateMail(DatabaseService DatabaseService, List<DbKeyObject> dbKeyObject, string mode = "")
         {
             WriteToLog writeToLog = new WriteToLog();
             string sql = "";
@@ -355,7 +352,7 @@ namespace DCT_data_import
                         Pool = Program.POOL_NAME,
                         Query = sql
                     };
-                    Pool_execute_response response = webApiClient.ExecutePoolAsync(pool_excute, "update").GetAwaiter().GetResult();
+                    Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "update").GetAwaiter().GetResult();
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteToDataImportLog("UPDATE `db_key` error!  id=" + item.Id + ",  db_key=" + item.DbKey);

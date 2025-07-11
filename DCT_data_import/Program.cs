@@ -35,29 +35,29 @@ namespace DCT_data_import
             Console.WriteLine("PASSWORD: " + PASSWORD);
             Console.WriteLine("Environment: " + Environment);
             FileProcess fileAccess = new FileProcess();
-            WebApiClient webApiClient = new WebApiClient();
+            DatabaseService DatabaseService = new DatabaseService();
             WriteToLog writeToLog = new WriteToLog();
             DbAccess dbAccess = new DbAccess();
             int count = 0;
             ////TEST CASE
             //Tester tester = new Tester();
             //ImportResult importResult1;
-            ////importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, "ASEF3-5070-026-172.21.84.46_MT6897Z_ZAHJC-H-D_20250314-152944").GetAwaiter().GetResult();
+            ////importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService , "ASEF3-5070-026-172.21.84.46_MT6897Z_ZAHJC-H-D_20250314-152944").GetAwaiter().GetResult();
             //RawData rawData = new RawData();
-            //importResult1 = rawData.ReadAndImportRawData(fileAccess, webApiClient, "ASEF1-5070-B81-172.22.105.32_TMTY34C-009C1L1T1D1CNAAN-S_Fixed_20250506-220731").GetAwaiter().GetResult();
+            //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService , "ASEF1-5070-B81-172.22.105.32_TMTY34C-009C1L1T1D1CNAAN-S_Fixed_20250506-220731").GetAwaiter().GetResult();
             //Console.WriteLine("importResult1.Result: " + importResult1.Result);
             //Console.ReadLine();
-            //bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+            //bool isConnect = DatabaseService .checkDBConnect(POOL_NAME);
             //if (!isConnect)
             //{
             //    // 如果建立pool失敗就中斷程式
-            //    if (!createPool(webApiClient, writeToLog)) return;
+            //    if (!createPool(DatabaseService , writeToLog)) return;
             //}
 #if true /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
-            Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
-            Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
-            Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+            Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
+            Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
+            Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService));
             while (true)
             {
                 Console.WriteLine("threadTesterAlive.IsAlive: " + threadTesterAlive);
@@ -67,21 +67,21 @@ namespace DCT_data_import
                 {
                     threadTesterMode.Interrupt();
                     threadTesterMode.Abort();
-                    threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, webApiClient));
+                    threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
                     threadTesterMode.Start();
                 }
                 if (!threadUiStatusAlive)
                 {
                     threadUiStatusMode.Interrupt();
                     threadUiStatusMode.Abort();
-                    threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, webApiClient));
+                    threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
                     threadUiStatusMode.Start();
                 }
                 if (!threadTsmcAlive)
                 {
                     threadTsmcMode.Interrupt();
                     threadTsmcMode.Abort();
-                    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+                    threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService));
                     threadTsmcMode.Start();
                 }
                 #region 固定時間通報程式還活著
@@ -101,11 +101,11 @@ namespace DCT_data_import
             }
 #else
             bool thread1Alive = false, thread2Alive = false, thread3Alive = false, thread4Alive = false, thread5Alive = false;
-            Thread thread1 = new Thread(() => readAndImportRawData(fileAccess, webApiClient));
-            Thread thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, webApiClient));
-            Thread thread3 = new Thread(() => readAndImportUIStatus(fileAccess, webApiClient));
-            Thread thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, webApiClient));
-            Thread thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+            Thread thread1 = new Thread(() => readAndImportRawData(fileAccess, DatabaseService ));
+            Thread thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, DatabaseService ));
+            Thread thread3 = new Thread(() => readAndImportUIStatus(fileAccess, DatabaseService ));
+            Thread thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, DatabaseService ));
+            Thread thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService ));
             while (true)
             {
                 Console.WriteLine("thread1.IsAlive: " + thread1Alive);
@@ -114,51 +114,51 @@ namespace DCT_data_import
                 Console.WriteLine("thread4.IsAlive: " + thread4Alive);
                 Console.WriteLine("thread5.IsAlive: " + thread5Alive);
                 count++;
-                bool isConnect = webApiClient.checkDBConnect(POOL_NAME);
+                bool isConnect = DatabaseService .checkDBConnect(POOL_NAME);
                 if (!isConnect)
                 {
                     // 如果建立pool失敗就中斷程式
-                    if (!createPool(webApiClient, writeToLog)) return;
+                    if (!createPool(DatabaseService , writeToLog)) return;
                 }
                 if (!thread1Alive)
                 {
                     thread1.Interrupt();
                     thread1.Abort();
-                    thread1 = new Thread(() => readAndImportRawData(fileAccess, webApiClient));
+                    thread1 = new Thread(() => readAndImportRawData(fileAccess, DatabaseService ));
                     thread1.Start();
                 }
                 if (!thread2Alive)
                 {
                     thread2.Interrupt();
                     thread2.Abort();
-                    thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, webApiClient));
+                    thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, DatabaseService ));
                     thread2.Start();
                 }
                 if (!thread3Alive)
                 {
                     thread3.Interrupt();
                     thread3.Abort();
-                    thread3 = new Thread(() => readAndImportUIStatus(fileAccess, webApiClient));
+                    thread3 = new Thread(() => readAndImportUIStatus(fileAccess, DatabaseService ));
                     thread3.Start();
                 }
                 if (!thread4Alive)
                 {
                     thread4.Interrupt();
                     thread4.Abort();
-                    thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, webApiClient));
+                    thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, DatabaseService ));
                     thread4.Start();
                 }
                 if (!thread5Alive)
                 {
                     thread5.Interrupt();
                     thread5.Abort();
-                    thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, webApiClient));
+                    thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService ));
                     thread5.Start();
                 }
-                //readAndImportRawData(fileAccess, webApiClient);
-                //readAndImportTesterStatus(fileAccess, webApiClient);
-                //readAndImportUIStatus(fileAccess, webApiClient);
-                //readAndImportFailPinLog(fileAccess, webApiClient);
+                //readAndImportRawData(fileAccess, DatabaseService );
+                //readAndImportTesterStatus(fileAccess, DatabaseService );
+                //readAndImportUIStatus(fileAccess, DatabaseService );
+                //readAndImportFailPinLog(fileAccess, DatabaseService );
                 //bool IfRunOver = false;
                 //while (!IfRunOver)
                 //{
@@ -255,10 +255,10 @@ namespace DCT_data_import
                 return "FAIL";
             }
         }
-        static string ImportTesterMode(FileProcess fileAccess, DbAccess dbAccess, WebApiClient webApiClient)
+        static string ImportTesterMode(FileProcess fileAccess, DbAccess dbAccess, DatabaseService DatabaseService)
         {
             #region 檢查一天內是否有資料
-            int dataCount = dbAccess.SelectDataCountInDays(webApiClient, 1, "tester");
+            int dataCount = dbAccess.SelectDataCountInDays(DatabaseService, 1, "tester");
             if (dataCount == 0)
                 if (DateTime.Now.TimeOfDay.Hours == 8)
                 {
@@ -268,7 +268,7 @@ namespace DCT_data_import
                     }
                 }
             #endregion
-            List<DbKeyObject> dbKeyList = dbAccess.SelectDbKey(webApiClient, "tester");
+            List<DbKeyObject> dbKeyList = dbAccess.SelectDbKey(DatabaseService, "tester");
             RecoveryRate recoveryRate = new RecoveryRate();
             RawData rawData = new RawData();
             Tester tester = new Tester();
@@ -280,7 +280,7 @@ namespace DCT_data_import
                 Console.WriteLine((i + 1).ToString() + ".DB_Key=" + dbKeyList[i].DbKey + "  ");
                 if (dbKeyList[i].CheckStatus >= 8 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].RecoveryRate == 0)
                 {
-                    importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                    importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                 }
                 else
                 {
@@ -291,7 +291,7 @@ namespace DCT_data_import
                 {
                     if (dbKeyList[i].TestResult == 0)
                     {
-                        importResult2 = rawData.ReadAndImportRawData(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                        importResult2 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                     }
                     else
                     {
@@ -305,7 +305,7 @@ namespace DCT_data_import
                 if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0 || dbKeyList[i].CheckStatus >= 12 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].Tester == 0)
                 //if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0)
                 {
-                    importResult1 = tester.ReadAndImportTesterStatus(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                    importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                 }
                 else
                 {
@@ -316,7 +316,7 @@ namespace DCT_data_import
                 {
                     if (dbKeyList[i].FailPin == 0)
                     {
-                        importResult3 = failPin.ReadAndImportFailPinLog(fileAccess, webApiClient, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                        importResult3 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                     }
                     else
                     {
@@ -332,7 +332,7 @@ namespace DCT_data_import
                 remark += (string.IsNullOrEmpty(importResult1.Message)) ? "" : "tester: " + importResult1.Message + "  ";
                 remark += (string.IsNullOrEmpty(importResult2.Message)) ? "" : "test result: " + importResult2.Message + "  ";
                 remark += (string.IsNullOrEmpty(importResult3.Message)) ? "" : "fail pin: " + importResult3.Message;
-                updateImportStatus = dbAccess.UpdateDbKeyImportStatus(webApiClient, dbKeyList[i].DbKey, importResult.Result, importResult1.Result, importResult2.Result, importResult3.Result, remark);
+                updateImportStatus = dbAccess.UpdateDbKeyImportStatus(DatabaseService, dbKeyList[i].DbKey, importResult.Result, importResult1.Result, importResult2.Result, importResult3.Result, remark);
                 Console.WriteLine("Update tester import status:" + updateImportStatus);
             }
             Console.WriteLine("Tester mode end~");
@@ -342,8 +342,8 @@ namespace DCT_data_import
             //if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
             //{
             #region 找出需要通報的db_key
-            //List<DbKeyObject> failDbKeyObject = dbAccess.SelectFailDbKeyResult(webApiClient, "tester");
-            //List<DbKeyObject> failDbKeyUiStatusObject = dbAccess.SelectFailDbKeyResult(webApiClient, "ui_status");
+            //List<DbKeyObject> failDbKeyObject = dbAccess.SelectFailDbKeyResult(DatabaseService , "tester");
+            //List<DbKeyObject> failDbKeyUiStatusObject = dbAccess.SelectFailDbKeyResult(DatabaseService , "ui_status");
             //// 通報
             //if (failDbKeyObject.Count > 0 || failDbKeyUiStatusObject.Count > 0)
             //{
@@ -361,8 +361,8 @@ namespace DCT_data_import
             //    if (sendResult == "OK")
             //    {
             //        // 更新寄信狀態
-            //        string updateMailResult = dbAccess.UpdateMail(webApiClient, failDbKeyObject, "tester");
-            //        string updateMailResult2 = dbAccess.UpdateMail(webApiClient, failDbKeyUiStatusObject, "ui_status");
+            //        string updateMailResult = dbAccess.UpdateMail(DatabaseService , failDbKeyObject, "tester");
+            //        string updateMailResult2 = dbAccess.UpdateMail(DatabaseService , failDbKeyUiStatusObject, "ui_status");
             //    }
             //}
             List<DbKeyObject> failDbKeyFromFile = dbAccess.SelectFailDbKeyFromFile();
@@ -409,10 +409,10 @@ namespace DCT_data_import
             #endregion
             return "";
         }
-        static string ImportUiStatusMode(FileProcess fileAccess, DbAccess dbAccess, WebApiClient webApiClient)
+        static string ImportUiStatusMode(FileProcess fileAccess, DbAccess dbAccess, DatabaseService DatabaseService)
         {
             #region 檢查一天內是否有資料
-            //int dataCount = dbAccess.SelectDataCountInDays(webApiClient, 1, "ui_status");
+            //int dataCount = dbAccess.SelectDataCountInDays(DatabaseService , 1, "ui_status");
             //if (dataCount == 0)
             //{
             //    if (DateTime.Now.TimeOfDay.Hours ==8)
@@ -424,17 +424,17 @@ namespace DCT_data_import
             //    }
             //}
             #endregion
-            List<DbKeyObject> dbKeyUiStatusList = dbAccess.SelectDbKey(webApiClient, "ui_status");
+            List<DbKeyObject> dbKeyUiStatusList = dbAccess.SelectDbKey(DatabaseService, "ui_status");
             UiStatus uiStatus = new UiStatus();
             string updateImportStatus, remark;
             ImportResult importResult4;
             for (int i = 0; i < dbKeyUiStatusList.Count; i++)
             {
                 Console.WriteLine((i + 1).ToString() + ".DB_Key_ui_status=" + dbKeyUiStatusList[i].DbKey + "  ");
-                importResult4 = uiStatus.ReadAndImportUIStatus(fileAccess, webApiClient, dbKeyUiStatusList[i].DbKey);
+                importResult4 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, dbKeyUiStatusList[i].DbKey);
                 remark = "";
                 remark += (string.IsNullOrEmpty(importResult4.Message)) ? "" : "ui status:" + importResult4.Message;
-                updateImportStatus = dbAccess.UpdateDbKeyUiStatusImportStatus(webApiClient, dbKeyUiStatusList[i].DbKey, importResult4.Result, remark);
+                updateImportStatus = dbAccess.UpdateDbKeyUiStatusImportStatus(DatabaseService, dbKeyUiStatusList[i].DbKey, importResult4.Result, remark);
                 Console.WriteLine("Update ui_status import status:" + updateImportStatus);
             }
             Console.WriteLine("ui_status mode end~");
@@ -444,7 +444,7 @@ namespace DCT_data_import
             //    if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
             //    {
             //        #region 找出需要通報的db_key_ui_status
-            //        List<DbKeyObject> failDbKeyObject = dbAccess.SelectFailDbKeyResult(webApiClient, "ui_status");
+            //        List<DbKeyObject> failDbKeyObject = dbAccess.SelectFailDbKeyResult(DatabaseService , "ui_status");
             //        // 通報
             //        if (failDbKeyObject.Count > 0)
             //        {
@@ -458,7 +458,7 @@ namespace DCT_data_import
             //            if (sendResult == "OK")
             //            {
             //                // 更新寄信狀態
-            //                string updateMailResult = dbAccess.UpdateMail(webApiClient, failDbKeyObject, "ui_status");
+            //                string updateMailResult = dbAccess.UpdateMail(DatabaseService , failDbKeyObject, "ui_status");
             //            }
             //        }
             //        #endregion 找出需要通報的db_key
@@ -467,11 +467,11 @@ namespace DCT_data_import
             #endregion
             return "";
         }
-        static string ImportTsmcMode(FileProcess fileAccess, DbAccess dbAccess, WebApiClient webApiClient)
+        static string ImportTsmcMode(FileProcess fileAccess, DbAccess dbAccess, DatabaseService DatabaseService)
         {
             ImportResult importResult;
             TsmcIeda tsmcIeda = new TsmcIeda();
-            importResult = tsmcIeda.ReadAndImportIeda(fileAccess, webApiClient, "");
+            importResult = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, "");
             return "";
         }
     }

@@ -11,7 +11,7 @@ namespace DCT_data_import.ReadAndImport
 {
     public class Tester : ImportData
     {
-        public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -57,9 +57,9 @@ namespace DCT_data_import.ReadAndImport
                 return new ImportResult(0, "File not found.");
             }
             //// 確認 pool 連線狀態
-            //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+            //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
             //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-            //    if (!createPool(webApiClient, writeToLog))
+            //    if (!createPool(DatabaseService , writeToLog))
             //        return new ImportResult(0, "MySQL database connection failed.");
             try
             {
@@ -107,10 +107,10 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), webApiClient);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), DatabaseService );
                 if (isDBKeyExist)
                 {
-                    //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
+                    //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, DatabaseService );
                     Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + filename);
                     //Console.WriteLine("資料庫已存在此資料: Tester Status  比對" + compare_result + "   檔名:" + list_filename[i]);
                     writeToLog.WriteToDataImportLog("資料庫已存在此資料: " + ftpserver);
@@ -131,7 +131,7 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Start();
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, webApiClient);
+                        import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, DatabaseService );
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
@@ -140,7 +140,7 @@ namespace DCT_data_import.ReadAndImport
                     string checkLogFileName = "DCT_data_check_log_tester_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time
                     writeToLog.WriteToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
-                    //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, webApiClient);
+                    //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, DatabaseService );
                     if (import_result)
                     {
                         //Console.WriteLine("匯入完成! Tester Status  比對" + compare_result + "   檔名: " + list_filename[i]);

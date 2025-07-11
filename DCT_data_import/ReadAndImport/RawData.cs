@@ -22,7 +22,7 @@ namespace DCT_data_import.ReadAndImport
         //    }).ConfigureAwait(false);
         //    return new ImportResult(0, "test msg");
         //}
-        public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -70,9 +70,9 @@ namespace DCT_data_import.ReadAndImport
                 return new ImportResult(0, "File not found.");
             }
             //// 確認 pool 連線狀態
-            //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+            //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
             //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-            //    if (!createPool(webApiClient, writeToLog))
+            //    if (!createPool(DatabaseService , writeToLog))
             //        return new ImportResult(0, "MySQL database connection failed.");
             // 開始讀檔與匯入
             try
@@ -134,10 +134,10 @@ namespace DCT_data_import.ReadAndImport
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), webApiClient);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), DatabaseService );
                 if (isDBKeyExist)
                 {
-                    //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
+                    //compare_result = compareTool.compareRawData(rawDataContentFormat, DatabaseService );
                     Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compareResult + "   檔名:" + filename);
                     ////writeToLog.writeToDataImportLog("資料庫已存在此資料:" + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
@@ -163,12 +163,12 @@ namespace DCT_data_import.ReadAndImport
                     // 開始匯入
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportRawData(rawDataContentFormat, webApiClient);
+                        import_result = fileAccess.ImportRawData(rawDataContentFormat, DatabaseService );
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-                    //compare_result = compareTool.compareRawData(rawDataContentFormat, webApiClient);
+                    //compare_result = compareTool.compareRawData(rawDataContentFormat, DatabaseService );
                     string dateStr = DateTime.Now.ToString("yyyyMMdd");
                     string checkLogFileName = "DCT_data_check_log_rawData_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time

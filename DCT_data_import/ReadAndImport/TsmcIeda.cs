@@ -18,7 +18,7 @@ namespace DCT_data_import.ReadAndImport
             // 設定全域變數中的DataTable _lotMappingDt
             GetLotMapping();
         }
-        public ImportResult ReadAndImportIeda(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public ImportResult ReadAndImportIeda(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
         {
             string ftpserver = "";
             FtpWebRequest reqFTP;
@@ -94,7 +94,7 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Reset();
                     stopWatch.Start();
                     // 開始匯入
-                    import_result = ImportIeda(iedaDataFormat, webApiClient);
+                    import_result = ImportIeda(iedaDataFormat, DatabaseService );
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     if (import_result)
@@ -326,7 +326,7 @@ namespace DCT_data_import.ReadAndImport
             }
             return "Get lot mapping successfully.";
         }
-        public bool ImportIeda(IedaDataFormat content, WebApiClient webApiClient)
+        public bool ImportIeda(IedaDataFormat content, DatabaseService  DatabaseService )
         {
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -348,7 +348,7 @@ namespace DCT_data_import.ReadAndImport
                         values += ",";
                     }
                 }
-                response2 = fileProcess.ExecuteInsertWithAPI(webApiClient, "ieda_title", columns, values);
+                response2 = fileProcess.ExecuteInsertWithAPI(DatabaseService , "ieda_title", columns, values);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     if (response2.Error.Contains("Please initiate connection pool first using the init function"))
@@ -413,7 +413,7 @@ namespace DCT_data_import.ReadAndImport
                     }
                 }
                 values = values.Substring(1, values.Length - 1);
-                response2 = fileProcess.ExecuteInsertWithAPI(webApiClient, "ieda_content", columns, values);
+                response2 = fileProcess.ExecuteInsertWithAPI(DatabaseService , "ieda_content", columns, values);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     if (response2.Error.Contains("Please initiate connection pool first using the init function"))

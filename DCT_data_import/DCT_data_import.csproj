@@ -161,7 +161,7 @@
     <Compile Include="ReadAndImport\Tester.cs" />
     <Compile Include="ReadAndImport\UiStatus.cs" />
     <Compile Include="FileAccess\ReadWriteINIfile.cs" />
-    <Compile Include="WebApi\WebApiClient.cs" />
+    <Compile Include="WebApi\DatabaseService.cs" />
     <Compile Include="WriteToLog.cs" />
   </ItemGroup>
   <ItemGroup>

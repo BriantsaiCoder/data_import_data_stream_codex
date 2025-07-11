@@ -17,7 +17,7 @@ namespace DCT_data_import
         public static string USER = "5940";
         public static string PASSWORD = "5940";
         public static string DATABASE = "dct";
-        public bool CompareRawData(RawDataContentFormat content, WebApiClient webApiClient)
+        public bool CompareRawData(RawDataContentFormat content, DatabaseService DatabaseService)
         {
             if (content == null || content.LotInfo.Rows.Count < 1) return false;
             string db_key = content.LotInfo.Rows[0]["DB_Key"].ToString();
@@ -34,7 +34,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `lots_info` WHERE `db_key` = '" + db_key + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `lots_info` response error:" + response.Error);
@@ -76,7 +76,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `lots_statistic` WHERE `lot_id` = '" + info_Id + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `lots_statistic` response error:" + response.Error);
@@ -160,7 +160,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `lots_result` WHERE `lot_id` = '" + info_Id + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `lots_result` response error:" + response.Error);
@@ -205,7 +205,7 @@ namespace DCT_data_import
             }
             return true;
         }
-        public bool CompareTesterStatus(TestStatusContentFormat content, WebApiClient webApiClient)
+        public bool CompareTesterStatus(TestStatusContentFormat content, DatabaseService DatabaseService)
         {
             if (content == null || content.Tester_device_info.Rows.Count < 1) return false;
             string db_key = content.Tester_device_info.Rows[0]["DB_Key"].ToString();
@@ -220,7 +220,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `tester_device_info` WHERE `db_key` = '" + db_key + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `tester_device_info` response error:" + response.Error);
@@ -268,7 +268,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `tester_status` WHERE `device_info_id` = '" + info_Id + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT `tester_status` response error:" + response.Error);
@@ -322,7 +322,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `tester_sw_version` WHERE `device_info_id` = '" + info_Id + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `tester_sw_version` response error:" + response.Error);
@@ -361,7 +361,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `tester_production_analysis` WHERE `device_info_id` = '" + info_Id + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `tester_production_analysis` response error:" + response.Error);
@@ -395,7 +395,7 @@ namespace DCT_data_import
             }
             return true;
         }
-        public bool CompareFailPinLog(FailPinLogContentFormat content, WebApiClient webApiClient)
+        public bool CompareFailPinLog(FailPinLogContentFormat content, DatabaseService DatabaseService)
         {
             if (content == null || content.Fail_pin_rate_info.Rows.Count < 1) return false;
             string db_key = content.Fail_pin_rate_info.Rows[0]["DB Key"].ToString();
@@ -410,7 +410,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `fail_pin_rate_info` WHERE `db_key` = '" + db_key + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT  `fail_pin_rate_info` response error:" + response.Error);
@@ -434,7 +434,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = "SELECT * FROM `fail_pin_rate_list` WHERE `fail_pin_rate_info_id` = '" + fail_pin_rate_info_Id + "';"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT `fail_pin_rate_list` response error:" + response.Error);
@@ -461,7 +461,7 @@ namespace DCT_data_import
                                         LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
                                         WHERE t2.fail_pin_rate_info_id = '" + fail_pin_rate_info_Id + "'"
             };
-            response = webApiClient.ExecutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("SELECT `fail_pin_rate_list_pin_ball` response error:" + response.Error);

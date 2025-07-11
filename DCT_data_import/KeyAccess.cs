@@ -16,10 +16,10 @@ namespace DCT_data_import
         //private string USER = ConfigurationManager.ConnectionStrings["User"].ConnectionString;
         //private string PASSWORD = ConfigurationManager.ConnectionStrings["Password"].ConnectionString;
         //private string DATABASE = ConfigurationManager.ConnectionStrings["Database"].ConnectionString;
-        private readonly WebApiClient _webApiClient;
+        private readonly DatabaseService  _DatabaseService ;
         public KeyAccess()
         {
-            _webApiClient = new WebApiClient();
+            _DatabaseService  = new DatabaseService ();
         }
         public string InsertDbKey(string mode, string dbKey)
         {
@@ -53,7 +53,7 @@ namespace DCT_data_import
                     Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                response = _webApiClient.ExecutePoolAsync(poolExcute, "insert").GetAwaiter().GetResult();
+                response = _DatabaseService .ExecuteSqlAsync(poolExcute, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     return "FAIL. " + response.Error;
@@ -94,7 +94,7 @@ namespace DCT_data_import
                     Pool = POOL_NAME,
                     Query = sql
                 };
-                response = _webApiClient.ExecutePoolAsync(poolExcute, "update").GetAwaiter().GetResult();
+                response = _DatabaseService .ExecuteSqlAsync(poolExcute, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     return "FAIL. " + response.Error;
@@ -124,7 +124,7 @@ namespace DCT_data_import
                 Pool = POOL_NAME,
                 Query = queryDbKey
             };
-            response = _webApiClient.ExecutePoolAsync(poolExcute, "select").GetAwaiter().GetResult();
+            response = _DatabaseService .ExecuteSqlAsync(poolExcute, "select").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 Console.WriteLine("IsDbKeyExist() execution error: " + response.Error);

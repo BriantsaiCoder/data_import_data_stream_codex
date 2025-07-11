@@ -21,7 +21,7 @@ namespace DCT_data_import.ReadAndImport
         //    }).ConfigureAwait(false);
         //    return new ImportResult(0, "test msg");
         //}
-        public async Task<ImportResult> ReadAndImportRecoveryRateData(FileProcess fileAccess, WebApiClient webApiClient, string dbKey)
+        public async Task<ImportResult> ReadAndImportRecoveryRateData(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
         {
             string ftpserver;
             FtpWebRequest reqFTP;
@@ -65,9 +65,9 @@ namespace DCT_data_import.ReadAndImport
                 return new ImportResult(0, "File not found.");
             }
             //// 確認 pool 連線狀態
-            //bool isConnect = webApiClient.checkDBConnect(Program.POOL_NAME);
+            //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
             //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-            //    if (!createPool(webApiClient, writeToLog))
+            //    if (!createPool(DatabaseService , writeToLog))
             //        return new ImportResult(0, "MySQL database connection failed.");
             // 開始讀檔與匯入
             try
@@ -126,7 +126,7 @@ namespace DCT_data_import.ReadAndImport
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("recovery_rate", recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString(), webApiClient);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("recovery_rate", recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString(), DatabaseService );
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料:  " + "   檔名:" + filename);
@@ -149,7 +149,7 @@ namespace DCT_data_import.ReadAndImport
                     // 開始匯入
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportRecoveryData(recoveryRateDataContentFormat, webApiClient);
+                        import_result = fileAccess.ImportRecoveryData(recoveryRateDataContentFormat, DatabaseService );
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
