@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     public class DatabaseService
@@ -11,19 +11,19 @@ namespace DCT_data_import
         /// <summary>
         /// 執行資料庫查詢操作（保持原有 API 完全相容）
         /// </summary>
-        /// <param name="pool_execute">查詢物件</param>
+        /// <param name="Execute_query">查詢物件</param>
         /// <param name="mode">操作模式，預設為 "select"</param>
         /// <returns>查詢結果</returns>
-        public async Task<Pool_execute_response> ExecuteSqlAsync(Pool_execute pool_execute, string mode = "select")
+        public async Task<Execute_query_response> ExecuteSqlAsync(Execute_query Execute_query, string mode = "select")
         {
             // 輸入驗證 - 完全相同於原始程式碼
-            if (pool_execute == null)
+            if (Execute_query == null)
             {
-                return new Pool_execute_response { Error = "查詢物件不能為空" };
+                return new Execute_query_response { Error = "查詢物件不能為空" };
             }
-            if (string.IsNullOrWhiteSpace(pool_execute.Query))
+            if (string.IsNullOrWhiteSpace(Execute_query.Query))
             {
-                return new Pool_execute_response { Error = "查詢指令不能為空" };
+                return new Execute_query_response { Error = "查詢指令不能為空" };
             }
             // 驗證連線參數 - 完全相同於原始程式碼
             string server = Program.HOST;
@@ -34,7 +34,7 @@ namespace DCT_data_import
             if (string.IsNullOrWhiteSpace(server) || string.IsNullOrWhiteSpace(user) ||
                 string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(database))
             {
-                return new Pool_execute_response { Error = "資料庫連線參數不完整" };
+                return new Execute_query_response { Error = "資料庫連線參數不完整" };
             }
             try
             {
@@ -43,13 +43,13 @@ namespace DCT_data_import
                 {
                     var DB = new DBmysql();
                     DB.Connect(server, port, user, password, database);
-                    return DB.Excute_mysql_cmd(pool_execute.Query, mode);
+                    return DB.Excute_mysql_cmd(Execute_query.Query, mode);
                 }).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 // 保留完整錯誤訊息以便除錯，只移除 StackTrace 部分 - 完全相同於原始程式碼
-                return new Pool_execute_response { Error = GetSafeErrorMessage(ex) };
+                return new Execute_query_response { Error = GetSafeErrorMessage(ex) };
             }
         }
         /// <summary>

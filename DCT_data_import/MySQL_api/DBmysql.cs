@@ -1,7 +1,7 @@
 ﻿using System;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json.Linq;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 using System.Collections.Generic;
 using Dapper;
 using System.Data;
@@ -13,9 +13,9 @@ namespace DCT_data_import
         {
             MySqlConnectionManager.Initialize(IP, Port, user, password, dbName);
         }
-        public Pool_execute_response Excute_mysql_cmd(string cmd_string, string mode = "select", object parameters = null)
+        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select", object parameters = null)
         {
-            Pool_execute_response response = new Pool_execute_response();
+            Execute_query_response response = new Execute_query_response();
             response.Data = new JArray();
             // 輸入驗證
             if (string.IsNullOrWhiteSpace(cmd_string))
@@ -83,7 +83,7 @@ namespace DCT_data_import
             }
             return response;
         }
-        private void ExecuteSelectCommand(MySqlConnection connection, string cmd_string, object parameters, Pool_execute_response response)
+        private void ExecuteSelectCommand(MySqlConnection connection, string cmd_string, object parameters, Execute_query_response response)
         {
             try
             {
@@ -144,7 +144,7 @@ namespace DCT_data_import
                 throw new InvalidOperationException($"執行 SELECT 查詢時發生錯誤: {ex.Message}", ex);
             }
         }
-        private void ExecuteNonQueryCommand(MySqlConnection connection, string cmd_string, object parameters, Pool_execute_response response)
+        private void ExecuteNonQueryCommand(MySqlConnection connection, string cmd_string, object parameters, Execute_query_response response)
         {
             MySqlTransaction transaction = null;
             try
@@ -294,9 +294,9 @@ namespace DCT_data_import
 //        {
 //            MySqlConnectionManager.Initialize(IP, Port, user, password, dbName);
 //        }
-//        public Pool_execute_response Excute_mysql_cmd(string cmd_string, string mode = "select")
+//        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select")
 //        {
-//            Pool_execute_response response = new Pool_execute_response();
+//            Execute_query_response response = new Execute_query_response();
 //            response.Data = new JArray();
 //            try
 //            {

@@ -5,8 +5,8 @@ namespace DCT_data_import
 {
     public class RecoveryRateDataContentFormat
     {
-        private readonly string[] infoColumns = { "DB Key", "Area", "Factory", "OS Machine", "Customer", "Program", "AO Lot", "Mode", "Date" };
-        private readonly string[] recoveryRateColumns = { "Test_Item", "Defect_mode", "reTestPass", "FailPinCount", "Total_Unit", "Recovery rate(%)" };
+        private readonly string[] _infoColumns = { "DB Key", "Area", "Factory", "OS Machine", "Customer", "Program", "AO Lot", "Mode", "Date" };
+        private readonly string[] _recoveryRateColumns = { "Test_Item", "Defect_mode", "reTestPass", "FailPinCount", "Total_Unit", "Recovery rate(%)" };
         public string ErrMsg { get; set; }
         public DataTable LotInfo { get; set; }
         public DataTable LotRecoveryRate { get; set; }
@@ -31,7 +31,7 @@ namespace DCT_data_import
             bool result = true; // infoColumns.SequenceEqual(columnNames);
             for (int i = 0; i < LotInfo.Columns.Count; i++)
             {
-                if (!infoColumns.Contains(LotInfo.Columns[i].ColumnName))
+                if (!_infoColumns.Contains(LotInfo.Columns[i].ColumnName))
                 {
                     return false;
                 }
@@ -48,7 +48,7 @@ namespace DCT_data_import
             bool result = true; // recoveryRateColumns.SequenceEqual(columnNames);
             for (int i = 0; i < LotRecoveryRate.Columns.Count; i++)
             {
-                if (!recoveryRateColumns.Contains(LotRecoveryRate.Columns[i].ColumnName))
+                if (!_recoveryRateColumns.Contains(LotRecoveryRate.Columns[i].ColumnName))
                 {
                     return false;
                 }
@@ -58,12 +58,12 @@ namespace DCT_data_import
     }
     public class RawDataContentFormat
     {
-        private readonly string[] infoColumns = { "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
+        private readonly string[] _infoColumns = { "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
             "Control_lot", "AO_lot", "OS_Machine_ID", "OS_Test_Board_ID", "User_ID", "Schedule_Lot", "File_Name", "Yield(%)", "TOTAL", "PASS",
             "OPEN_PIN_FAIL", "SHORT_PIN_FAIL", "LEAKAGE_PIN_FAIL", "TOTAL_PPM", "OPEN_PIN_FAIL_PPM", "SHORT_PIN_FAIL_PPM",
             "LEAKAGE_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop",
             "Pass", "Pass without OCR","OPEN","OPEN without OCR","Short & Others","Pass without OCR_PPM","OPEN_PPM","OPEN without OCR_PPM","Short & Others_PPM" };
-        private readonly string[] statisticColumns = { "Item No", "Item Name", "net_name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
+        private readonly string[] _statisticColumns = { "Item No", "Item Name", "net_name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
             "STDEV", "Cp", "Cpk", "Ppk", "unit", "value" };
         public string ErrMsg { get; set; }
         public DataTable LotInfo { get; set; }
@@ -89,7 +89,7 @@ namespace DCT_data_import
             bool result = true; // infoColumns.SequenceEqual(columnNames);
             for (int i = 0; i < LotInfo.Columns.Count; i++)
             {
-                if (!infoColumns.Contains(LotInfo.Columns[i].ColumnName))
+                if (!_infoColumns.Contains(LotInfo.Columns[i].ColumnName))
                 {
                     return false;
                 }
@@ -107,7 +107,7 @@ namespace DCT_data_import
             for (int i = 0; i < LotStatistic.Tables[0].Columns.Count; i++)
             {
                 //Console.WriteLine(statisticColumns[i] +" vs " + this.lotStatistic.Tables[0].Columns[i]);
-                if (!statisticColumns.Contains(LotStatistic.Tables[0].Columns[i].ColumnName))
+                if (!_statisticColumns.Contains(LotStatistic.Tables[0].Columns[i].ColumnName))
                 {
                     return false;
                 }
@@ -183,7 +183,7 @@ namespace DCT_data_import
     }
     public class UIStatusContentFormat
     {
-        private readonly string[] uiStatusColumns = { "Mac_Address", "Area", "Factory", "OS_Machine", "Date", "Auto_learn", "DCT_Product_File_Setting_UI",
+        private readonly string[] _uiStatusColumns = { "Mac_Address", "Area", "Factory", "OS_Machine", "Date", "Auto_learn", "DCT_Product_File_Setting_UI",
             "DCT_login_UI", "OS_self_diag_2K", "Pattonkan_UI", "DCT_I_V_Curve_Tool", "OS_TESTER_100mA_VI", "OS_TESTER_2A_VI", "OS_Tester_LCR_meter",
             "Wire_assignment_tool", "BGA_highlight_tool", "SimplificationUI", "OS_scan_tool", "DCT_UploadTp_UI", "DCT_AutoDownloadTp",
             "DCT_SW_Control_Tool", "DCT_DownloadTp_KH" };
@@ -202,7 +202,7 @@ namespace DCT_data_import
             bool result = true; // infoColumns.SequenceEqual(columnNames);
             for (int i = 0; i < UI_status.Columns.Count; i++)
             {
-                if (!uiStatusColumns.Contains(UI_status.Columns[i].ColumnName))
+                if (!_uiStatusColumns.Contains(UI_status.Columns[i].ColumnName))
                 {
                     return false;
                 }
@@ -212,7 +212,7 @@ namespace DCT_data_import
     }
     public class FailPinLogContentFormat
     {
-        private readonly string[] infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date", "Total", "Pass", "Open", "Short", "LK" };
+        private readonly string[] _infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date", "Total", "Pass", "Open", "Short", "LK" };
         public string ErrMsg { get; set; }
         public DataTable Fail_pin_rate_info { get; set; }
         public DataTable Fail_pin_rate_list { get; set; }
@@ -243,7 +243,7 @@ namespace DCT_data_import
             bool result = true; // infoColumns.SequenceEqual(columnNames);
             for (int i = 0; i < Fail_pin_rate_info.Columns.Count; i++)
             {
-                if (!infoColumns.Contains(Fail_pin_rate_info.Columns[i].ColumnName))
+                if (!_infoColumns.Contains(Fail_pin_rate_info.Columns[i].ColumnName))
                 {
                     return false;
                 }

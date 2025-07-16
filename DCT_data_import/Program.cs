@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 using System.IO;
 using System.Net;
 using System.Threading;

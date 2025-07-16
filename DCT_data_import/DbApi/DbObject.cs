@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 namespace DCT_data_import
 {
-    public class ApiObject
+    public class DbObject
     {
         public class ImportResult
         {
@@ -55,12 +55,11 @@ namespace DCT_data_import
                 Remark = "";
             }
         }
-        public class Pool_execute
+        public class Execute_query
         {
-            public string Pool { get; set; }
             public string Query { get; set; }
         }
-        public class Pool_execute_response
+        public class Execute_query_response
         {
             public JArray Data { get; set; }
             public string Error { get; set; }

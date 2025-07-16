@@ -145,7 +145,7 @@
     <Compile Include="MySQL_api\DBmysql.cs" />
     <Compile Include="ReadAndImport\RecoveryRate.cs" />
     <Compile Include="ReadAndImport\TsmcIeda.cs" />
-    <Compile Include="WebApi\ApiObject.cs" />
+    <Compile Include="DbApi\DbObject.cs" />
     <Compile Include="CalculateSPC.cs" />
     <Compile Include="EmailModels.cs" />
     <Compile Include="FileAccess\FileContentFormat.cs" />
@@ -159,7 +159,7 @@
     <Compile Include="ReadAndImport\Tester.cs" />
     <Compile Include="ReadAndImport\UiStatus.cs" />
     <Compile Include="FileAccess\ReadWriteINIfile.cs" />
-    <Compile Include="WebApi\DatabaseService.cs" />
+    <Compile Include="DbApi\DatabaseService.cs" />
     <Compile Include="WriteToLog.cs" />
   </ItemGroup>
   <ItemGroup>

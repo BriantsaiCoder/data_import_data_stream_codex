@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     public class WriteToLog

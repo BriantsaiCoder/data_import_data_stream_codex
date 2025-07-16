@@ -4,7 +4,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     public class FileProcess
@@ -20,12 +20,12 @@ namespace DCT_data_import
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            var pool_excute = new Pool_execute
+            var execute_query = new Execute_query
             {
-                Pool = Program.POOL_NAME,
+
                 Query = "SELECT db_key FROM " + db_table_name + " where db_key='" + db_key + "';"
             };
-            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query).GetAwaiter().GetResult();
             //dynamic json_str = JObject.Parse(response.data);
             //JArray items = (JArray)json_str["data"];
             if (!string.IsNullOrEmpty(response.Error))
@@ -107,7 +107,7 @@ namespace DCT_data_import
             int cut_size = (content.FinalRecoveryRateTable.Rows.Count > 5000) ? 5000 : content.FinalRecoveryRateTable.Rows.Count;
             // assign 需要 insert 的 欄位名稱
             string columns = "", values = "";
-            Pool_execute_response response2;
+            Execute_query_response response2;
             for (int i = 0; i < content.FinalRecoveryRateTable.Columns.Count; i++)
             {
                 string column_name = content.FinalRecoveryRateTable.Columns[i].ColumnName.ToLower();
@@ -198,7 +198,7 @@ namespace DCT_data_import
             if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = "", values = "";
-            Pool_execute_response response2;
+            Execute_query_response response2;
             #region insert raw data 的 info 表格
             for (int i = 0; i < content.LotInfo.Columns.Count; i++)
             {
@@ -319,7 +319,7 @@ namespace DCT_data_import
                         values = values.Substring(1, values.Length - 2);
                         response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
                         if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic_str", columns, values); // 只給舊win server使用
-                        //Thread.Sleep(500);
+                                                                                                                                                       //Thread.Sleep(500);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -484,7 +484,7 @@ namespace DCT_data_import
             if (content.Tester_device_info.Rows.Count < 1 || content.Tester_status.Rows.Count < 1 || content.Tester_sw_version.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = "", values = "";
-            Pool_execute_response response;
+            Execute_query_response response;
             #region insert `tester_device_info`
             for (int i = 0; i < content.Tester_device_info.Columns.Count; i++)
             {
@@ -553,12 +553,12 @@ namespace DCT_data_import
             try
             {
                 //string db_key = content.tester_device_info.Rows[0]["DB_Key"].ToString();
-                //pool_excute = new Pool_excute
+                //execute_query = new execute_query
                 //{
-                //    pool = Program.POOL_NAME,
+                //
                 //    query = "SELECT id FROM `tester_device_info` WHERE `db_key` = '" + db_key + "';"
                 //};
-                //response = DatabaseService .ExcutePoolAsync(pool_excute, "select").GetAwaiter().GetResult();
+                //response = DatabaseService .ExcutePoolAsync(execute_query, "select").GetAwaiter().GetResult();
                 device_info_Id = response.Data[0]["insertId"].ToString();
             }
             catch (Exception ex)
@@ -735,7 +735,7 @@ namespace DCT_data_import
             if (content.UI_status.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = "", values = "";
-            Pool_execute_response response;
+            Execute_query_response response;
             string mac_address, area, factory, os_machine, date;
             for (int j = 0; j < content.UI_status.Columns.Count; j++)
             {
@@ -809,7 +809,7 @@ namespace DCT_data_import
             if (content.Fail_pin_rate_info.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = "", values = "";
-            Pool_execute_response response;
+            Execute_query_response response;
             #region insert `fail_pin_rate_info`
             for (int i = 0; i < content.Fail_pin_rate_info.Columns.Count; i++)
             {
@@ -1061,21 +1061,21 @@ namespace DCT_data_import
             #endregion
             return true;
         }
-        public Pool_execute_response ExecuteInsertWithAPI(DatabaseService DatabaseService, string tableName, string columns, string values)
+        public Execute_query_response ExecuteInsertWithAPI(DatabaseService DatabaseService, string tableName, string columns, string values)
         {
             try
             {
                 // 宣告 Web API body
-                Pool_execute pool_excute = new Pool_execute
+                Execute_query execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
+
                     Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "insert").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO '" + tableName + "', 'Query:" + pool_excute.Query + "' , response error:" + response.Error);
+                    writeToLog.WriteToDataImportLog("'INSERT INTO '" + tableName + "', 'Query:" + execute_query.Query + "' , response error:" + response.Error);
                 }
                 return response;
             }
@@ -1085,93 +1085,93 @@ namespace DCT_data_import
                 return null;
             }
         }
-        private Pool_execute_response DeleteRawData(DatabaseService DatabaseService, string lot_id)
+        private Execute_query_response DeleteRawData(DatabaseService DatabaseService, string lot_id)
         {
             // 宣告 Web API body
-            Pool_execute pool_excute = new Pool_execute
+            Execute_query execute_query = new Execute_query
             {
-                Pool = Program.POOL_NAME,
+
                 Query = @"DELETE t1, t2, t3
-                                          FROM lots_info t1
-                                          LEFT JOIN lots_statistic t2 ON t1.id = t2.lot_id
-                                          LEFT JOIN lots_result t3 ON t1.id = t3.lot_id
-                                    WHERE t1.id = " + lot_id + "; "
+										  FROM lots_info t1
+										  LEFT JOIN lots_statistic t2 ON t1.id = t2.lot_id
+										  LEFT JOIN lots_result t3 ON t1.id = t3.lot_id
+									WHERE t1.id = " + lot_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error: " + pool_excute.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error: " + execute_query.Query + " " + response.Error);
             }
             return response;
         }
-        private Pool_execute_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
+        private Execute_query_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
         {
             // 宣告 Web API body
-            Pool_execute pool_excute = new Pool_execute
+            Execute_query execute_query = new Execute_query
             {
-                Pool = Program.POOL_NAME,
+
                 Query = @"DELETE t1, t2, t3, t4
-                                          FROM tester_device_info t1
-                                          LEFT JOIN tester_status t2 ON t1.id = t2.device_info_id
-                                          LEFT JOIN tester_sw_version t3 ON t1.id = t3.device_info_id
-                                          LEFT JOIN tester_production_analysis t4 ON t1.id = t4.device_info_id
-                                     WHERE t1.id = " + device_info_id + "; "
+										  FROM tester_device_info t1
+										  LEFT JOIN tester_status t2 ON t1.id = t2.device_info_id
+										  LEFT JOIN tester_sw_version t3 ON t1.id = t3.device_info_id
+										  LEFT JOIN tester_production_analysis t4 ON t1.id = t4.device_info_id
+									 WHERE t1.id = " + device_info_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error: " + pool_excute.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error: " + execute_query.Query + " " + response.Error);
             }
             return response;
         }
-        private Pool_execute_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
+        private Execute_query_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
         {
             // 宣告 Web API body
-            Pool_execute pool_excute = new Pool_execute
+            Execute_query execute_query = new Execute_query
             {
-                Pool = Program.POOL_NAME,
+
                 Query = @"DELETE t3
-	                                    FROM fail_pin_rate_list_pin_ball t3
-	                                    LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
-                                    WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
+										FROM fail_pin_rate_list_pin_ball t3
+										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
+									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error: " + pool_excute.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error: " + execute_query.Query + " " + response.Error);
             }
             // 宣告 Web API body
-            pool_excute = new Pool_execute
+            execute_query = new Execute_query
             {
-                Pool = Program.POOL_NAME,
+
                 Query = @"DELETE t4
-	                                    FROM fail_pin_rate_test_result t4
-	                                    LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
-                                    WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
+										FROM fail_pin_rate_test_result t4
+										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
+									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error: " + pool_excute.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error: " + execute_query.Query + " " + response.Error);
             }
             // 宣告 Web API body
-            pool_excute = new Pool_execute
+            execute_query = new Execute_query
             {
-                Pool = Program.POOL_NAME,
+
                 Query = @"DELETE t1, t2
-	                                      FROM fail_pin_rate_list t2
-	                                      LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
-                                    WHERE t1.id = " + fail_pin_id + "; "
+										  FROM fail_pin_rate_list t2
+										  LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
+									WHERE t1.id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error: " + pool_excute.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error: " + execute_query.Query + " " + response.Error);
             }
             return response;
         }

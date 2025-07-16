@@ -7,7 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class TsmcIeda : ImportData
@@ -331,7 +331,7 @@ namespace DCT_data_import.ReadAndImport
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = "", values = "";
-            Pool_execute_response response2;
+            Execute_query_response response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
             #region insert ieda 的 title 表格

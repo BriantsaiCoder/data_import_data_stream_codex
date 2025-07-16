@@ -8,7 +8,7 @@ using System.Net.NetworkInformation;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class RecoveryRate : ImportData

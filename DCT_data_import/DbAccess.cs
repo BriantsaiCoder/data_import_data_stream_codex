@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using static DCT_data_import.ApiObject;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     public class DbAccess
@@ -25,13 +25,12 @@ namespace DCT_data_import
             try
             {
                 // 宣告 Web API body
-                Pool_execute pool_excute = new Pool_execute
+                Execute_query execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -74,13 +73,12 @@ namespace DCT_data_import
             try
             {
                 // 宣告 Web API body
-                Pool_execute pool_excute = new Pool_execute
+                Execute_query execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = sql
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -121,12 +119,11 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Pool_execute pool_excute = new Pool_execute
+                Execute_query execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = "SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "';"
                 };
-                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -160,9 +157,8 @@ namespace DCT_data_import
                 }
                 //importStatus = (importResult.ToString() == checkStatus) ? "1" : "2";
                 // 更新 import check 相關資訊
-                pool_excute = new Pool_execute
+                execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = "UPDATE db_key " + "SET recovery_rate=" + recoveryRate.ToString() +
                     ",tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
                     "import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
@@ -172,7 +168,7 @@ namespace DCT_data_import
                     //"import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
                     //"WHERE `db_key`='" + dbKey + "';"
                 };
-                response = DatabaseService.ExecuteSqlAsync(pool_excute, "update").GetAwaiter().GetResult();
+                response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
@@ -194,12 +190,11 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Pool_execute pool_excute = new Pool_execute
+                Execute_query execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = "SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "';"
                 };
-                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -234,15 +229,14 @@ namespace DCT_data_import
                 //// 寫入寄信暫存檔
                 //writeToLog.WriteToMailTemp(dbKey + "," + dbKey);
                 // 更新 import check 相關資訊
-                pool_excute = new Pool_execute
+                execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = "UPDATE db_key_ui_status " +
                     "SET ui_status='" + uiStatus.ToString() + "', " +
                     "import_status='" + importStatus + "',mail='" + mail + "',remark='" + remark + "' " +
                     "WHERE `db_key`='" + dbKey + "';"
                 };
-                response = DatabaseService.ExecuteSqlAsync(pool_excute, "update").GetAwaiter().GetResult();
+                response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
@@ -279,12 +273,11 @@ namespace DCT_data_import
             }
             try
             {
-                Pool_execute pool_excute = new Pool_execute
+                Execute_query execute_query = new Execute_query
                 {
-                    Pool = Program.POOL_NAME,
                     Query = sql
                 };
-                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
@@ -347,12 +340,11 @@ namespace DCT_data_import
                             "SET mail=1 " +
                             "WHERE `id`='" + item.Id + "';";
                     }
-                    Pool_execute pool_excute = new Pool_execute
+                    Execute_query execute_query = new Execute_query
                     {
-                        Pool = Program.POOL_NAME,
                         Query = sql
                     };
-                    Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "update").GetAwaiter().GetResult();
+                    Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteToDataImportLog("UPDATE `db_key` error!  id=" + item.Id + ",  db_key=" + item.DbKey);
