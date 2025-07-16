@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Runtime;
-using System.Text;
 using static DCT_data_import.ApiObject;
 namespace DCT_data_import
 {
@@ -19,587 +16,7 @@ namespace DCT_data_import
             //DatabaseService  = new DatabaseService ();
             writeToLog = new WriteToLog();
         }
-        public List<string> GetStringSegments(string original, int linesPerSegment = 0)
-        {
-            List<string> segments = new List<string>();
-            int startIndex = 0;
-            for (int i = 0; i < original.Length; i++)
-            {
-                //if (original[i] == '\n')
-                //{
-                //    newLinesEncountered++;
-                //}
-                if (original[i] == '\n'
-                    || i == original.Length - 1)
-                {
-                    segments.Add(original.Substring(startIndex, (i - startIndex + 1)));
-                    startIndex = i + 1;
-                }
-            }
-            return segments;
-        }
-        #region file read
-        public RawDataContentFormat FileReadRawData(StreamReader reader)
-        {
-            RawDataContentFormat fileContentFormat = new RawDataContentFormat();
-            try
-            {
-                // 存放第二部分統計值的 Dictionary
-                Dictionary<string, List<string>> statistic_dict = new Dictionary<string, List<string>>();
-                // 存放第三部分  Serial, SN Num, SiteID, X, Y, HBIN, P/F
-                List<List<string>> rawData_list = new List<List<string>>();
-                // item 數量
-                int item_count = 0;
-                //FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                //StreamReader reader = new StreamReader(stream);
-                int content_part = 1;
-                // 第三部分  raw data的起始index
-                int rawData_part_index = 0;
-                string lines = reader.ReadToEnd();
-                Console.WriteLine("text length: " + lines.Length);
-                List<string> split_lines = GetStringSegments(lines);
-                //List<string> split_lines = lines.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                for (int r = 0; r < split_lines.Count; r++)
-                {
-                    var line = split_lines[r].Trim();
-                    if (!string.IsNullOrEmpty(line) && IsChinese(line))
-                    {
-                        fileContentFormat.ErrMsg = "Chinese word exists.";
-                        //return new RawDataContentFormat("Chinese word exists.");
-                    }
-                    //}
-                    //while (!reader.EndOfStream)
-                    //{
-                    //    var line = reader.ReadLine();
-                    //Console.WriteLine(line);
-                    //Console.Write(r.ToString() + ",");
-                    //if (r == 51454)
-                    //{
-                    //    Console.WriteLine("");
-                    //}
-                    var values = line.Split(',', '\0', '\r', '\n');
-                    var values_tmp = values;
-                    // 去除空白值
-                    if (content_part != 3)
-                    {
-                        values_tmp = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
-                    }
-                    if (values_tmp.Length < 1) continue;
-                    //Console.WriteLine("values : " + values.Length);
-                    //Console.WriteLine(values[0]);
-                    // 看到關鍵字 "Serial"
-                    if (values[0] == "Serial")
-                    {
-                        content_part = 3;
-                    }
-                    // 第一部分  info
-                    if (content_part == 1)
-                    {
-                        fileContentFormat.LotInfo.Columns.Add(values[0].Split(':')[0], typeof(string));
-                        fileContentFormat.LotInfo.Rows[0][values[0].Split(':')[0]] = values[1];
-                        //fileContentFormat.setLotInfo(lotInfo, values[0], values[1]);
-                    }
-                    // 第二部分  statistic
-                    else if (content_part == 2)
-                    {
-                        // 找到第一個非空值的index
-                        for (int i = 0; i < values.Length; i++)
-                        {
-                            if (!string.IsNullOrEmpty(values[i]))
-                            {
-                                // 將第一個非空值之前的所有空值砍掉
-                                values = values.Where(s => values.ToList().IndexOf(s) >= i).ToArray();
-                                // 前有7格空白表示在統計值區塊的 Item_NO 或 Item_name
-                                if (i == 7)
-                                {
-                                    if (values[0] == "1001")
-                                    {
-                                        statistic_dict.Add("Item No", values.ToList<string>());
-                                        item_count = values.Length;
-                                    }
-                                    else
-                                    {
-                                        // 只取到item數量為止，在後方的則是註記欄位，如 test time、index time
-                                        values = values.Where(s => values.ToList().IndexOf(s) < item_count).ToArray();
-                                        statistic_dict.Add("Item Name", values.ToList<string>());
-                                    }
-                                }
-                                else
-                                {
-                                    // 屬於欄位: Force, Wait time, Spec MAX, Spec MIN, # of PASS, # of FAIL, MIN, MAX, AVG, STDEV, Cp, Cpk
-                                    var values_except_head = values.Where(x => x != values[0]).ToArray();
-                                    values_except_head = values_except_head.Where(s => values_except_head.ToList().IndexOf(s) < item_count).ToArray();
-                                    statistic_dict.Add(values[0], values_except_head.ToList<string>());
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    // 第三部分  raw data
-                    else if (content_part == 3)
-                    {
-                        // unit 值填入 Dictionary
-                        if (values[0] == "Serial")
-                        {
-                            var values_unit = values.Where(s => values.ToList().IndexOf(s) >= 7).ToArray();
-                            values_unit = values_unit.Where(s => values_unit.ToList().IndexOf(s) < item_count).ToArray();
-                            statistic_dict.Add("unit", values_unit.ToList<string>());
-                        }
-                        int result_part = 1;  // 1.表示Serial,SN Num,SiteID,	X,Y,HBIN,P/F   2.表示 raw data值的部分含單位(V, uA,...)
-                        DataRow dr_lotResult = fileContentFormat.LotResult.NewRow();
-                        for (int i = 0; i < values.Length; i++)
-                        {
-                            //if (r == 51454)
-                            //{
-                            //    Console.Write(i.ToString() + ",");
-                            //    if (i == 639)
-                            //    {
-                            //        Console.WriteLine("");
-                            //    }
-                            //}
-                            // 欄位 Serial, SN Num, SiteID,	 X, Y, HBIN, P/F
-                            if (result_part == 1 && values[0] == "Serial")
-                            {
-                                fileContentFormat.LotResult.Columns.Add(values[i], typeof(string));
-                            }
-                            // 欄位 Serial 為空的直接跳過
-                            else if (string.IsNullOrEmpty(values[0].Trim()))
-                            {
-                                continue;
-                            }
-                            // 欄位 Serial, SN Num, SiteID,	 X, Y, HBIN, P/F 的 values
-                            else if (result_part == 1)
-                            {
-                                dr_lotResult[i] = values[i];
-                            }
-                            // unit
-                            if (result_part == 2 && values[0] == "Serial")
-                            {
-                                // 第三部分最右方 test time, index time, real time
-                                if (i == rawData_part_index + item_count)
-                                {
-                                    fileContentFormat.LotResult.Columns.Add("test time", typeof(string));
-                                    fileContentFormat.LotResult.Columns.Add("index time", typeof(string));
-                                    fileContentFormat.LotResult.Columns.Add("real time", typeof(string));
-                                    break;
-                                }
-                                rawData_list.Add(new List<string>());
-                            }
-                            // raw data value的部分 先存入rawData_list
-                            else if (result_part == 2 && i < rawData_part_index + rawData_list.Count)
-                            {
-                                // 讀值若含有小數點"."而沒有小數位，則移除小數點
-                                if (values[i].Substring(values[i].Length - 1) == ".") values[i] = values[i].Substring(0, values[i].Length - 1);
-                                rawData_list[i - rawData_part_index].Add(values[i]);
-                            }
-                            else if (result_part == 2 && i >= rawData_part_index + rawData_list.Count)
-                            {
-                                if (i - rawData_list.Count >= fileContentFormat.LotResult.Columns.Count)
-                                {
-                                    //break;
-                                    throw new ArgumentException("Read value column count greater than expected.");
-                                }
-                                dr_lotResult[i - rawData_list.Count] = values[i];
-                            }
-                            // 以"P/F"為分界
-                            if (values[i] == "P/F" || i == rawData_part_index - 1)
-                            {
-                                result_part = 2;
-                                rawData_part_index = i + 1;
-                            }
-                        }
-                        if (values[0] != "Serial")
-                        {
-                            fileContentFormat.LotResult.Rows.Add(dr_lotResult);
-                        }
-                    }
-                    // 看到關鍵字 "Stop"
-                    if (values[0] == "Stop:")
-                    {
-                        content_part = 2;
-                    }
-                }
-                // 釋放記憶體
-                split_lines = null;
-                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-                GC.Collect();
-                // 將raw data values 填入統計值的表
-                DataTable item_table = new DataTable();
-                for (int i = 0; i < statistic_dict.Keys.Count; i++)
-                {
-                    item_table.Columns.Add(statistic_dict.ElementAt(i).Key, typeof(string));
-                }
-                item_table.Columns.Add("value", typeof(string));
-                for (int i = 0; i < item_count; i++)
-                {
-                    //Console.Write(i.ToString() + ",");
-                    //if (i == 330)
-                    //{
-                    //    var memSz = GC.GetTotalMemory(false) / 1024 / 1024;
-                    //    Console.WriteLine($"Managed Heap = {memSz}MB");
-                    //}
-                    // Clone 方法建立的新 DataTable 不會包含任何 DataRows.，只有相同的Schema。
-                    DataTable item_table_tmp = item_table.Clone();
-                    DataRow dataRow = item_table_tmp.NewRow();
-                    // 對 dataRow 填入 統計值
-                    for (int j = 0; j < statistic_dict.Keys.Count; j++)
-                    {
-                        dataRow[statistic_dict.ElementAt(j).Key] = statistic_dict[statistic_dict.ElementAt(j).Key][i];
-                    }
-                    // 對 dataRow 填入 raw data list
-                    if (rawData_list.Count > 0)
-                    {
-                        string strJoin = String.Join(", ", rawData_list[i].ToArray());
-                        if (string.IsNullOrEmpty(strJoin.Trim()))
-                        {
-                            dataRow["value"] = "[]";
-                        }
-                        else
-                        {
-                            dataRow["value"] = "[" + String.Join(", ", rawData_list[i].ToArray()) + "]";
-                        }
-                        //dataRow["value"] = "[";
-                        //for (int k = 0; k < rawData_list[i].Count; k++)
-                        //{
-                        //    if (string.IsNullOrEmpty(rawData_list[i][k]))
-                        //    {
-                        //        dataRow["value"] += "null";
-                        //    }
-                        //    else
-                        //    {
-                        //        dataRow["value"] += rawData_list[i][k];
-                        //    }
-                        //    if(k!= rawData_list[i].Count-1)
-                        //    {
-                        //        dataRow["value"] += ",";
-                        //    }
-                        //    else
-                        //    {
-                        //        dataRow["value"] += "]";
-                        //    }
-                        //}
-                    }
-                    else
-                    {
-                        dataRow["value"] = "[]";
-                    }
-                    if (dataRow["value"].ToString().Substring(dataRow["value"].ToString().Length - 1) != "]")
-                    {
-                        dataRow["value"] += "]";
-                    }
-                    item_table_tmp.Rows.Add(dataRow);
-                    fileContentFormat.LotStatistic.Tables.Add(item_table_tmp);
-                }
-                //stream.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                fileContentFormat.ErrMsg = "讀檔內容錯誤";
-                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-                GC.Collect();
-                return fileContentFormat;
-            }
-            return fileContentFormat;
-        }
-        public TestStatusContentFormat FileReadTesterStatus(StreamReader reader)
-        {
-            TestStatusContentFormat testStatusContentFormat = new TestStatusContentFormat();
-            try
-            {
-                int content_part = 1;
-                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                //{
-                //    using (var reader = new StreamReader(stream))
-                //    {
-                while (!reader.EndOfStream)
-                {
-                    var line = reader.ReadLine();
-                    //Console.WriteLine(line);
-                    var values = EraseSpecificChar(line);
-                    if (values.Length < 1) continue;
-                    //Console.WriteLine("values : " + values_tmp.Length);
-                    if (values[0] == "Device information")
-                    {
-                        content_part = 1;
-                        continue;
-                    }
-                    else if (values[0] == "Tester status")
-                    {
-                        content_part = 2;
-                        continue;
-                    }
-                    else if (values[0] == "SW version")
-                    {
-                        content_part = 3;
-                        continue;
-                    }
-                    else if (values[0] == "Production analysis")
-                    {
-                        content_part = 4;
-                        continue;
-                    }
-                    switch (content_part)
-                    {
-                        case 1:
-                            if (values[0] == "DB_Key")
-                            {
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    testStatusContentFormat.Tester_device_info.Columns.Add(values[i], typeof(string));
-                                }
-                            }
-                            else if (testStatusContentFormat.Tester_device_info.Columns.Count < 1)
-                            {
-                                return null;
-                            }
-                            else
-                            {
-                                DataRow dr_tester_device_info = testStatusContentFormat.Tester_device_info.NewRow();
-                                for (int i = 0; i < testStatusContentFormat.Tester_device_info.Columns.Count; i++)
-                                {
-                                    dr_tester_device_info[i] = values[i];
-                                }
-                                testStatusContentFormat.Tester_device_info.Rows.Add(dr_tester_device_info);
-                            }
-                            break;
-                        case 2:
-                            if (values[0] == "DPW")
-                            {
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    testStatusContentFormat.Tester_status.Columns.Add(values[i], typeof(string));
-                                }
-                            }
-                            else
-                            {
-                                DataRow dr_tester_status = testStatusContentFormat.Tester_status.NewRow();
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    dr_tester_status[i] = values[i];
-                                }
-                                testStatusContentFormat.Tester_status.Rows.Add(dr_tester_status);
-                            }
-                            break;
-                        case 3:
-                            if (values[0] == "PUI version")
-                            {
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    testStatusContentFormat.Tester_sw_version.Columns.Add(values[i], typeof(string));
-                                }
-                            }
-                            else
-                            {
-                                DataRow dr_tester_sw_version = testStatusContentFormat.Tester_sw_version.NewRow();
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    dr_tester_sw_version[i] = values[i];
-                                }
-                                testStatusContentFormat.Tester_sw_version.Rows.Add(dr_tester_sw_version);
-                            }
-                            break;
-                        case 4:
-                            if (values[0] == "site1_yield")
-                            {
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    testStatusContentFormat.Tester_production_analysis.Columns.Add(values[i], typeof(string));
-                                }
-                            }
-                            else
-                            {
-                                DataRow dr_tester_production_analysis = testStatusContentFormat.Tester_production_analysis.NewRow();
-                                for (int i = 0; i < values.Length; i++)
-                                {
-                                    dr_tester_production_analysis[i] = values[i];
-                                }
-                                testStatusContentFormat.Tester_production_analysis.Rows.Add(dr_tester_production_analysis);
-                                return testStatusContentFormat;
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                    //Console.WriteLine(line);
-                }
-                //    }
-                //}
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return null;
-            }
-            return testStatusContentFormat;
-        }
-        public UIStatusContentFormat FileReadUIStatus(StreamReader reader)
-        {
-            UIStatusContentFormat uiStatusContentFormat = new UIStatusContentFormat();
-            try
-            {
-                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                //{
-                //    using (var reader = new StreamReader(stream))
-                //    {
-                while (!reader.EndOfStream)
-                {
-                    var line = reader.ReadLine();
-                    //Console.WriteLine(line);
-                    var values = EraseSpecificChar(line);
-                    if (values.Length < 1) continue;
-                    //Console.WriteLine("values : " + values_tmp.Length);
-                    if (values[0] == "Mac_Address")
-                    {
-                        for (int i = 0; i < values.Length; i++)
-                        {
-                            uiStatusContentFormat.UI_status.Columns.Add(values[i], typeof(string));
-                        }
-                    }
-                    else
-                    {
-                        DataRow dr_UI_status = uiStatusContentFormat.UI_status.NewRow();
-                        for (int i = 0; i < values.Length; i++)
-                        {
-                            dr_UI_status[i] = values[i];
-                        }
-                        uiStatusContentFormat.UI_status.Rows.Add(dr_UI_status);
-                    }
-                }
-                //    }
-                //}
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return null;
-            }
-            return uiStatusContentFormat;
-        }
-        public FailPinLogContentFormat FileReadFailPinLog(StreamReader reader)
-        {
-            FailPinLogContentFormat failPinLogContentFormat = new FailPinLogContentFormat();
-            try
-            {
-                string data_format = "";
-                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                //{
-                //    using (var reader = new StreamReader(stream))
-                //    {
-                int content_part = 1;
-                int fail_pin_list_id = 0;
-                while (!reader.EndOfStream)
-                {
-                    var line = reader.ReadLine();
-                    var values = EraseSpecificChar(line);
-                    if (values == null)
-                    {
-                        continue;
-                    }
-                    if (values.Length < 1) continue;
-                    // 看到關鍵字 "Data format" ，取得pin/ball類型
-                    if (values[0] == "Data format")
-                    {
-                        data_format = values[1];
-                    }
-                    // 看到關鍵字 "DUT"
-                    if (values[0] == "DUT")
-                    {
-                        content_part = 2;
-                        continue;
-                    }
-                    // fail pin rate的上半部分
-                    if (content_part == 1)
-                    {
-                        failPinLogContentFormat.Fail_pin_rate_info.Columns.Add(values[0], typeof(string));
-                        failPinLogContentFormat.Fail_pin_rate_info.Rows[0][values[0]] = (values.Length > 1) ? values[1] : "";
-                    }
-                    // fail pin rate的下半部分
-                    else if (content_part == 2)
-                    {
-                        if (values.Length >= 3)
-                        {
-                            DataRow dr_fail_pin_rate_list = failPinLogContentFormat.Fail_pin_rate_list.NewRow();
-                            // 欄位 DUT, Site, Fail Type
-                            for (int i = 0; i < 3; i++)
-                            {
-                                dr_fail_pin_rate_list[i] = values[i];
-                            }
-                            failPinLogContentFormat.Fail_pin_rate_list.Rows.Add(dr_fail_pin_rate_list);
-                            // 讀取 fail pin 與 log 存到 List
-                            int fail_pin_part = 1;
-                            List<string> fail_pin_list = new List<string>();
-                            List<string> fail_pin_log = new List<string>();
-                            for (int i = 3; i < values.Length; i++)
-                            {
-                                // 以 ';' 分開fail pin log 與 remark
-                                if (values[i] == ";")
-                                {
-                                    fail_pin_part = 2;
-                                    continue;
-                                }
-                                if (fail_pin_part == 1)
-                                {
-                                    fail_pin_list.Add(values[i]);
-                                }
-                                else if (fail_pin_part == 2)
-                                {
-                                    fail_pin_log.Add(values[i]);
-                                }
-                            }
-                            fail_pin_list_id++;
-                            //  將 fail pin 與 log 存到 DataTable
-                            for (int i = 0; i < fail_pin_list.Count; i++)
-                            {
-                                DataRow dr_fail_pin_rate_list_pin_ball = failPinLogContentFormat.Fail_pin_rate_list_pin_ball.NewRow();
-                                string[] value_split = fail_pin_list[i].Split('(', ')');
-                                if (data_format == "Pin")
-                                {
-                                    dr_fail_pin_rate_list_pin_ball["pin"] = value_split[0];
-                                    dr_fail_pin_rate_list_pin_ball["ball"] = value_split[1];
-                                }
-                                else if (data_format == "Ball")
-                                {
-                                    dr_fail_pin_rate_list_pin_ball["ball"] = value_split[0];
-                                    dr_fail_pin_rate_list_pin_ball["pin"] = value_split[1];
-                                }
-                                dr_fail_pin_rate_list_pin_ball["fail_pin_rate_list_id"] = fail_pin_list_id;
-                                dr_fail_pin_rate_list_pin_ball["remark"] = String.Join(",", fail_pin_log.ToArray());
-                                failPinLogContentFormat.Fail_pin_rate_list_pin_ball.Rows.Add(dr_fail_pin_rate_list_pin_ball);
-                            }
-                        }
-                    }
-                }
-                //    }
-                //}
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return null;
-            }
-            return failPinLogContentFormat;
-        }
-        #endregion file read
-        public bool IsFileNameExistInDB(string fileName, DatabaseService  DatabaseService )
-        {
-            var pool_excute = new Pool_execute
-            {
-                Pool = Program.POOL_NAME,
-                Query = "SELECT file_name FROM lots_info where file_name='" + fileName + "';"
-            };
-            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
-            //dynamic json_str = JObject.Parse(response.data);
-            //JArray items = (JArray)json_str["data"];
-            int length = 0;
-            if (response.Data != null)
-            {
-                length = response.Data.Count;
-            }
-            //Console.WriteLine(json_str.data);
-            return (length > 0);
-        }
-        public bool IsDBKeyExistInDB(string db_table_name, string db_key, DatabaseService  DatabaseService )
+        public bool IsDBKeyExistInDB(string db_table_name, string db_key, DatabaseService DatabaseService)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -608,7 +25,7 @@ namespace DCT_data_import
                 Pool = Program.POOL_NAME,
                 Query = "SELECT db_key FROM " + db_table_name + " where db_key='" + db_key + "';"
             };
-            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
             //dynamic json_str = JObject.Parse(response.data);
             //JArray items = (JArray)json_str["data"];
             if (!string.IsNullOrEmpty(response.Error))
@@ -622,29 +39,6 @@ namespace DCT_data_import
             }
             stopwatch.Stop();
             long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-            //Console.WriteLine(json_str.data);
-            return (length > 0);
-        }
-        public bool IsUIStatusDataExistInDB(string mac_address, string area, string factory, string os_machine, string date, DatabaseService  DatabaseService )
-        {
-            //string whereDate = (string.IsNullOrEmpty(date) || date == "null") ? "" : "' AND date='" + date;
-            if (string.IsNullOrEmpty(date) || date == "null")
-            {
-                return false;
-            }
-            var pool_excute = new Pool_execute
-            {
-                Pool = Program.POOL_NAME,
-                Query = "SELECT id FROM ui_status WHERE mac_address='" + mac_address + "' AND area='" + area + "' AND factory='" + factory + "' AND os_machine='" + os_machine + "' AND date='" + date + "' ; "
-            };
-            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute).GetAwaiter().GetResult();
-            //dynamic json_str = JObject.Parse(response.data);
-            //JArray items = (JArray)json_str["data"];
-            int length = 0;
-            if (response.Data != null)
-            {
-                length = response.Data.Count;
-            }
             //Console.WriteLine(json_str.data);
             return (length > 0);
         }
@@ -706,7 +100,7 @@ namespace DCT_data_import
             }
         }
         // Recovery Rate 匯入資料庫
-        public bool ImportRecoveryData(RecoveryRateDataContentFormat content, DatabaseService  DatabaseService )
+        public bool ImportRecoveryData(RecoveryRateDataContentFormat content, DatabaseService DatabaseService)
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotRecoveryRate.Rows.Count < 1) return false;
             #region insert recovery rate 的 data
@@ -756,7 +150,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(DatabaseService , "recovery_rate", columns, values);
+                        response2 = ExecuteInsertWithAPI(DatabaseService, "recovery_rate", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + response2.Error);
@@ -782,7 +176,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(DatabaseService , "recovery_rate", columns, values);
+                    response2 = ExecuteInsertWithAPI(DatabaseService, "recovery_rate", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
@@ -799,7 +193,7 @@ namespace DCT_data_import
             return true;
         }
         // RawData 匯入資料庫
-        public bool ImportRawData(RawDataContentFormat content, DatabaseService  DatabaseService )
+        public bool ImportRawData(RawDataContentFormat content, DatabaseService DatabaseService)
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -835,7 +229,7 @@ namespace DCT_data_import
             }
             try
             {
-                response2 = ExecuteInsertWithAPI(DatabaseService , "lots_info", columns, values);
+                response2 = ExecuteInsertWithAPI(DatabaseService, "lots_info", columns, values);
                 //if (!string.IsNullOrEmpty(response2.error))
                 //{
                 //    if(response2.error.Contains("Please initiate connection pool first using the init function"))
@@ -923,13 +317,13 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic", columns, values);
-                        if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic_str", columns, values); // 只給舊win server使用
+                        response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                        if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic_str", columns, values); // 只給舊win server使用
                         //Thread.Sleep(500);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                            response2 = DeleteRawData(DatabaseService , lotId);
+                            response2 = DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
                         values = "";
@@ -947,12 +341,12 @@ namespace DCT_data_import
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic", columns, values);
-                    if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService , "lots_statistic_str", columns, values); // 只給舊win server使用
+                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                    if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic_str", columns, values); // 只給舊win server使用
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                        response2 = DeleteRawData(DatabaseService , lotId);
+                        response2 = DeleteRawData(DatabaseService, lotId);
                         return false;
                     }
                 }
@@ -961,7 +355,7 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' error:" + ex.ToString());
-                response2 = DeleteRawData(DatabaseService , lotId);
+                response2 = DeleteRawData(DatabaseService, lotId);
                 return false;
             }
             #endregion
@@ -1037,7 +431,7 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response2 = ExecuteInsertWithAPI(DatabaseService , "lots_result", columns, values);
+                            response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + response2.Error);
@@ -1065,7 +459,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(DatabaseService , "lots_result", columns, values);
+                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' response error:" + response2.Error);
@@ -1085,7 +479,7 @@ namespace DCT_data_import
             return true;
         }
         // Tester Status 匯入資料庫
-        public bool ImportTesterStatus(TestStatusContentFormat content, DatabaseService  DatabaseService )
+        public bool ImportTesterStatus(TestStatusContentFormat content, DatabaseService DatabaseService)
         {
             if (content.Tester_device_info.Rows.Count < 1 || content.Tester_status.Rows.Count < 1 || content.Tester_sw_version.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -1142,7 +536,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsertWithAPI(DatabaseService , "tester_device_info", columns, values);
+                response = ExecuteInsertWithAPI(DatabaseService, "tester_device_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     return false;
@@ -1216,10 +610,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService , "tester_status", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "tester_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteTesterStatus(DatabaseService , device_info_Id);
+                        response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
                 }
@@ -1228,7 +622,7 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + ex.ToString());
-                response = DeleteTesterStatus(DatabaseService , device_info_Id);
+                response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
@@ -1265,10 +659,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService , "tester_sw_version", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "tester_sw_version", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteTesterStatus(DatabaseService , device_info_Id);
+                        response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
                 }
@@ -1277,7 +671,7 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + ex.ToString());
-                response = DeleteTesterStatus(DatabaseService , device_info_Id);
+                response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
@@ -1317,10 +711,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService , "tester_production_analysis", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "tester_production_analysis", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteTesterStatus(DatabaseService , device_info_Id);
+                        response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
                 }
@@ -1329,14 +723,14 @@ namespace DCT_data_import
             {
                 //Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis'  error:" + ex.ToString());
-                response = DeleteTesterStatus(DatabaseService , device_info_Id);
+                response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
             return true;
         }
         // UI Status 匯入資料庫
-        public bool ImportUIStatus(UIStatusContentFormat content, DatabaseService  DatabaseService )
+        public bool ImportUIStatus(UIStatusContentFormat content, DatabaseService DatabaseService)
         {
             if (content.UI_status.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -1393,7 +787,7 @@ namespace DCT_data_import
                     //}
                     //else
                     //{
-                    response = ExecuteInsertWithAPI(DatabaseService , "ui_status", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "ui_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         return false;
@@ -1410,7 +804,7 @@ namespace DCT_data_import
             return true;
         }
         // Fail Pin Log 匯入資料庫
-        public bool ImportFailPinLog(FailPinLogContentFormat content, DatabaseService  DatabaseService )
+        public bool ImportFailPinLog(FailPinLogContentFormat content, DatabaseService DatabaseService)
         {
             if (content.Fail_pin_rate_info.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
@@ -1442,7 +836,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_info", columns, values);
+                response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     return false;
@@ -1494,10 +888,10 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_list", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                        response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
                     // 將此筆insert的fail_pin_rate_list_id保存至陣列
@@ -1507,7 +901,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
@@ -1554,10 +948,10 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_list_pin_ball", columns, values);
+                        response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                         if (!string.IsNullOrEmpty(response.Error))
                         {
-                            response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                            response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                             return false;
                         }
                         values = "";
@@ -1574,10 +968,10 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_list_pin_ball", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                        response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
                 }
@@ -1585,7 +979,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
@@ -1622,10 +1016,10 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_test_result", columns, values);
+                            response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
                             if (!string.IsNullOrEmpty(response.Error))
                             {
-                                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                                 return false;
                             }
                             values = "";
@@ -1650,10 +1044,10 @@ namespace DCT_data_import
                     {
                         values = values.Substring(1, values.Length - 2);
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService , "fail_pin_rate_test_result", columns, values);
+                    response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                        response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
                 }
@@ -1661,13 +1055,13 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                response = DeleteFailPinLog(DatabaseService , fail_pin_rate_info_Id);
+                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
             return true;
         }
-        public Pool_execute_response ExecuteInsertWithAPI(DatabaseService  DatabaseService , string tableName, string columns, string values)
+        public Pool_execute_response ExecuteInsertWithAPI(DatabaseService DatabaseService, string tableName, string columns, string values)
         {
             try
             {
@@ -1678,7 +1072,7 @@ namespace DCT_data_import
                     Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-                Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "insert").GetAwaiter().GetResult();
+                Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteToDataImportLog("'INSERT INTO '" + tableName + "', 'Query:" + pool_excute.Query + "' , response error:" + response.Error);
@@ -1691,7 +1085,7 @@ namespace DCT_data_import
                 return null;
             }
         }
-        private Pool_execute_response DeleteRawData(DatabaseService  DatabaseService , string lot_id)
+        private Pool_execute_response DeleteRawData(DatabaseService DatabaseService, string lot_id)
         {
             // 宣告 Web API body
             Pool_execute pool_excute = new Pool_execute
@@ -1704,14 +1098,14 @@ namespace DCT_data_import
                                     WHERE t1.id = " + lot_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error: " + pool_excute.Query + " " + response.Error);
             }
             return response;
         }
-        private Pool_execute_response DeleteTesterStatus(DatabaseService  DatabaseService , string device_info_id)
+        private Pool_execute_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
         {
             // 宣告 Web API body
             Pool_execute pool_excute = new Pool_execute
@@ -1725,14 +1119,14 @@ namespace DCT_data_import
                                      WHERE t1.id = " + device_info_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error: " + pool_excute.Query + " " + response.Error);
             }
             return response;
         }
-        private Pool_execute_response DeleteFailPinLog(DatabaseService  DatabaseService , string fail_pin_id)
+        private Pool_execute_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
         {
             // 宣告 Web API body
             Pool_execute pool_excute = new Pool_execute
@@ -1744,7 +1138,7 @@ namespace DCT_data_import
                                     WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            Pool_execute_response response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            Pool_execute_response response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error: " + pool_excute.Query + " " + response.Error);
@@ -1759,7 +1153,7 @@ namespace DCT_data_import
                                     WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error: " + pool_excute.Query + " " + response.Error);
@@ -1774,7 +1168,7 @@ namespace DCT_data_import
                                     WHERE t1.id = " + fail_pin_id + "; "
             };
             // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
-            response = DatabaseService .ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSqlAsync(pool_excute, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error: " + pool_excute.Query + " " + response.Error);
@@ -1792,40 +1186,6 @@ namespace DCT_data_import
                 ds_lot_statistic.Tables[i].Rows[0]["avg_2"] = values[i].avg2;
                 ds_lot_statistic.Tables[i].Rows[0]["pass_n"] = values[i].pass_n;
             }
-        }
-        // 判斷是否包含中文字符
-        static bool IsChinese(string input)
-        {
-            // 使用 Unicode 字節順序標記 (BOM) 判斷字符串是否為 Unicode 編碼
-            if (input.StartsWith("\uFEFF"))
-            {
-                input = input.Substring(1);
-            }
-            // 判斷字符串中是否包含中文字符
-            foreach (char c in input)
-            {
-                if (c >= 0x4E00 && c <= 0x9FFF)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        // 判斷是否為 ANSI Big5 編碼
-        static bool IsBig5(string input)
-        {
-            // 將字符串轉換為 byte 陣列
-            byte[] bytes = Encoding.Default.GetBytes(input);
-            // 判斷 byte 陣列是否為 ANSI Big5 編碼
-            return Encoding.GetEncoding("big5").GetString(bytes) == input;
-        }
-        // 判斷是否
-        static bool IsUnicode(string input)
-        {
-            // 將字符串轉換為 byte 陣列
-            byte[] bytes = Encoding.Unicode.GetBytes(input);
-            // 判斷 byte 陣列是否為 Unicode 編碼
-            return Encoding.Unicode.GetString(bytes) == input;
         }
         /// <summary>
         /// 處理輸入字串，進行空值檢查及取代成預設值
