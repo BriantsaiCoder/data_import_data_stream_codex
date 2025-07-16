@@ -149,7 +149,6 @@
     <Compile Include="CalculateSPC.cs" />
     <Compile Include="EmailModels.cs" />
     <Compile Include="FileAccess\FileContentFormat.cs" />
-    <Compile Include="FileAccess\fileEncode.cs" />
     <Compile Include="FileAccess\FileProcess.cs" />
     <Compile Include="KeyAccess.cs" />
     <Compile Include="Program.cs" />
