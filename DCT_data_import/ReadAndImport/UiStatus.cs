@@ -11,7 +11,7 @@ namespace DCT_data_import.ReadAndImport
 {
     public class UiStatus : ImportData
     {
-        public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKeyUiStatus)
+        public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKeyUiStatus)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -19,7 +19,6 @@ namespace DCT_data_import.ReadAndImport
             Stream responseStream;
             StreamReader reader;
             bool import_result = false;
-            CompareTool compareTool = new CompareTool();
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
@@ -92,14 +91,13 @@ namespace DCT_data_import.ReadAndImport
                 }
                 stopWatch.Reset();
                 stopWatch.Start();
-                import_result = fileAccess.ImportUIStatus(uiStatusContentFormat, DatabaseService );
+                import_result = fileAccess.ImportUIStatus(uiStatusContentFormat, DatabaseService);
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
                 if (import_result)
                 {
                     Console.WriteLine("匯入完成! UI Status " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-
                     // 刪除已存在的的CSV檔案
                     deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     reader.Close();

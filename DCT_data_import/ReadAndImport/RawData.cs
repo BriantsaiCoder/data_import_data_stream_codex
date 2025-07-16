@@ -22,7 +22,7 @@ namespace DCT_data_import.ReadAndImport
         //    }).ConfigureAwait(false);
         //    return new ImportResult(0, "test msg");
         //}
-        public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
+        public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -30,7 +30,6 @@ namespace DCT_data_import.ReadAndImport
             Stream responseStream;
             StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
-            CompareTool compareTool = new CompareTool();
             bool compareResult = false;
             CalculateSPC calculateSPC = new CalculateSPC();
             List<StatisticItem> avg2;
@@ -134,7 +133,7 @@ namespace DCT_data_import.ReadAndImport
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), DatabaseService );
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     //compare_result = compareTool.compareRawData(rawDataContentFormat, DatabaseService );
@@ -163,7 +162,7 @@ namespace DCT_data_import.ReadAndImport
                     // 開始匯入
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportRawData(rawDataContentFormat, DatabaseService );
+                        import_result = fileAccess.ImportRawData(rawDataContentFormat, DatabaseService);
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;

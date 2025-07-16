@@ -147,7 +147,6 @@
     <Compile Include="ReadAndImport\TsmcIeda.cs" />
     <Compile Include="WebApi\ApiObject.cs" />
     <Compile Include="CalculateSPC.cs" />
-    <Compile Include="CompareTool.cs" />
     <Compile Include="EmailModels.cs" />
     <Compile Include="FileAccess\FileContentFormat.cs" />
     <Compile Include="FileAccess\fileEncode.cs" />

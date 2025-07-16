@@ -12,7 +12,7 @@ namespace DCT_data_import.ReadAndImport
 {
     public class FailPin : ImportData
     {
-        public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
+        public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             string ftpserver;
             FtpWebRequest reqFTP;
@@ -21,7 +21,7 @@ namespace DCT_data_import.ReadAndImport
             StreamReader reader;
             bool import_result = false, isDBKeyExist = false;
             WriteToLog writeToLog = new WriteToLog();
-            CompareTool compareTool = new CompareTool();
+
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
@@ -98,7 +98,7 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), DatabaseService );
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     //compare_result = compareTool.compareFailPinLog(failPinLogContent, DatabaseService );
@@ -106,7 +106,6 @@ namespace DCT_data_import.ReadAndImport
                     //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
                     //writeToLog.writeToDataImportLog("資料庫已存在此資料: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-
                     //// 刪除已存在的的CSV檔案
                     //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
@@ -117,7 +116,7 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Start();
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, DatabaseService );
+                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, DatabaseService);
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
@@ -131,7 +130,6 @@ namespace DCT_data_import.ReadAndImport
                     {
                         //Console.WriteLine("匯入完成! Fail Pin    比對: " + compare_result + "   檔名:" + list_filename[i]);
                         Console.WriteLine("匯入完成! Fail Pin      檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-
                         // 刪除完成的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();

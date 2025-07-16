@@ -11,7 +11,7 @@ namespace DCT_data_import.ReadAndImport
 {
     public class Tester : ImportData
     {
-        public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
+        public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             String ftpserver;
             FtpWebRequest reqFTP;
@@ -20,7 +20,6 @@ namespace DCT_data_import.ReadAndImport
             StreamReader reader;
             bool isDBKeyExist = false, import_result = false;
             WriteToLog writeToLog = new WriteToLog();
-            CompareTool compareTool = new CompareTool();
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
@@ -107,7 +106,7 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), DatabaseService );
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, DatabaseService );
@@ -131,7 +130,7 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Start();
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, DatabaseService );
+                        import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, DatabaseService);
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
@@ -145,7 +144,6 @@ namespace DCT_data_import.ReadAndImport
                     {
                         //Console.WriteLine("匯入完成! Tester Status  比對" + compare_result + "   檔名: " + list_filename[i]);
                         Console.WriteLine("匯入完成! Tester Status   檔名: " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
