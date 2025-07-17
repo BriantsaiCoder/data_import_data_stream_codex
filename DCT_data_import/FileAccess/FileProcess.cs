@@ -22,7 +22,6 @@ namespace DCT_data_import
             stopwatch.Start();
             var execute_query = new Execute_query
             {
-
                 Query = "SELECT db_key FROM " + db_table_name + " where db_key='" + db_key + "';"
             };
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query).GetAwaiter().GetResult();
@@ -1068,7 +1067,6 @@ namespace DCT_data_import
                 // 宣告 Web API body
                 Execute_query execute_query = new Execute_query
                 {
-
                     Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
                 };
                 // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
@@ -1090,7 +1088,6 @@ namespace DCT_data_import
             // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
-
                 Query = @"DELETE t1, t2, t3
 										  FROM lots_info t1
 										  LEFT JOIN lots_statistic t2 ON t1.id = t2.lot_id
@@ -1110,7 +1107,6 @@ namespace DCT_data_import
             // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
-
                 Query = @"DELETE t1, t2, t3, t4
 										  FROM tester_device_info t1
 										  LEFT JOIN tester_status t2 ON t1.id = t2.device_info_id
@@ -1131,7 +1127,6 @@ namespace DCT_data_import
             // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
-
                 Query = @"DELETE t3
 										FROM fail_pin_rate_list_pin_ball t3
 										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
@@ -1146,7 +1141,6 @@ namespace DCT_data_import
             // 宣告 Web API body
             execute_query = new Execute_query
             {
-
                 Query = @"DELETE t4
 										FROM fail_pin_rate_test_result t4
 										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
@@ -1161,7 +1155,6 @@ namespace DCT_data_import
             // 宣告 Web API body
             execute_query = new Execute_query
             {
-
                 Query = @"DELETE t1, t2
 										  FROM fail_pin_rate_list t2
 										  LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id

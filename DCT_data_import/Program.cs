@@ -20,11 +20,6 @@ namespace DCT_data_import
         public static string PORT = ConfigurationManager.AppSettings[$"{Environment}Port"];
         public static string DATABASE = ConfigurationManager.AppSettings[$"{Environment}Database"];
         public static string POOL_NAME = ConfigurationManager.AppSettings["PoolName"];
-        //public static string HOST = ConfigurationManager.ConnectionStrings["Host"].ConnectionString;
-        //public static string PORT = ConfigurationManager.ConnectionStrings["Port"].ConnectionString;
-        //public static string USER = ConfigurationManager.ConnectionStrings["User"].ConnectionString;
-        //public static string PASSWORD = ConfigurationManager.ConnectionStrings["Password"].ConnectionString;
-        //public static string DATABASE = ConfigurationManager.ConnectionStrings["Database"].ConnectionString;
         public static string FTP_IP = ConfigurationManager.ConnectionStrings["FtpIp"].ConnectionString;
         public static string FTP_USER = ConfigurationManager.ConnectionStrings["FtpUser"].ConnectionString;
         public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"].ConnectionString;

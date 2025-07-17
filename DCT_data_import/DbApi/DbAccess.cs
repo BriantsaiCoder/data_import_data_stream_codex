@@ -318,46 +318,5 @@ namespace DCT_data_import
             }
             return dbKeyObject;
         }
-        public string UpdateMail(DatabaseService DatabaseService, List<DbKeyObject> dbKeyObject, string mode = "")
-        {
-            WriteToLog writeToLog = new WriteToLog();
-            string sql = "";
-            long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
-            long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒
-            try
-            {
-                foreach (DbKeyObject item in dbKeyObject)
-                {
-                    if (mode == "tester")
-                    {
-                        sql = "UPDATE db_key " +
-                            "SET mail=1 " +
-                            "WHERE `id`='" + item.Id + "';";
-                    }
-                    else if (mode == "ui_status")
-                    {
-                        sql = "UPDATE db_key_ui_status " +
-                            "SET mail=1 " +
-                            "WHERE `id`='" + item.Id + "';";
-                    }
-                    Execute_query execute_query = new Execute_query
-                    {
-                        Query = sql
-                    };
-                    Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
-                    if (!string.IsNullOrEmpty(response.Error))
-                    {
-                        writeToLog.WriteToDataImportLog("UPDATE `db_key` error!  id=" + item.Id + ",  db_key=" + item.DbKey);
-                        return "Fail." + response.Error;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return "Fail." + ex.ToString();
-            }
-            return "OK.";
-        }
     }
 }

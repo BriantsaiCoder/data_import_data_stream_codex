@@ -141,7 +141,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DbAccess.cs" />
+    <Compile Include="DbApi\DbAccess.cs" />
     <Compile Include="MySQL_api\DBmysql.cs" />
     <Compile Include="ReadAndImport\RecoveryRate.cs" />
     <Compile Include="ReadAndImport\TsmcIeda.cs" />
@@ -150,7 +150,6 @@
     <Compile Include="EmailModels.cs" />
     <Compile Include="FileAccess\FileContentFormat.cs" />
     <Compile Include="FileAccess\FileProcess.cs" />
-    <Compile Include="KeyAccess.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReadAndImport\FailPin.cs" />
