@@ -87,6 +87,7 @@ namespace DCT_data_import
         {
             try
             {
+                WriteToLog writeToLog = new WriteToLog();
                 var results = connection.Query(cmd_string, parameters);
                 JArray jsonArray = new JArray();
                 foreach (var row in results)
@@ -127,6 +128,7 @@ namespace DCT_data_import
                                     jsonRow[kvp.Key] = null;
                                     // 可選：記錄警告日誌
                                     System.Diagnostics.Debug.WriteLine($"欄位 {kvp.Key} 轉換失敗: {fieldEx.Message}");
+                                    writeToLog.WriteToDataImportLog($"cmd_string {cmd_string} 欄位 {kvp.Key} 轉換失敗: {fieldEx.Message}");
                                 }
                             }
                         }
@@ -149,6 +151,7 @@ namespace DCT_data_import
             MySqlTransaction transaction = null;
             try
             {
+                WriteToLog writeToLog = new WriteToLog();
                 transaction = connection.BeginTransaction();
                 int affectedRows = connection.Execute(cmd_string, parameters, transaction);
                 long insertId = 0;
@@ -162,6 +165,7 @@ namespace DCT_data_import
                     {
                         // LAST_INSERT_ID 取得失敗不應該影響主要操作
                         System.Diagnostics.Debug.WriteLine($"取得 LAST_INSERT_ID 失敗: {insertIdEx.Message}");
+                        writeToLog.WriteToDataImportLog($"cmd_string {cmd_string} INSERT, 取得 LAST_INSERT_ID 失敗: {insertIdEx.Message}");
                         insertId = 0;
                     }
                 }

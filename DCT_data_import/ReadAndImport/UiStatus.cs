@@ -27,11 +27,6 @@ namespace DCT_data_import.ReadAndImport
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
-            //// 檢查FTP連線狀態
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/";
-            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            //if (!isFtpConnected)
-            //    return new ImportResult(0, "FTP server connection failed.");
             // 檢查FTP是否有此檔案
             string filename = "ui_status_" + dbKeyUiStatus + ".csv";
             string errorDir = string.Empty;
@@ -46,7 +41,6 @@ namespace DCT_data_import.ReadAndImport
                 ftpserver += "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
                 errorDir = "/DCT_Log/DCT_DB_DATA/UI_Status_Error/";
             }
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
             bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
@@ -55,15 +49,9 @@ namespace DCT_data_import.ReadAndImport
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
-            // 確認 pool 連線狀態
-            //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
-            //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-            //    if (!createPool(DatabaseService , writeToLog))
-            //        return new ImportResult(0, "MySQL database connection failed.");
             try
             {
                 import_result = false;
-                //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
@@ -117,12 +105,11 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex.Message);
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                return new ImportResult(3, "Exception error occurred during import.");
+                return new ImportResult(3, "Exception error occurred during import. " + ex.Message);
             }
             GC.Collect();
-            //Console.WriteLine("UI status end~");
             return new ImportResult(1, "");
         }
         public UIStatusContentFormat FileReadUIStatus(StreamReader reader)
@@ -130,17 +117,11 @@ namespace DCT_data_import.ReadAndImport
             UIStatusContentFormat uiStatusContentFormat = new UIStatusContentFormat();
             try
             {
-                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                //{
-                //    using (var reader = new StreamReader(stream))
-                //    {
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
-                    //Console.WriteLine(line);
                     var values = EraseSpecificChar(line);
                     if (values.Length < 1) continue;
-                    //Console.WriteLine("values : " + values_tmp.Length);
                     if (values[0] == "Mac_Address")
                     {
                         for (int i = 0; i < values.Length; i++)
@@ -161,7 +142,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                uiStatusContentFormat.ErrMsg = ex.Message;
+                Console.WriteLine(ex.Message);
                 return null;
             }
             return uiStatusContentFormat;

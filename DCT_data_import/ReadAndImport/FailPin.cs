@@ -21,7 +21,6 @@ namespace DCT_data_import.ReadAndImport
             StreamReader reader;
             bool import_result = false, isDBKeyExist = false;
             WriteToLog writeToLog = new WriteToLog();
-
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
@@ -29,11 +28,6 @@ namespace DCT_data_import.ReadAndImport
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
-            //// 檢查FTP連線狀態， 2024/3/4 因檢查此資料夾連線莫名錯誤，暫時不檢查此連線
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/";
-            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            //if (!isFtpConnected)
-            //    return new ImportResult(0, "FTP server connection failed.");
             string filename = "fail_pin_" + dbKey + ".csv";
             string errorDir = string.Empty;
             ftpserver = "ftp://" + Program.FTP_IP;
@@ -47,7 +41,6 @@ namespace DCT_data_import.ReadAndImport
                 ftpserver += "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
                 errorDir = "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log_Error/";
             }
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Fail_Pin_Log/ST_RT_AT/" + filename;
             try
             {
                 // 檢查FTP是否有此檔案
@@ -59,18 +52,12 @@ namespace DCT_data_import.ReadAndImport
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(0, "File not found.");
                 }
-                //// 確認 pool 連線狀態
-                //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
-                //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-                //    if (!createPool(DatabaseService , writeToLog))
-                //        return new ImportResult(0, "MySQL database connection failed.");
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
                 long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-                //StreamReader reader2 = new StreamReader(@"D:\ASEKH\K09865\DCT data\每一批產生之檔案\20240227_fail_pin_expansion_file\Fail Pin Rate Expansion 20240129_(Security C).csv");
                 stopWatch.Reset();
                 stopWatch.Start();
                 FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
@@ -78,7 +65,6 @@ namespace DCT_data_import.ReadAndImport
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-                //reader.Close();
                 if (!string.IsNullOrEmpty(failPinLogContent.ErrMsg))
                 {
                     return new ImportResult(2, failPinLogContent.ErrMsg);
@@ -101,13 +87,10 @@ namespace DCT_data_import.ReadAndImport
                 isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
-                    //compare_result = compareTool.compareFailPinLog(failPinLogContent, DatabaseService );
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);
-                    //Console.WriteLine("資料庫已存在此資料: Fail Pin  " + " 比對: " + compare_result + "   檔名:" + list_filename[i]);
-                    //writeToLog.writeToDataImportLog("資料庫已存在此資料: " + ftpserver);
+
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    //// 刪除已存在的的CSV檔案
-                    //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -121,14 +104,13 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-                    //compare_result = compareTool.compareFailPinLog(failPinLogContent, DatabaseService );
+
                     string dateStr = DateTime.Now.ToString("yyyyMMdd");
                     string checkLogFileName = "DCT_data_check_log_failPin_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time
                     writeToLog.WriteToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
                     if (import_result)
                     {
-                        //Console.WriteLine("匯入完成! Fail Pin    比對: " + compare_result + "   檔名:" + list_filename[i]);
                         Console.WriteLine("匯入完成! Fail Pin      檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除完成的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
@@ -148,8 +130,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog(ex.ToString());
+                Console.WriteLine(ex.Message);
+                writeToLog.WriteToDataImportLog(ex.Message);
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
@@ -163,10 +145,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 string data_format = "";
-                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                //{
-                //    using (var reader = new StreamReader(stream))
-                //    {
+
                 int content_part = 1;
                 int fail_pin_list_id = 0;
                 while (!reader.EndOfStream)
@@ -275,12 +254,12 @@ namespace DCT_data_import.ReadAndImport
                         }
                     }
                 }
-                //    }
-                //}
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                failPinLogContentFormat.ErrMsg = ex.Message;
+                Console.WriteLine(ex.Message);
                 return null;
             }
             return failPinLogContentFormat;

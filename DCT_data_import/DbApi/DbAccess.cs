@@ -33,6 +33,8 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                 }
                 if (int.TryParse(response.Data[0]["count_id"].ToString(), out count))
@@ -46,6 +48,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                writeToLog.WriteToDataImportLog("SelectDataCountInDays() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return -1;
             }
@@ -81,6 +84,8 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                 }
                 for (int i = 0; i < response.Data.Count; i++)
@@ -105,6 +110,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                writeToLog.WriteToDataImportLog("SelectDbKey() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return new List<DbKeyObject>();
             }
@@ -126,6 +132,8 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                     return "Fail. Execution 'select' error: " + response.Error;
                 }
@@ -177,6 +185,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                writeToLog.WriteToDataImportLog("UpdateDbKeyImportStatus() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return "Fail. Exception error";
             }
@@ -197,6 +206,8 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                     return "Fail. Execution 'select' error: " + response.Error;
                 }
@@ -245,6 +256,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                writeToLog.WriteToDataImportLog("UpdateDbKeyUiStatusImportStatus() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return "Fail. Exception error";
             }
@@ -280,6 +292,8 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
                     writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
                 }
                 for (int i = 0; i < response.Data.Count; i++)
@@ -291,6 +305,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                writeToLog.WriteToDataImportLog("SelectFailDbKeyResult() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return dbKeyObject;
             }

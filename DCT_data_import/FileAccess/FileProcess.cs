@@ -25,10 +25,10 @@ namespace DCT_data_import
                 Query = "SELECT db_key FROM " + db_table_name + " where db_key='" + db_key + "';"
             };
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query).GetAwaiter().GetResult();
-            //dynamic json_str = JObject.Parse(response.data);
-            //JArray items = (JArray)json_str["data"];
             if (!string.IsNullOrEmpty(response.Error))
             {
+                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
                 return false;
             }
             int length = 0;
@@ -38,7 +38,6 @@ namespace DCT_data_import
             }
             stopwatch.Stop();
             long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-            //Console.WriteLine(json_str.data);
             return (length > 0);
         }
         public string[] EraseSpecificChar(string str_line)
@@ -185,7 +184,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -229,20 +228,16 @@ namespace DCT_data_import
             try
             {
                 response2 = ExecuteInsertWithAPI(DatabaseService, "lots_info", columns, values);
-                //if (!string.IsNullOrEmpty(response2.error))
-                //{
-                //    if(response2.error.Contains("Please initiate connection pool first using the init function"))
-                //    {
-                //        writeToLog.writeToDataImportLog("'INSERT INTO lots_info' error:" + response2.error);
-                //        return false;
-                //    }
-                //    return false;
-                //}
+                if (!string.IsNullOrEmpty(response2.Error))
+                {
+                    writeToLog.WriteToDataImportLog("'INSERT INTO lots_info' error:" + response2.Error);
+                    return false;
+                }
             }
             catch (Exception ex)
             {
                 //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO lots_info' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO lots_info' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -254,7 +249,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'取得當前 lot id 值 error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'取得當前 lot id 值 error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return false;
             }
@@ -284,15 +279,9 @@ namespace DCT_data_import
             int test_count = 0, cut_size = 0;
             int.TryParse(content.LotStatistic.Tables[0].Rows[0]["# of PASS"].ToString(), out test_count);
             int tableCount = content.LotStatistic.Tables.Count;
-            //if (test_count* tableCount < 30000) cut_size = 50;
-            //else if (test_count * tableCount < 60000) cut_size = 10;
-            //else if (test_count * tableCount < 100000) cut_size =2;
-            //else  cut_size = 1;
             cut_size = (test_count > 0 && test_count < 10000) ? 10000 / test_count : 1;
             int lotResultCount = content.LotResult.Rows.Count;
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
-            //cut_size = 1;
-            //Console.WriteLine("test_count: " + test_count + "    cut_size: " + cut_size);
             try
             {
                 values = "";
@@ -300,25 +289,13 @@ namespace DCT_data_import
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
                     values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
-                    //values += "(\"" + lotId + "\",";
                     values += "\"" + string.Join("\",\"", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))) + "\"";
-                    //values += "\"" + string.Join("\",\"", content.lotStatistic.Tables[i].Rows[0].ItemArray) + "\"";
-                    //for (int j = 0; j < content.lotStatistic.Tables[i].Columns.Count; j++)
-                    //{
-                    //    values += "\"" + content.lotStatistic.Tables[i].Rows[0][j].ToString().Trim() + "\"";
-                    //    if (j != content.lotStatistic.Tables[i].Columns.Count - 1)
-                    //    {
-                    //        values += ",";
-                    //    }
-                    //}
                     // 每cut_size個row就匯入一次
                     if (i != 0 && i % cut_size == 0)
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
                         response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
-                        if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic_str", columns, values); // 只給舊win server使用
-                                                                                                                                                       //Thread.Sleep(500);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -335,13 +312,11 @@ namespace DCT_data_import
                     {
                         values += ")";
                     }
-                    //Thread.Sleep(50);
                 }
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
                     response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
-                    if (Program.HOST == "192.168.0.105") response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic_str", columns, values); // 只給舊win server使用
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -352,8 +327,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' error:" + ex.Message);
                 response2 = DeleteRawData(DatabaseService, lotId);
                 return false;
             }
@@ -386,7 +360,6 @@ namespace DCT_data_import
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
                 {
                     //// 判斷 index=1 的Serial是否為空，若為空則跳過
-                    //if (string.IsNullOrEmpty(content.lotResult.Rows[0][0].ToString())) continue;
                     if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
                     {
                         values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
@@ -408,7 +381,6 @@ namespace DCT_data_import
                                 if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
                                 {
                                     values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
-                                    //values += "\"" + content.lotResult.Rows[i][j].ToString().Trim() + "\"";
                                 }
                                 else
                                 {
@@ -418,7 +390,6 @@ namespace DCT_data_import
                             else
                             {
                                 values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
-                                //values += "\"" + content.lotResult.Rows[i][j].ToString().Trim() + "\"";
                             }
                             if (j != content.LotResult.Columns.Count - 1)
                             {
@@ -434,7 +405,6 @@ namespace DCT_data_import
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + response2.Error);
-                                //response2 = deleteRawData(DatabaseService , lotId);
                                 return false;
                             }
                             values = "";
@@ -462,16 +432,13 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' response error:" + response2.Error);
-                        //response2 = deleteRawData(DatabaseService , lotId);
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + ex.ToString());
-                //response2 = deleteRawData(DatabaseService , lotId);
+                writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -505,7 +472,6 @@ namespace DCT_data_import
                     if (column_name == "program_path")
                     {
                         values += "\"" + ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()).Replace(@"\", @"\\") + "\"";
-                        //values += "\"" + content.tester_device_info.Rows[0][i].ToString().Trim().Replace(@"\", @"\\") + "\"";
                     }
                     else if (column_name == "start_time" || column_name == "end_time")
                     {
@@ -522,11 +488,9 @@ namespace DCT_data_import
                     else
                     {
                         values += "\"" + ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()) + "\"";
-                        //values += "\"" + content.tester_device_info.Rows[0][i].ToString().Trim() + "\"";
                     }
                 }
                 columns += "`" + column_name.Trim() + "`";
-                //values += "\"" + content.tester_device_info.Rows[0][i].ToString().Trim() + "\"";
                 if (i != content.Tester_device_info.Columns.Count - 1)
                 {
                     columns += ",";
@@ -538,31 +502,25 @@ namespace DCT_data_import
                 response = ExecuteInsertWithAPI(DatabaseService, "tester_device_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog("'INSERT INTO tester_device_info' error:" + response.Error);
                     return false;
                 }
             }
             catch (Exception ex)
             {
                 //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_device_info' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO tester_device_info' error:" + ex.Message);
                 return false;
             }
             #endregion
             string device_info_Id = "";
             try
             {
-                //string db_key = content.tester_device_info.Rows[0]["DB_Key"].ToString();
-                //execute_query = new execute_query
-                //{
-                //
-                //    query = "SELECT id FROM `tester_device_info` WHERE `db_key` = '" + db_key + "';"
-                //};
-                //response = DatabaseService .ExcutePoolAsync(execute_query, "select").GetAwaiter().GetResult();
                 device_info_Id = response.Data[0]["insertId"].ToString();
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("get tester_device_info insertId error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("get tester_device_info insertId error:" + ex.Message);
                 return false;
             }
             #region insert `tester_status`
@@ -602,7 +560,6 @@ namespace DCT_data_import
                         else
                         {
                             values += "\"" + ConvertEmptyToDefaultString(content.Tester_status.Rows[i][j].ToString()) + "\"";
-                            //values += "\"" + content.tester_status.Rows[i][j].ToString().Trim() + "\"";
                         }
                         if (j != content.Tester_status.Columns.Count - 1)
                         {
@@ -612,6 +569,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "tester_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + response.Error);
                         response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
@@ -620,7 +578,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + ex.Message);
                 response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
@@ -647,12 +605,10 @@ namespace DCT_data_import
                 for (int i = 0; i < content.Tester_sw_version.Rows.Count; i++)
                 {
                     values = "\"" + ConvertEmptyToDefaultString(device_info_Id) + "\",";
-                    //values = "\"" + device_info_Id + "\",";
                     for (int j = 0; j < content.Tester_sw_version.Columns.Count; j++)
                     {
                         string columnName = content.Tester_sw_version.Columns[j].ColumnName;
                         values += "\"" + ConvertEmptyToDefaultString(content.Tester_sw_version.Rows[i][j].ToString()) + "\"";
-                        //values += "\"" + content.tester_sw_version.Rows[i][j].ToString().Trim() + "\"";
                         if (j != content.Tester_sw_version.Columns.Count - 1)
                         {
                             values += ",";
@@ -661,6 +617,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "tester_sw_version", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + response.Error);
                         response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
@@ -668,8 +625,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + ex.Message);
                 response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
@@ -692,7 +648,6 @@ namespace DCT_data_import
                 for (int i = 0; i < content.Tester_production_analysis.Rows.Count; i++)
                 {
                     values = "\"" + ConvertEmptyToDefaultString(device_info_Id) + "\",";
-                    //values = "\"" + device_info_Id + "\",";
                     for (int j = 0; j < content.Tester_production_analysis.Columns.Count; j++)
                     {
                         string columnName = content.Tester_production_analysis.Columns[j].ColumnName;
@@ -703,7 +658,6 @@ namespace DCT_data_import
                         else
                         {
                             values += "\"" + ConvertEmptyToDefaultString(content.Tester_production_analysis.Rows[i][j].ToString()) + "\"";
-                            //values += "\"" + content.tester_production_analysis.Rows[i][j].ToString().Trim() + "\"";
                         }
                         if (j != content.Tester_production_analysis.Columns.Count - 1)
                         {
@@ -713,6 +667,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "tester_production_analysis", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis' error:" + response.Error);
                         response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
@@ -720,8 +675,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis'  error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis'  error:" + ex.Message);
                 response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
@@ -770,7 +724,6 @@ namespace DCT_data_import
                     else
                     {
                         values += "\"" + ConvertEmptyToDefaultString(content.UI_status.Rows[i][j].ToString()) + "\"";
-                        //values += "\"" + content.UI_status.Rows[i][j].ToString().Trim() + "\"";
                     }
                     if (j != content.UI_status.Columns.Count - 1)
                     {
@@ -779,23 +732,18 @@ namespace DCT_data_import
                 }
                 try
                 {
-                    //isDataExist = isUIStatusDataExistInDB(mac_address, area, factory, os_machine, date, DatabaseService );
-                    //if(isDataExist)
-                    //{
-                    //    Console.WriteLine("資料庫已存在此資料: UI Status   mac_address=" + mac_address + ", area=" + area + ", factory=" + factory + ", os_machine=" + os_machine + ", date=" + date);
-                    //}
-                    //else
-                    //{
+
                     response = ExecuteInsertWithAPI(DatabaseService, "ui_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO ui_status' error:" + response.Error);
                         return false;
                     }
                     //}
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
+                    writeToLog.WriteToDataImportLog("'INSERT INTO ui_status' error:" + ex.Message);
                     return false;
                 }
             }
@@ -820,7 +768,6 @@ namespace DCT_data_import
                 {
                     columns += "`" + column_name.Trim() + "`";
                     values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_info.Rows[0][i].ToString()) + "\"";
-                    //values += "\"" + content.fail_pin_rate_info.Rows[0][i].ToString().Trim() + "\"";
                 }
                 else
                 {
@@ -838,13 +785,14 @@ namespace DCT_data_import
                 response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
+                    writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_info' error:" + response.Error);
                     return false;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_info' error:" + ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_info' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -868,7 +816,6 @@ namespace DCT_data_import
                 for (int i = 0; i < content.Fail_pin_rate_list.Rows.Count; i++)
                 {
                     values = "\"" + ConvertEmptyToDefaultString(fail_pin_rate_info_Id) + "\",";
-                    //values = "\"" + fail_pin_rate_info_Id + "\",";
                     for (int j = 0; j < content.Fail_pin_rate_list.Columns.Count; j++)
                     {
                         string columnName = content.Fail_pin_rate_list.Columns[j].ColumnName;
@@ -880,7 +827,6 @@ namespace DCT_data_import
                         else
                         {
                             values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_list.Rows[i][j].ToString()) + "\"";
-                            //values += "\"" + content.fail_pin_rate_list.Rows[i][j].ToString().Trim() + "\"";
                         }
                         if (j != content.Fail_pin_rate_list.Columns.Count - 1)
                         {
@@ -890,6 +836,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list' error:" + response.Error);
                         response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
@@ -900,6 +847,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list' error:" + ex.Message);
                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
@@ -929,12 +877,10 @@ namespace DCT_data_import
                         if (columnName != "fail_pin_rate_list_id")
                         {
                             values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString()) + "\"";
-                            //values += "\"" + content.fail_pin_rate_list_pin_ball.Rows[i][j].ToString().Trim() + "\"";
                         }
                         else
                         {
                             string val = ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString());
-                            //string val = content.fail_pin_rate_list_pin_ball.Rows[i][j].ToString().Trim();
                             values += "\"" + fail_pin_rate_list_Id[int.Parse(val) - 1].ToString() + "\"";
                         }
                         if (j != content.Fail_pin_rate_list_pin_ball.Columns.Count - 1)
@@ -950,6 +896,7 @@ namespace DCT_data_import
                         response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                         if (!string.IsNullOrEmpty(response.Error))
                         {
+                            writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
                             response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                             return false;
                         }
@@ -970,6 +917,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
                         response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
@@ -978,6 +926,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + ex.Message);
                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
@@ -993,7 +942,6 @@ namespace DCT_data_import
                     for (int i = 0; i < content.Fail_pin_rate_list_test_result.Tables[table_i].Rows.Count; i++)
                     {
                         values += "(\"" + ConvertEmptyToDefaultString(fail_pin_rate_list_Id[table_i].ToString()) + "\",";
-                        //values += "(\"" + fail_pin_rate_list_Id[table_i].ToString() + "\",";
                         for (int j = 0; j < content.Fail_pin_rate_list_test_result.Tables[table_i].Columns.Count; j++)
                         {
                             if (j > 0 && string.IsNullOrEmpty(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()))
@@ -1003,7 +951,6 @@ namespace DCT_data_import
                             else
                             {
                                 values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()) + "\"";
-                                //values += "\"" + content.fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString().Trim() + "\"";
                             }
                             if (j != content.Fail_pin_rate_list_test_result.Tables[table_i].Columns.Count - 1)
                             {
@@ -1018,6 +965,7 @@ namespace DCT_data_import
                             response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
                             if (!string.IsNullOrEmpty(response.Error))
                             {
+                                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
                                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                                 return false;
                             }
@@ -1046,6 +994,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
+                        writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
                         response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
@@ -1054,6 +1003,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_test_result' error:" + ex.Message);
                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
@@ -1073,13 +1023,16 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO '" + tableName + "', 'Query:" + execute_query.Query + "' , response error:" + response.Error);
+                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                    writeToLog.WriteToDataImportLog($"INSERT {tableName} error");
                 }
                 return response;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                writeToLog.WriteToDataImportLog($"INSERT {tableName} error : {ex.Message}");
                 return null;
             }
         }
@@ -1098,7 +1051,9 @@ namespace DCT_data_import
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error: " + execute_query.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error");
             }
             return response;
         }
@@ -1118,7 +1073,9 @@ namespace DCT_data_import
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error: " + execute_query.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error");
             }
             return response;
         }
@@ -1136,7 +1093,9 @@ namespace DCT_data_import
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error: " + execute_query.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error");
             }
             // 宣告 Web API body
             execute_query = new Execute_query
@@ -1150,7 +1109,9 @@ namespace DCT_data_import
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error: " + execute_query.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error ");
             }
             // 宣告 Web API body
             execute_query = new Execute_query
@@ -1164,7 +1125,9 @@ namespace DCT_data_import
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error: " + execute_query.Query + " " + response.Error);
+                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error");
             }
             return response;
         }

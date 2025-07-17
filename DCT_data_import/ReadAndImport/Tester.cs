@@ -27,11 +27,6 @@ namespace DCT_data_import.ReadAndImport
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
-            //// 檢查FTP連線狀態
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status/";
-            //bool isFtpConnected = isValidFtpConnection(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
-            //if (!isFtpConnected)
-            //    return new ImportResult(0, "FTP server connection failed.");
             // 檢查FTP是否有此檔案
             string filename = "tester_" + dbKey + ".csv";
             string errorDir = string.Empty;
@@ -46,7 +41,6 @@ namespace DCT_data_import.ReadAndImport
                 ftpserver += "/DCT_Log/DCT_DB_DATA/Tester_Status/" + filename;
                 errorDir = "/DCT_Log/DCT_DB_DATA/Tester_Status_Error/";
             }
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Tester_Status/" + filename;
             bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
@@ -55,11 +49,6 @@ namespace DCT_data_import.ReadAndImport
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
-            //// 確認 pool 連線狀態
-            //bool isConnect = DatabaseService .checkDBConnect(Program.POOL_NAME);
-            //if (!isConnect) // 沒有pool連線資訊，則建立一個新的連線。如果建立pool失敗就中斷程式
-            //    if (!createPool(DatabaseService , writeToLog))
-            //        return new ImportResult(0, "MySQL database connection failed.");
             try
             {
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
@@ -109,19 +98,9 @@ namespace DCT_data_import.ReadAndImport
                 isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
-                    //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, DatabaseService );
                     Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + filename);
-                    //Console.WriteLine("資料庫已存在此資料: Tester Status  比對" + compare_result + "   檔名:" + list_filename[i]);
                     writeToLog.WriteToDataImportLog("資料庫已存在此資料: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    // Kerwin 的電腦
-                    if (macid == "94C6913F94BD")
-                    {
-                        // 下載檔案到本地端
-                        //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\tester_status_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    }
-                    //// 刪除已存在的的CSV檔案
-                    //deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -139,10 +118,8 @@ namespace DCT_data_import.ReadAndImport
                     string checkLogFileName = "DCT_data_check_log_tester_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time
                     writeToLog.WriteToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
-                    //compare_result = compareTool.compareTesterStatus(testStatusContentFormat, DatabaseService );
                     if (import_result)
                     {
-                        //Console.WriteLine("匯入完成! Tester Status  比對" + compare_result + "   檔名: " + list_filename[i]);
                         Console.WriteLine("匯入完成! Tester Status   檔名: " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
@@ -162,12 +139,11 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex.Message);
                 Console.WriteLine(RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD));
-                return new ImportResult(3, "Exception error occurred during reading and import. " + ex.ToString());
+                return new ImportResult(3, "Exception error occurred during reading and import. " + ex.Message);
             }
             GC.Collect();
-            //Console.WriteLine("Tester status end~");
             return new ImportResult(1, "");
         }
         public TestStatusContentFormat FileReadTesterStatus(StreamReader reader)
@@ -176,22 +152,15 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 int content_part = 1;
-                //using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                //{
-                //    using (var reader = new StreamReader(stream))
-                //    {
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
-                    //Console.WriteLine(line);
                     if (!string.IsNullOrEmpty(line) && IsChinese(line))
                     {
                         testStatusContentFormat.ErrMsg = "Chinese word exists.";
-                        //return new RawDataContentFormat("Chinese word exists.");
                     }
                     var values = EraseSpecificChar(line);
                     if (values.Length < 1) continue;
-                    //Console.WriteLine("values : " + values_tmp.Length);
                     if (values[0] == "Device information")
                     {
                         content_part = 1;
@@ -294,15 +263,12 @@ namespace DCT_data_import.ReadAndImport
                         default:
                             break;
                     }
-                    //Console.WriteLine(line);
                 }
-                //    }
-                //}
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
-                testStatusContentFormat.ErrMsg = "讀檔內容錯誤";
+                Console.WriteLine(ex.Message);
+                testStatusContentFormat.ErrMsg = "讀檔內容錯誤, Eroror:" + ex.Message;
                 return null;
             }
             return testStatusContentFormat;

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
@@ -12,16 +11,8 @@ using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class RecoveryRate : ImportData
-    {        //public async Task<ImportResult> TestCallAsync()
-        //{
-        //    await Task.Run(() =>
-        //    {
-        //        Thread.Sleep(1000);
-        //        //return new ImportResult(0, "test msg");
-        //    }).ConfigureAwait(false);
-        //    return new ImportResult(0, "test msg");
-        //}
-        public async Task<ImportResult> ReadAndImportRecoveryRateData(FileProcess fileAccess, DatabaseService  DatabaseService , string dbKey)
+    {
+        public async Task<ImportResult> ReadAndImportRecoveryRateData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             string ftpserver;
             FtpWebRequest reqFTP;
@@ -126,20 +117,12 @@ namespace DCT_data_import.ReadAndImport
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("recovery_rate", recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString(), DatabaseService );
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("recovery_rate", recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料:  " + "   檔名:" + filename);
                     writeToLog.WriteToDataImportLog("資料庫已存在此資料:  " + "   檔名:" + filename);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    //// Kerwin 的電腦
-                    //if (macid == "94C6913F94BD")
-                    //{
-                    //    // 下載檔案到本地端
-                    //    //downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    //}
-                    ////// 刪除已存在的的CSV檔案
-                    ////deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -149,7 +132,7 @@ namespace DCT_data_import.ReadAndImport
                     // 開始匯入
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportRecoveryData(recoveryRateDataContentFormat, DatabaseService );
+                        import_result = fileAccess.ImportRecoveryData(recoveryRateDataContentFormat, DatabaseService);
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
@@ -162,12 +145,6 @@ namespace DCT_data_import.ReadAndImport
                     {
                         //Console.WriteLine("匯入完成! Raw data    比對: " + compare_result + "   檔名:" + list_filename[i]);
                         Console.WriteLine("匯入完成! Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
-                        //// Kerwin 的電腦
-                        //if (macid == "94C6913F94BD")
-                        //{
-                        //    // 下載檔案到本地端
-                        //    downloadStatus = DownloadFile(ftpserver, @"D:\ASEKH\K09865\DCT data\每一批產生之檔案\raw_data_temp\" + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                        //}
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
@@ -253,69 +230,13 @@ namespace DCT_data_import.ReadAndImport
                             newRow[col.ColumnName] = row2[col.ColumnName];
                         }
                         fileContentFormat.FinalRecoveryRateTable.Rows.Add(newRow);
-                        //// 印出剛剛添加的行
-                        //Console.WriteLine("新添加的行資料：");
-                        //foreach (DataColumn column in fileContentFormat.FinalRecoveryRateTable.Columns)
-                        //{
-                        //    Console.WriteLine($"{column.ColumnName}: {newRow[column]}");
-                        //}
-                        //Console.WriteLine(); // 添加空行以區分不同的行
-                        //Console.ReadLine(); // 暫停程式以便查看結果
                     }
                 }
-                //// 印出 LotInfo 的內容
-                //Console.WriteLine("LotInfo 內容:");
-                //foreach (DataColumn column in fileContentFormat.LotInfo.Columns)
-                //{
-                //    Console.Write($"{column.ColumnName}\t");
-                //}
-                //Console.WriteLine();
-                //foreach (DataRow row in fileContentFormat.LotInfo.Rows)
-                //{
-                //    foreach (var item in row.ItemArray)
-                //    {
-                //        Console.Write($"{item}\t");
-                //    }
-                //    Console.WriteLine();
-                //}
-                //Console.ReadLine();
-                //// 印出 LotRecoveryRate 的內容
-                //Console.WriteLine("\nLotRecoveryRate 內容:");
-                //foreach (DataColumn column in fileContentFormat.LotRecoveryRate.Columns)
-                //{
-                //    Console.Write($"{column.ColumnName}\t");
-                //}
-                //Console.WriteLine();
-                //foreach (DataRow row in fileContentFormat.LotRecoveryRate.Rows)
-                //{
-                //    foreach (var item in row.ItemArray)
-                //    {
-                //        Console.Write($"{item}\t");
-                //    }
-                //    Console.WriteLine();
-                //}
-                //Console.ReadLine();
-                //// 顯示 FinalRecoveryRateTable 的內容
-                //Console.WriteLine("FinalRecoveryRateTable 的內容如下：");
-                //foreach (DataColumn col in fileContentFormat.FinalRecoveryRateTable.Columns)
-                //{
-                //    Console.Write($"{col.ColumnName}\t");
-                //}
-                //Console.WriteLine();
-                //foreach (DataRow row in fileContentFormat.FinalRecoveryRateTable.Rows)
-                //{
-                //    foreach (var item in row.ItemArray)
-                //    {
-                //        Console.Write($"{item}\t");
-                //    }
-                //    Console.WriteLine();
-                //    Console.ReadLine();
-                //}
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
-                fileContentFormat.ErrMsg = "讀檔內容錯誤";
+                Console.WriteLine(ex.Message);
+                fileContentFormat.ErrMsg = "讀檔內容錯誤, Error:" + ex.Message;
                 return null;
             }
             return fileContentFormat;
