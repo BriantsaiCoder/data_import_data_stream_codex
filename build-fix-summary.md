@@ -32,19 +32,50 @@
 
 - 移除 `DCT_data_import.sln` 中重複的 `EndProject` 標籤
 
-## 建置結果
+### 4. 解決版本衝突警告
 
-✅ **建置成功**
+**問題根源：**
 
-- Debug 配置：成功
-- Release 配置：成功
-- 僅有一個關於 K4os.Compression.LZ4.Streams 版本衝突的警告（可忽略）
+- MySql.Data 8.4.0 內部確實依賴 K4os.Compression.LZ4.Streams，但版本是 **1.3.5**
+- 專案中明確引用了 K4os.Compression.LZ4.Streams **1.2.6** 版本
+- 兩個版本衝突，建置系統無法決定使用哪個版本
+
+**解決方案：**
+
+- 移除專案中明確的 K4os.Compression.LZ4 相關套件參考（版本 1.2.6）
+- 讓 MySql.Data 8.4.0 自動帶入其內建依賴的正確版本（版本 1.3.5）
+- MySql.Data.dll 實際依賴項驗證：
+  ```
+  K4os.Compression.LZ4.Streams      1.3.5.0  ✅ (MySql.Data 內建)
+  ZstdSharp                         0.7.1.0  ✅ (MySql.Data 內建)
+  Google.Protobuf                   3.25.1.0 ✅ (專案明確引用)
+  BouncyCastle.Cryptography         2.0.0.0  ✅ (專案明確引用)
+  ```
+
+**移除的套件（避免版本衝突）：**
+
+- `K4os.Compression.LZ4` 1.2.6 → MySql.Data 會自動帶入相容版本
+- `K4os.Compression.LZ4.Streams` 1.2.6 → MySql.Data 內建 1.3.5 版本
+- `K4os.Hash.xxHash` 1.0.6 → MySql.Data 不再需要此組件## 建置結果
+
+✅ **建置完全成功**
+
+- Debug 配置：成功，無警告
+- Release 配置：成功，無警告
+- 所有編譯錯誤和警告都已解決
 
 ## 版本相容性說明
 
 - MySql.Data 8.4.0 要求 .NET Framework 4.6.2 或更高版本
 - 升級目標框架確保了與最新 MySQL 套件的相容性
 - 舊的依賴項（Ubiety.Dns.Core, ZstdNet）在新版本中已整合到主要組件中
+
+**重要：依賴項版本管理**
+
+- MySql.Data 8.4.0 **內建**了 K4os.Compression.LZ4.Streams 1.3.5 版本
+- 專案原本明確引用的 1.2.6 版本與內建版本衝突
+- 移除明確參考後，MySql.Data 自動使用其內建的正確版本
+- 這是 .NET 依賴項管理的最佳實踐：讓主要套件管理其自身依賴項
 
 ## 測試建議
 
