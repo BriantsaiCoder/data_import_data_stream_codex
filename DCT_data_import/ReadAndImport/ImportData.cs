@@ -29,8 +29,6 @@ namespace DCT_data_import.ReadAndImport
         protected string[] EraseSpecificChar(string str_line)
         {
             string[] values = str_line.Split(',', '\0', '\r', '\n');
-            // 去除空白值
-            string[] values_tmp1 = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
             int first_value_idx = -1, last_value_idx = -1;
             //去除頭尾空白
             for (int i = 0; i < values.Length; i++)

@@ -48,7 +48,6 @@ namespace DCT_data_import
             //    // 如果建立pool失敗就中斷程式
             //    if (!createPool(DatabaseService , writeToLog)) return;
             //}
-#if true /// ture: 有DB Key檢查; false: 沒有DB Key檢查
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
             Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
@@ -94,90 +93,6 @@ namespace DCT_data_import
                 threadTsmcAlive = threadTsmcMode.IsAlive;
                 Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + (++count) + " finished~");
             }
-#else
-            bool thread1Alive = false, thread2Alive = false, thread3Alive = false, thread4Alive = false, thread5Alive = false;
-            Thread thread1 = new Thread(() => readAndImportRawData(fileAccess, DatabaseService ));
-            Thread thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, DatabaseService ));
-            Thread thread3 = new Thread(() => readAndImportUIStatus(fileAccess, DatabaseService ));
-            Thread thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, DatabaseService ));
-            Thread thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService ));
-            while (true)
-            {
-                Console.WriteLine("thread1.IsAlive: " + thread1Alive);
-                Console.WriteLine("thread2.IsAlive: " + thread2Alive);
-                Console.WriteLine("thread3.IsAlive: " + thread3Alive);
-                Console.WriteLine("thread4.IsAlive: " + thread4Alive);
-                Console.WriteLine("thread5.IsAlive: " + thread5Alive);
-                count++;
-                bool isConnect = DatabaseService .checkDBConnect(POOL_NAME);
-                if (!isConnect)
-                {
-                    // 如果建立pool失敗就中斷程式
-                    if (!createPool(DatabaseService , writeToLog)) return;
-                }
-                if (!thread1Alive)
-                {
-                    thread1.Interrupt();
-                    thread1.Abort();
-                    thread1 = new Thread(() => readAndImportRawData(fileAccess, DatabaseService ));
-                    thread1.Start();
-                }
-                if (!thread2Alive)
-                {
-                    thread2.Interrupt();
-                    thread2.Abort();
-                    thread2 = new Thread(() => readAndImportTesterStatus(fileAccess, DatabaseService ));
-                    thread2.Start();
-                }
-                if (!thread3Alive)
-                {
-                    thread3.Interrupt();
-                    thread3.Abort();
-                    thread3 = new Thread(() => readAndImportUIStatus(fileAccess, DatabaseService ));
-                    thread3.Start();
-                }
-                if (!thread4Alive)
-                {
-                    thread4.Interrupt();
-                    thread4.Abort();
-                    thread4 = new Thread(() => readAndImportFailPinLog(fileAccess, DatabaseService ));
-                    thread4.Start();
-                }
-                if (!thread5Alive)
-                {
-                    thread5.Interrupt();
-                    thread5.Abort();
-                    thread5 = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService ));
-                    thread5.Start();
-                }
-                //readAndImportRawData(fileAccess, DatabaseService );
-                //readAndImportTesterStatus(fileAccess, DatabaseService );
-                //readAndImportUIStatus(fileAccess, DatabaseService );
-                //readAndImportFailPinLog(fileAccess, DatabaseService );
-                //bool IfRunOver = false;
-                //while (!IfRunOver)
-                //{
-                //    bool IfTimesEnd = thread1.IsAlive;
-                //    if (!IfTimesEnd || IfRunOver)
-                //    {
-                //        thread1.Interrupt();
-                //        thread1.Abort();
-                //        IfTimesEnd = false;
-                //        break;
-                //    }
-                //}
-                //callWebApi();
-                //ftpReadFiles();
-                Thread.Sleep(600000);
-                thread1Alive = thread1.IsAlive;
-                thread2Alive = thread2.IsAlive;
-                thread3Alive = thread3.IsAlive;
-                thread4Alive = thread4.IsAlive;
-                thread5Alive = thread5.IsAlive;
-                Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  Loop" + count + " finished~");
-            }
-#endif
-            //Console.Read();
         }
         // 方法：取得本機 IPv4 地址
         static string GetEnvironment()

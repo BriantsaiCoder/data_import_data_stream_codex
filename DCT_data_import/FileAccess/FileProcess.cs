@@ -50,34 +50,6 @@ namespace DCT_data_import
             long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             return (length > 0);
         }
-        public string[] EraseSpecificChar(string str_line)
-        {
-            string[] values = str_line.Split(',', '\0', '\r', '\n');
-            // 去除空白值
-            string[] values_tmp1 = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
-            int first_value_idx = -1, last_value_idx = -1;
-            //去除頭尾空白
-            for (int i = 0; i < values.Length; i++)
-            {
-                if (first_value_idx == -1 && !string.IsNullOrEmpty(values[i]))
-                {
-                    first_value_idx = i;
-                    last_value_idx = i;
-                }
-                else if (!string.IsNullOrEmpty(values[i]))
-                {
-                    last_value_idx = i;
-                }
-            }
-            if (first_value_idx == -1) return null;
-            string[] values_tmp = new string[0] { };
-            Array.Resize(ref values_tmp, last_value_idx - first_value_idx + 1);
-            for (int i = 0; i <= last_value_idx - first_value_idx; i++)
-            {
-                values_tmp[i] = values[first_value_idx + i];
-            }
-            return values_tmp;
-        }
         // 解析日期格式 "Jun_06_2022_12_08_22"
         public string CustomizeDateTimeParser(string datetime)
         {
