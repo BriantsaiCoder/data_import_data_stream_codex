@@ -8,6 +8,112 @@ namespace DCT_data_import
         public DatabaseService()
         {
         }
+        
+        /// <summary>
+        /// 確保資料庫存在，如果不存在則創建
+        /// </summary>
+        /// <param name="databaseName">資料庫名稱</param>
+        /// <returns>資料庫是否存在或成功創建</returns>
+        public async Task<bool> EnsureDatabaseExistsAsync(string databaseName)
+        {
+            if (string.IsNullOrWhiteSpace(databaseName))
+            {
+                return false;
+            }
+
+            try
+            {
+                // 檢查資料庫是否存在
+                var checkQuery = new Execute_query
+                {
+                    Query = $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{databaseName}'"
+                };
+
+                var response = await ExecuteSqlAsync(checkQuery, "select").ConfigureAwait(false);
+                
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    return false;
+                }
+
+                // 如果資料庫已存在
+                if (response.Data != null && response.Data.Count > 0)
+                {
+                    return true;
+                }
+
+                // 資料庫不存在，嘗試創建
+                var createQuery = new Execute_query
+                {
+                    Query = $"CREATE DATABASE IF NOT EXISTS `{databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                };
+
+                var createResponse = await ExecuteSqlAsync(createQuery, "create").ConfigureAwait(false);
+                
+                return string.IsNullOrEmpty(createResponse.Error);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 確保資料表存在，如果不存在則創建
+        /// </summary>
+        /// <param name="tableName">資料表名稱</param>
+        /// <returns>資料表是否存在或成功創建</returns>
+        public async Task<bool> EnsureTableExistsAsync(string tableName)
+        {
+            if (string.IsNullOrWhiteSpace(tableName))
+            {
+                return false;
+            }
+
+            try
+            {
+                // 檢查資料表是否存在
+                var checkQuery = new Execute_query
+                {
+                    Query = $"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{Program.DATABASE}' AND TABLE_NAME = '{tableName}'"
+                };
+
+                var response = await ExecuteSqlAsync(checkQuery, "select").ConfigureAwait(false);
+                
+                if (!string.IsNullOrEmpty(response.Error))
+                {
+                    return false;
+                }
+
+                // 如果資料表已存在
+                if (response.Data != null && response.Data.Count > 0)
+                {
+                    return true;
+                }
+
+                // 資料表不存在，嘗試創建
+                string createTableSql = DatabaseSchemaDefinitions.GetCreateTableSql(tableName);
+                
+                if (string.IsNullOrEmpty(createTableSql))
+                {
+                    return false; // 找不到對應的建表語句
+                }
+
+                var createQuery = new Execute_query
+                {
+                    Query = createTableSql
+                };
+
+                var createResponse = await ExecuteSqlAsync(createQuery, "create").ConfigureAwait(false);
+                
+                return string.IsNullOrEmpty(createResponse.Error);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         /// 執行資料庫查詢操作（保持原有 API 完全相容）
         /// </summary>

@@ -10,7 +10,19 @@ namespace DCT_data_import
         public int SelectDataCountInDays(DatabaseService DatabaseService, int day, string mode = "tester")
         {
             WriteToLog writeToLog = new WriteToLog();
-            string sql = string.Empty;
+            
+            // 確保資料庫和相關資料表存在
+            string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+            bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+            
+            if (!databaseExists || !tableExists)
+            {
+                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
+                return -1;
+            }
+            
+            string sql = "";
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             long threeHourAgoTimeStamp = nowTimeStamp - 86400 * day;  // 24小時=86400秒
             int count = 0;
@@ -63,6 +75,18 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyList = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
+            
+            // 確保資料庫和相關資料表存在
+            string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+            bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+            
+            if (!databaseExists || !tableExists)
+            {
+                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
+                return new List<DbKeyObject>();
+            }
+            
             string sql = string.Empty;
             if (mode == "tester")
             {
@@ -119,6 +143,17 @@ namespace DCT_data_import
         public string UpdateDbKeyImportStatus(DatabaseService DatabaseService, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
+            
+            // 確保資料庫和 db_key 資料表存在
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+            bool tableExists = DatabaseService.EnsureTableExistsAsync("db_key").GetAwaiter().GetResult();
+            
+            if (!databaseExists || !tableExists)
+            {
+                writeToLog.WriteToDataImportLog("無法確保資料庫或 db_key 資料表存在");
+                return "Fail. Database or table does not exist";
+            }
+            
             //int importResult = 4 * tester + 2 * testResult + failPin;
             int importResult = 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
             string id, checkStatus, importStatus = "1", mail = "0";
@@ -194,6 +229,17 @@ namespace DCT_data_import
         public string UpdateDbKeyUiStatusImportStatus(DatabaseService DatabaseService, string dbKey, int uiStatus, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
+            
+            // 確保資料庫和 db_key_ui_status 資料表存在
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+            bool tableExists = DatabaseService.EnsureTableExistsAsync("db_key_ui_status").GetAwaiter().GetResult();
+            
+            if (!databaseExists || !tableExists)
+            {
+                writeToLog.WriteToDataImportLog("無法確保資料庫或 db_key_ui_status 資料表存在");
+                return "Fail. Database or table does not exist";
+            }
+            
             int importResult = uiStatus;
             string id, checkStatus, importStatus = "1", mail = "0";
             try
@@ -266,6 +312,18 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
+            
+            // 確保資料庫和相關資料表存在
+            string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+            bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+            
+            if (!databaseExists || !tableExists)
+            {
+                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
+                return new List<DbKeyObject>();
+            }
+            
             string sql = string.Empty, remark = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             //long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒  3小時前
