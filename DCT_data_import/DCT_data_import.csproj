@@ -89,6 +89,8 @@
     </None>
     <None Include="DatabaseImplementationPlan.md" />
     <None Include="packages.config" />
+    <None Include="RefactoringPlan.md" />
+    <None Include="重構實作計畫.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
