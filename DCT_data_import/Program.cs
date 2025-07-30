@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using static DCT_data_import.DbObject;
-using System.IO;
-using System.Net;
-using System.Threading;
 using System.Configuration;
-using DCT_data_import.ReadAndImport;
-using System.Reflection;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Threading;
+using DCT_data_import.ReadAndImport;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     class Program
@@ -279,7 +279,7 @@ namespace DCT_data_import
                 }
                 else
                 {
-                    importResult = new ImportResult(dbKeyList[i].RecoveryRate, "");
+                    importResult = new ImportResult(dbKeyList[i].RecoveryRate, string.Empty);
                 }
                 if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7 || dbKeyList[i].CheckStatus == 10 || dbKeyList[i].CheckStatus == 11 || dbKeyList[i].CheckStatus == 14 || dbKeyList[i].CheckStatus == 15)
                 //if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7)
@@ -290,12 +290,12 @@ namespace DCT_data_import
                     }
                     else
                     {
-                        importResult2 = new ImportResult(dbKeyList[i].TestResult, "");
+                        importResult2 = new ImportResult(dbKeyList[i].TestResult, string.Empty);
                     }
                 }
                 else
                 {
-                    importResult2 = new ImportResult(0, "");
+                    importResult2 = new ImportResult(0, string.Empty);
                 }
                 if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0 || dbKeyList[i].CheckStatus >= 12 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].Tester == 0)
                 //if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0)
@@ -304,7 +304,7 @@ namespace DCT_data_import
                 }
                 else
                 {
-                    importResult1 = new ImportResult(dbKeyList[i].Tester, "");
+                    importResult1 = new ImportResult(dbKeyList[i].Tester, string.Empty);
                 }
                 if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7 || dbKeyList[i].CheckStatus == 9 || dbKeyList[i].CheckStatus == 11 || dbKeyList[i].CheckStatus == 13 || dbKeyList[i].CheckStatus == 15)
                 //if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7)
@@ -315,18 +315,18 @@ namespace DCT_data_import
                     }
                     else
                     {
-                        importResult3 = new ImportResult(dbKeyList[i].FailPin, "");
+                        importResult3 = new ImportResult(dbKeyList[i].FailPin, string.Empty);
                     }
                 }
                 else
                 {
-                    importResult3 = new ImportResult(0, "");
+                    importResult3 = new ImportResult(0, string.Empty);
                 }
-                remark = "";
-                remark += (string.IsNullOrEmpty(importResult.Message)) ? "" : "recovery rate: " + importResult.Message + "  ";
-                remark += (string.IsNullOrEmpty(importResult1.Message)) ? "" : "tester: " + importResult1.Message + "  ";
-                remark += (string.IsNullOrEmpty(importResult2.Message)) ? "" : "test result: " + importResult2.Message + "  ";
-                remark += (string.IsNullOrEmpty(importResult3.Message)) ? "" : "fail pin: " + importResult3.Message;
+                remark = string.Empty;
+                remark += (string.IsNullOrEmpty(importResult.Message)) ? string.Empty : "recovery rate: " + importResult.Message + "  ";
+                remark += (string.IsNullOrEmpty(importResult1.Message)) ? string.Empty : "tester: " + importResult1.Message + "  ";
+                remark += (string.IsNullOrEmpty(importResult2.Message)) ? string.Empty : "test result: " + importResult2.Message + "  ";
+                remark += (string.IsNullOrEmpty(importResult3.Message)) ? string.Empty : "fail pin: " + importResult3.Message;
                 updateImportStatus = dbAccess.UpdateDbKeyImportStatus(DatabaseService, dbKeyList[i].DbKey, importResult.Result, importResult1.Result, importResult2.Result, importResult3.Result, remark);
                 Console.WriteLine("Update tester import status:" + updateImportStatus);
             }
@@ -402,7 +402,7 @@ namespace DCT_data_import
             //}
             //}
             #endregion
-            return "";
+            return string.Empty;
         }
         static string ImportUiStatusMode(FileProcess fileAccess, DbAccess dbAccess, DatabaseService DatabaseService)
         {
@@ -427,8 +427,8 @@ namespace DCT_data_import
             {
                 Console.WriteLine((i + 1).ToString() + ".DB_Key_ui_status=" + dbKeyUiStatusList[i].DbKey + "  ");
                 importResult4 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, dbKeyUiStatusList[i].DbKey);
-                remark = "";
-                remark += (string.IsNullOrEmpty(importResult4.Message)) ? "" : "ui status:" + importResult4.Message;
+                remark = string.Empty;
+                remark += (string.IsNullOrEmpty(importResult4.Message)) ? string.Empty : "ui status:" + importResult4.Message;
                 updateImportStatus = dbAccess.UpdateDbKeyUiStatusImportStatus(DatabaseService, dbKeyUiStatusList[i].DbKey, importResult4.Result, remark);
                 Console.WriteLine("Update ui_status import status:" + updateImportStatus);
             }
@@ -460,14 +460,14 @@ namespace DCT_data_import
             //    }
             //}
             #endregion
-            return "";
+            return string.Empty;
         }
         static string ImportTsmcMode(FileProcess fileAccess, DbAccess dbAccess, DatabaseService DatabaseService)
         {
             ImportResult importResult;
             TsmcIeda tsmcIeda = new TsmcIeda();
-            importResult = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, "");
-            return "";
+            importResult = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
+            return string.Empty;
         }
     }
 }

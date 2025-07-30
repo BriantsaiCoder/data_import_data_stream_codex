@@ -10,7 +10,7 @@ namespace DCT_data_import
         public int SelectDataCountInDays(DatabaseService DatabaseService, int day, string mode = "tester")
         {
             WriteToLog writeToLog = new WriteToLog();
-            string sql = "";
+            string sql = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             long threeHourAgoTimeStamp = nowTimeStamp - 86400 * day;  // 24小時=86400秒
             int count = 0;
@@ -63,7 +63,7 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyList = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
-            string sql = "";
+            string sql = string.Empty;
             if (mode == "tester")
             {
                 //sql = "SELECT id, db_key, tester, test_result, fail_pin, check_status FROM `db_key` WHERE `check_status`>0 AND `import_status` =0 AND mail=0;";
@@ -266,7 +266,7 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
-            string sql = "", remark = "";
+            string sql = string.Empty, remark = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             //long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒  3小時前
             long threeHourAgoTimeStamp = nowTimeStamp - 1200;  // 20分鐘前

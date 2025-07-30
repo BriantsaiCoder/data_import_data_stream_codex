@@ -76,7 +76,7 @@ namespace DCT_data_import
                         {
                             writer.WriteLine(message);
                         }
-                        return "";
+                        return string.Empty;
                     }
                     using (StreamWriter writer = new StreamWriter(log_path, true, Encoding.UTF8))
                     {
@@ -93,7 +93,7 @@ namespace DCT_data_import
                         mutex.ReleaseMutex();
                 }
             }
-            return "";
+            return string.Empty;
         }
         public void WriteToCheckLog(string logFilename, string content)
         {

@@ -153,7 +153,7 @@ namespace DCT_data_import
             {
                 int bufferSize = 32768;
                 StringBuilder buffer = new StringBuilder(bufferSize);
-                uint bytesReturned = GetPrivateProfileString(section, null, "", buffer, (uint)bufferSize, _filePath);
+                uint bytesReturned = GetPrivateProfileString(section, null, string.Empty, buffer, (uint)bufferSize, _filePath);
                 if (bytesReturned > 0)
                 {
                     string[] keys = buffer.ToString().Split('\0');

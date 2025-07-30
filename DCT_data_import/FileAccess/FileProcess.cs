@@ -72,7 +72,7 @@ namespace DCT_data_import
         public string CustomizeDateTimeParser(string datetime)
         {
             string[] time_split = datetime.Split('_');
-            if (time_split.Length != 6) return "";
+            if (time_split.Length != 6) return string.Empty;
             string newDatetimeStr = time_split[0] + " " + time_split[1] + " " + time_split[2] + " " + time_split[3] + ":" + time_split[4] + ":" + time_split[5];
             DateTime dateTime = new DateTime();
             if (DateTime.TryParse(newDatetimeStr, out dateTime))
@@ -104,7 +104,7 @@ namespace DCT_data_import
             #region insert recovery rate 的 data
             int cut_size = (content.FinalRecoveryRateTable.Rows.Count > 5000) ? 5000 : content.FinalRecoveryRateTable.Rows.Count;
             // assign 需要 insert 的 欄位名稱
-            string columns = "", values = "";
+            string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             for (int i = 0; i < content.FinalRecoveryRateTable.Columns.Count; i++)
             {
@@ -126,7 +126,7 @@ namespace DCT_data_import
             try
             {
                 // 開始逐一insert recovery rate data
-                values = "";
+                values = string.Empty;
                 for (int i = 0; i < content.FinalRecoveryRateTable.Rows.Count; i++)
                 {
                     values += "(\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim()) + "\",";
@@ -154,7 +154,7 @@ namespace DCT_data_import
                             writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + response2.Error);
                             return false;
                         }
-                        values = "";
+                        values = string.Empty;
                     }
                     else if (i != content.FinalRecoveryRateTable.Rows.Count - 1)
                     {
@@ -195,7 +195,7 @@ namespace DCT_data_import
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
-            string columns = "", values = "";
+            string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             #region insert raw data 的 info 表格
             for (int i = 0; i < content.LotInfo.Columns.Count; i++)
@@ -241,7 +241,7 @@ namespace DCT_data_import
                 return false;
             }
             #endregion
-            string lotId = "";
+            string lotId = string.Empty;
             try
             {
                 // 取得當前 lot id 值
@@ -255,7 +255,7 @@ namespace DCT_data_import
             }
             //string lotId = "3";
             #region insert raw data 的 statistic 表格
-            columns = "`lot_id`,"; values = "";
+            columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotStatistic.Tables[0].Columns.Count; i++)
             {
                 string column_name = content.LotStatistic.Tables[0].Columns[i].ColumnName.ToLower();
@@ -284,7 +284,7 @@ namespace DCT_data_import
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
             try
             {
-                values = "";
+                values = string.Empty;
                 for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
@@ -302,7 +302,7 @@ namespace DCT_data_import
                             response2 = DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
-                        values = "";
+                        values = string.Empty;
                     }
                     else if (i != content.LotStatistic.Tables.Count - 1)
                     {
@@ -334,7 +334,7 @@ namespace DCT_data_import
             #endregion
             #region insert raw data 的 result 表格
             cut_size = (content.LotResult.Rows.Count > 5000) ? 5000 : content.LotResult.Rows.Count;
-            columns = "`lot_id`,"; values = "";
+            columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotResult.Columns.Count; i++)
             {
                 string column_name = content.LotResult.Columns[i].ColumnName.ToLower();
@@ -356,7 +356,7 @@ namespace DCT_data_import
             // 開始逐一insert result表
             try
             {
-                values = "";
+                values = string.Empty;
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
                 {
                     //// 判斷 index=1 的Serial是否為空，若為空則跳過
@@ -366,11 +366,11 @@ namespace DCT_data_import
                         //values += "(\"" + lotId + "\",";
                         for (int j = 0; j < content.LotResult.Columns.Count; j++)
                         {
-                            if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == "")
+                            if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
                             {
                                 values += "NULL";
                             }
-                            else if ((content.LotResult.Columns[j].ColumnName == "test time" || content.LotResult.Columns[j].ColumnName == "index time") && content.LotResult.Rows[i][j].ToString().Trim() == "")
+                            else if ((content.LotResult.Columns[j].ColumnName == "test time" || content.LotResult.Columns[j].ColumnName == "index time") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
                             {
                                 values += "0";
                             }
@@ -407,7 +407,7 @@ namespace DCT_data_import
                                 writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + response2.Error);
                                 return false;
                             }
-                            values = "";
+                            values = string.Empty;
                         }
                         else if (i != content.LotResult.Rows.Count - 1)
                         {
@@ -449,7 +449,7 @@ namespace DCT_data_import
         {
             if (content.Tester_device_info.Rows.Count < 1 || content.Tester_status.Rows.Count < 1 || content.Tester_sw_version.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
-            string columns = "", values = "";
+            string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             #region insert `tester_device_info`
             for (int i = 0; i < content.Tester_device_info.Columns.Count; i++)
@@ -462,7 +462,7 @@ namespace DCT_data_import
                 if (column_name == "handler_repair_starttime") column_name = "handler_repair_start_time";
                 if (column_name == "handler_repair_endtime") column_name = "handler_repair_end_time";
                 string[] numTypeColumn = { "efficiency_check", "ui_flow_checksum", "yield", "lead_count", "site_qty", "bd_leak", "pg_leak", "wireclose_leak" };
-                if (numTypeColumn.Contains(column_name) && (content.Tester_device_info.Rows[0][i].ToString().Trim() == "" || content.Tester_device_info.Rows[0][i].ToString().Trim() == "NA"))
+                if (numTypeColumn.Contains(column_name) && (content.Tester_device_info.Rows[0][i].ToString().Trim() == string.Empty || content.Tester_device_info.Rows[0][i].ToString().Trim() == "NA"))
                 {
                     values += "NULL";
                 }
@@ -513,7 +513,7 @@ namespace DCT_data_import
                 return false;
             }
             #endregion
-            string device_info_Id = "";
+            string device_info_Id = string.Empty;
             try
             {
                 device_info_Id = response.Data[0]["insertId"].ToString();
@@ -524,7 +524,7 @@ namespace DCT_data_import
                 return false;
             }
             #region insert `tester_status`
-            columns = "`device_info_Id`,"; values = "";
+            columns = "`device_info_Id`,"; values = string.Empty;
             for (int i = 0; i < content.Tester_status.Columns.Count; i++)
             {
                 string column_name = content.Tester_status.Columns[i].ColumnName.ToLower();
@@ -553,7 +553,7 @@ namespace DCT_data_import
                     {
                         string columnName = content.Tester_status.Columns[j].ColumnName;
                         string[] doubleTypeColumn = { "Duts", "UPH", "Avg test time", "Max test time", "Min test time", "Avg index test time", "Max index test time", "Min index test time", "Diff time (die)", "End time (die)", "First time (die)", "Diff time (file)" };
-                        if (doubleTypeColumn.Contains(columnName) && (content.Tester_status.Rows[0][j].ToString().Trim() == "" || content.Tester_status.Rows[0][j].ToString().Trim() == "NA"))
+                        if (doubleTypeColumn.Contains(columnName) && (content.Tester_status.Rows[0][j].ToString().Trim() == string.Empty || content.Tester_status.Rows[0][j].ToString().Trim() == "NA"))
                         {
                             values += "NULL";
                         }
@@ -584,7 +584,7 @@ namespace DCT_data_import
             }
             #endregion
             #region insert `tester_sw_version`
-            columns = "`device_info_Id`,"; values = "";
+            columns = "`device_info_Id`,"; values = string.Empty;
             for (int i = 0; i < content.Tester_sw_version.Columns.Count; i++)
             {
                 string column_name = content.Tester_sw_version.Columns[i].ColumnName.ToLower();
@@ -631,7 +631,7 @@ namespace DCT_data_import
             }
             #endregion
             #region insert `tester_production_analysis`
-            columns = "`device_info_Id`,"; values = "";
+            columns = "`device_info_Id`,"; values = string.Empty;
             for (int i = 0; i < content.Tester_production_analysis.Columns.Count; i++)
             {
                 string column_name = content.Tester_production_analysis.Columns[i].ColumnName.ToLower();
@@ -651,7 +651,7 @@ namespace DCT_data_import
                     for (int j = 0; j < content.Tester_production_analysis.Columns.Count; j++)
                     {
                         string columnName = content.Tester_production_analysis.Columns[j].ColumnName;
-                        if (content.Tester_production_analysis.Rows[0][j].ToString().Trim() == "" || content.Tester_production_analysis.Rows[0][j].ToString().Trim() == "NA")
+                        if (content.Tester_production_analysis.Rows[0][j].ToString().Trim() == string.Empty || content.Tester_production_analysis.Rows[0][j].ToString().Trim() == "NA")
                         {
                             values += "NULL";
                         }
@@ -687,7 +687,7 @@ namespace DCT_data_import
         {
             if (content.UI_status.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
-            string columns = "", values = "";
+            string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             string mac_address, area, factory, os_machine, date;
             for (int j = 0; j < content.UI_status.Columns.Count; j++)
@@ -708,15 +708,15 @@ namespace DCT_data_import
                 factory = content.UI_status.Rows[i]["Factory"].ToString().Trim();
                 os_machine = content.UI_status.Rows[i]["OS_Machine"].ToString().Trim();
                 date = content.UI_status.Rows[i]["Date"].ToString().Trim();
-                values = "";
+                values = string.Empty;
                 for (int j = 0; j < content.UI_status.Columns.Count; j++)
                 {
                     string[] numTypeColumn = { "auto_learn", "dct_product_file_setting_ui", "dct_login_ui", "os_self_diag_2k", "pattonkan_ui", "dct_i_v_curve_tool", "os_tester_100ma_vi", "os_tester_2a_vi", "os_tester_lcr_meter", "wire_assignment_tool", "bga_highlight_tool", "simplificationui", "os_scan_tool", "dct_uploadtp_ui", "dct_autodownloadtp", "dct_sw_control_tool", "dct_downloadtp_kh" };
-                    if (numTypeColumn.Contains(content.UI_status.Columns[j].ColumnName.ToLower()) && (content.UI_status.Rows[i][j].ToString().Trim() == "" || content.UI_status.Rows[i][j].ToString().Trim() == "NA"))
+                    if (numTypeColumn.Contains(content.UI_status.Columns[j].ColumnName.ToLower()) && (content.UI_status.Rows[i][j].ToString().Trim() == string.Empty || content.UI_status.Rows[i][j].ToString().Trim() == "NA"))
                     {
                         values += "NULL";
                     }
-                    else if (content.UI_status.Columns[j].ColumnName.ToLower() == "date" && (content.UI_status.Rows[i][j].ToString().Trim() == "" || content.UI_status.Rows[i][j].ToString().Trim() == "0"))
+                    else if (content.UI_status.Columns[j].ColumnName.ToLower() == "date" && (content.UI_status.Rows[i][j].ToString().Trim() == string.Empty || content.UI_status.Rows[i][j].ToString().Trim() == "0"))
                     {
                         date = "null";
                         values += "NULL";
@@ -755,7 +755,7 @@ namespace DCT_data_import
         {
             if (content.Fail_pin_rate_info.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
-            string columns = "", values = "";
+            string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             #region insert `fail_pin_rate_info`
             for (int i = 0; i < content.Fail_pin_rate_info.Columns.Count; i++)
@@ -799,7 +799,7 @@ namespace DCT_data_import
             string fail_pin_rate_info_Id = response.Data[0]["insertId"].ToString();
             List<string> fail_pin_rate_list_Id = new List<string>();
             #region insert `fail_pin_rate_list`
-            columns = "`fail_pin_rate_info_Id`,"; values = "";
+            columns = "`fail_pin_rate_info_Id`,"; values = string.Empty;
             for (int i = 0; i < content.Fail_pin_rate_list.Columns.Count; i++)
             {
                 string column_name = content.Fail_pin_rate_list.Columns[i].ColumnName.ToLower();
@@ -820,7 +820,7 @@ namespace DCT_data_import
                     {
                         string columnName = content.Fail_pin_rate_list.Columns[j].ColumnName;
                         string[] doubleTypeColumn = { "dut", "site" };
-                        if (doubleTypeColumn.Contains(columnName) && (content.Fail_pin_rate_list.Rows[0][j].ToString().Trim() == "" || content.Fail_pin_rate_list.Rows[0][j].ToString().Trim() == "NA"))
+                        if (doubleTypeColumn.Contains(columnName) && (content.Fail_pin_rate_list.Rows[0][j].ToString().Trim() == string.Empty || content.Fail_pin_rate_list.Rows[0][j].ToString().Trim() == "NA"))
                         {
                             values += "NULL";
                         }
@@ -853,7 +853,7 @@ namespace DCT_data_import
             }
             #endregion
             #region insert `fail_pin_rate_list_pin_ball`
-            columns = ""; values = "";
+            columns = string.Empty; values = string.Empty;
             for (int i = 0; i < content.Fail_pin_rate_list_pin_ball.Columns.Count; i++)
             {
                 string column_name = content.Fail_pin_rate_list_pin_ball.Columns[i].ColumnName.ToLower();
@@ -867,7 +867,7 @@ namespace DCT_data_import
             // 開始逐一insert
             try
             {
-                values = "";
+                values = string.Empty;
                 for (int i = 0; i < content.Fail_pin_rate_list_pin_ball.Rows.Count; i++)
                 {
                     values += "(";
@@ -900,7 +900,7 @@ namespace DCT_data_import
                             response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                             return false;
                         }
-                        values = "";
+                        values = string.Empty;
                     }
                     else if (i != content.Fail_pin_rate_list_pin_ball.Rows.Count - 1)
                     {
@@ -936,7 +936,7 @@ namespace DCT_data_import
             // 開始逐一insert
             try
             {
-                values = "";
+                values = string.Empty;
                 for (int table_i = 0; table_i < content.Fail_pin_rate_list_test_result.Tables.Count; table_i++)
                 {
                     for (int i = 0; i < content.Fail_pin_rate_list_test_result.Tables[table_i].Rows.Count; i++)
@@ -969,7 +969,7 @@ namespace DCT_data_import
                                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                                 return false;
                             }
-                            values = "";
+                            values = string.Empty;
                         }
                         else if (table_i != content.Fail_pin_rate_list_test_result.Tables.Count - 1)
                         {

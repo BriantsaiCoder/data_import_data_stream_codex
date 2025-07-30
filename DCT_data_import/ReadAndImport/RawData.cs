@@ -156,7 +156,7 @@ namespace DCT_data_import.ReadAndImport
             }
             GC.Collect();
             //Console.WriteLine("Raw data end~");
-            return new ImportResult(1, "");
+            return new ImportResult(1, string.Empty);
         }
         private RawDataContentFormat FileReadRawData(StreamReader reader)
         {
@@ -300,11 +300,11 @@ namespace DCT_data_import.ReadAndImport
                                 // 去除數值包含(O)(S)的括號
                                 if (values[i].Contains("(O)"))
                                 {
-                                    values[i] = values[i].Replace("(O)", "");
+                                    values[i] = values[i].Replace("(O)", string.Empty);
                                 }
                                 if (values[i].Contains("(S)"))
                                 {
-                                    values[i] = values[i].Replace("(S)", "");
+                                    values[i] = values[i].Replace("(S)", string.Empty);
                                 }
                                 rawData_list[i - rawData_part_index].Add(values[i]);
                             }

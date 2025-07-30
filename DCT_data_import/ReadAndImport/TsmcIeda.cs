@@ -20,7 +20,7 @@ namespace DCT_data_import.ReadAndImport
         }
         public ImportResult ReadAndImportIeda(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            string ftpserver = "";
+            string ftpserver = string.Empty;
             FtpWebRequest reqFTP;
             FtpWebResponse response;
             Stream responseStream;
@@ -112,7 +112,7 @@ namespace DCT_data_import.ReadAndImport
                     writeToLog.WriteToDataImportLog("TSMC 之 IEDA 讀檔失敗:" + ftpserver);
                 }
             }
-            return new ImportResult(1, "");
+            return new ImportResult(1, string.Empty);
         }
         public IedaDataFormat FileReadIeda(StreamReader reader)
         {
@@ -190,12 +190,12 @@ namespace DCT_data_import.ReadAndImport
         #endregion GetAseLot() end
         public List<string> GetNetNameList(string aseLot, int recursive = 0)
         {
-            string ftpserver = "";
+            string ftpserver = string.Empty;
             FtpWebRequest reqFTP;
             FtpWebResponse response;
             Stream responseStream;
             WriteToLog writeToLog = new WriteToLog();
-            string filename = "";
+            string filename = string.Empty;
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
@@ -229,7 +229,7 @@ namespace DCT_data_import.ReadAndImport
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
-                string netNameLine = "";
+                string netNameLine = string.Empty;
                 StreamReader reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
                 string line = reader.ReadLine();
                 while (line != null)
@@ -321,7 +321,7 @@ namespace DCT_data_import.ReadAndImport
         {
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
-            string columns = "", values = "";
+            string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
@@ -352,7 +352,7 @@ namespace DCT_data_import.ReadAndImport
             }
             #endregion
             #region  取得當前 title id 值
-            string titleId = "";
+            string titleId = string.Empty;
             try
             {
                 titleId = response2.Data[0]["insertId"].ToString();
@@ -367,7 +367,7 @@ namespace DCT_data_import.ReadAndImport
             #region insert ieda 的 content 表格
             try
             {
-                columns = "";
+                columns = string.Empty;
                 for (int i = 0; i < content.IedaContent.Columns.Count; i++)
                 {
                     columns += "`" + content.IedaContent.Columns[i].ColumnName.Trim() + "`";
@@ -377,7 +377,7 @@ namespace DCT_data_import.ReadAndImport
                         columns += ",";
                     }
                 }
-                values = "";
+                values = string.Empty;
                 for (int i = 0; i < content.IedaContent.Rows.Count; i++)
                 {
                     values += "('" + fileProcess.ConvertEmptyToDefaultString(titleId) + "',";

@@ -3,8 +3,8 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
@@ -171,7 +171,7 @@ namespace DCT_data_import.ReadAndImport
             }
             GC.Collect();
             //Console.WriteLine("Raw data end~");
-            return new ImportResult(1, "");
+            return new ImportResult(1, string.Empty);
         }
         private RecoveryRateDataContentFormat FileReadRecoveryRateData(StreamReader reader)
         {

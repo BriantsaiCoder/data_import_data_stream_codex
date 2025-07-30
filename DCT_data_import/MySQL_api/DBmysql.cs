@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Dapper;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json.Linq;
-using static DCT_data_import.DbObject;
+using System;
 using System.Collections.Generic;
-using Dapper;
 using System.Data;
+using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     public class DBmysql
@@ -175,7 +175,7 @@ namespace DCT_data_import
                     ["fieldCount"] = 0,
                     ["affectedRows"] = affectedRows,
                     ["insertId"] = insertId,
-                    ["info"] = "",
+                    ["info"] = string.Empty,
                     ["serverStatus"] = 2,
                     ["warningStatus"] = 0
                 };

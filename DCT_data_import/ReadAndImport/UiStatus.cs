@@ -110,7 +110,7 @@ namespace DCT_data_import.ReadAndImport
                 return new ImportResult(3, "Exception error occurred during import. " + ex.Message);
             }
             GC.Collect();
-            return new ImportResult(1, "");
+            return new ImportResult(1, string.Empty);
         }
         public UIStatusContentFormat FileReadUIStatus(StreamReader reader)
         {

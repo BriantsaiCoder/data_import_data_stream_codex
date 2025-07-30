@@ -137,14 +137,14 @@ namespace DCT_data_import.ReadAndImport
             }
             GC.Collect();
             //Console.WriteLine("Fail pin log end~");
-            return new ImportResult(1, "");
+            return new ImportResult(1, string.Empty);
         }
         public FailPinLogContentFormat FileReadFailPinLog(StreamReader reader)
         {
             FailPinLogContentFormat failPinLogContentFormat = new FailPinLogContentFormat();
             try
             {
-                string data_format = "";
+                string data_format = string.Empty;
 
                 int content_part = 1;
                 int fail_pin_list_id = 0;
@@ -172,7 +172,7 @@ namespace DCT_data_import.ReadAndImport
                     if (content_part == 1)
                     {
                         failPinLogContentFormat.Fail_pin_rate_info.Columns.Add(values[0], typeof(string));
-                        failPinLogContentFormat.Fail_pin_rate_info.Rows[0][values[0]] = (values.Length > 1) ? values[1] : "";
+                        failPinLogContentFormat.Fail_pin_rate_info.Rows[0][values[0]] = (values.Length > 1) ? values[1] : string.Empty;
                     }
                     // fail pin rate的下半部分
                     else if (content_part == 2)

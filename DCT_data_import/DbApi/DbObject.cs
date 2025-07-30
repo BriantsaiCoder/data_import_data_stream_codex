@@ -41,7 +41,7 @@ namespace DCT_data_import
                 Id = id;
                 DbKey = dbKey;
                 CheckStatus = checkStatus;
-                Remark = "";
+                Remark = string.Empty;
             }
             public DbKeyObject(int id, string dbKey, int recoveryRate, int tester, int testResult, int failPin, int checkStatus)
             {
@@ -52,7 +52,7 @@ namespace DCT_data_import
                 TestResult = testResult;
                 FailPin = failPin;
                 CheckStatus = checkStatus;
-                Remark = "";
+                Remark = string.Empty;
             }
         }
         public class Execute_query
