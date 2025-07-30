@@ -18,6 +18,16 @@ namespace DCT_data_import
         }
         public bool IsDBKeyExistInDB(string db_table_name, string db_key, DatabaseService DatabaseService)
         {
+            // ✅ 確保資料庫和相關資料表存在
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+            bool tableExists = DatabaseService.EnsureTableExistsAsync(db_table_name).GetAwaiter().GetResult();
+
+            if (!databaseExists || !tableExists)
+            {
+                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {db_table_name} 存在");
+                return false;
+            }
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             var execute_query = new Execute_query
@@ -204,12 +214,12 @@ namespace DCT_data_import
                 column_name = column_name.Split('(', ')')[0];
                 // 欄位名稱調整
                 if (column_name == "bondingdiagram") column_name = "bonding_diagram";
-                if (column_name == "Pass without OCR".ToLower()) column_name = "pass_without_ocr";
-                if (column_name == "OPEN without OCR".ToLower()) column_name = "open_without_ocr";
-                if (column_name == "Short & Others".ToLower()) column_name = "short_others";
-                if (column_name == "Pass without OCR_PPM".ToLower()) column_name = "pass_without_ocr_ppm";
-                if (column_name == "OPEN without OCR_PPM".ToLower()) column_name = "open_without_ocr_ppm";
-                if (column_name == "Short & Others_PPM".ToLower()) column_name = "short_others_ppm";
+                if (column_name == "pass without ocr".ToLower()) column_name = "pass_without_ocr";
+                if (column_name == "open without ocr".ToLower()) column_name = "open_without_ocr";
+                if (column_name == "short & others".ToLower()) column_name = "short_others";
+                if (column_name == "pass without ocr_ppm".ToLower()) column_name = "pass_without_ocr_ppm";
+                if (column_name == "open without ocr_ppm".ToLower()) column_name = "open_without_ocr_ppm";
+                if (column_name == "short & others_ppm".ToLower()) column_name = "short_others_ppm";
                 // 處理日期格式
                 if (column_name == "start" || column_name == "stop")
                 {
@@ -1014,6 +1024,15 @@ namespace DCT_data_import
         {
             try
             {
+                // ✅ 確保資料庫和相關資料表存在
+                bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+
+                if (!databaseExists || !tableExists)
+                {
+                    writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
+                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
+                }
                 // 宣告 Web API body
                 Execute_query execute_query = new Execute_query
                 {
@@ -1033,11 +1052,30 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteToDataImportLog($"INSERT {tableName} error : {ex.Message}");
-                return null;
+                return new Execute_query_response { Error = ex.Message };
             }
         }
         private Execute_query_response DeleteRawData(DatabaseService DatabaseService, string lot_id)
         {
+            // ✅ 確保資料庫和相關資料表存在
+            string[] requiredTables = { "lots_info", "lots_statistic", "lots_result" };
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+
+            if (!databaseExists)
+            {
+                writeToLog.WriteToDataImportLog("無法確保資料庫存在，無法執行刪除操作");
+                return new Execute_query_response { Error = "Database does not exist" };
+            }
+
+            foreach (string tableName in requiredTables)
+            {
+                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+                if (!tableExists)
+                {
+                    writeToLog.WriteToDataImportLog($"無法確保資料表 {tableName} 存在，無法執行刪除操作");
+                    return new Execute_query_response { Error = $"Table {tableName} does not exist" };
+                }
+            }
             // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
@@ -1059,6 +1097,25 @@ namespace DCT_data_import
         }
         private Execute_query_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
         {
+            // ✅ 確保資料庫和相關資料表存在
+            string[] requiredTables = { "tester_device_info", "tester_status", "tester_sw_version", "tester_production_analysis" };
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+
+            if (!databaseExists)
+            {
+                writeToLog.WriteToDataImportLog("無法確保資料庫存在，無法執行刪除操作");
+                return new Execute_query_response { Error = "Database does not exist" };
+            }
+
+            foreach (string tableName in requiredTables)
+            {
+                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+                if (!tableExists)
+                {
+                    writeToLog.WriteToDataImportLog($"無法確保資料表 {tableName} 存在，無法執行刪除操作");
+                    return new Execute_query_response { Error = $"Table {tableName} does not exist" };
+                }
+            }
             // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
@@ -1081,6 +1138,25 @@ namespace DCT_data_import
         }
         private Execute_query_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
         {
+            // ✅ 確保資料庫和相關資料表存在
+            string[] requiredTables = { "fail_pin_rate_info", "fail_pin_rate_list", "fail_pin_rate_list_pin_ball", "fail_pin_rate_test_result" };
+            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
+
+            if (!databaseExists)
+            {
+                writeToLog.WriteToDataImportLog("無法確保資料庫存在，無法執行刪除操作");
+                return new Execute_query_response { Error = "Database does not exist" };
+            }
+
+            foreach (string tableName in requiredTables)
+            {
+                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
+                if (!tableExists)
+                {
+                    writeToLog.WriteToDataImportLog($"無法確保資料表 {tableName} 存在，無法執行刪除操作");
+                    return new Execute_query_response { Error = $"Table {tableName} does not exist" };
+                }
+            }
             // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
