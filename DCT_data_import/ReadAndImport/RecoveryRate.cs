@@ -51,7 +51,7 @@ namespace DCT_data_import.ReadAndImport
             if (!isFileExist)
             {
                 Console.WriteLine("Recovery Rate File not found:  " + filename);
-                writeToLog.WriteToDataImportLog("Recovery Rate File not found: " + ftpserver);
+                writeToLog.WriteErrorLog("Recovery Rate File not found: " + ftpserver);
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
@@ -144,7 +144,7 @@ namespace DCT_data_import.ReadAndImport
                     if (import_result)
                     {
                         //Console.WriteLine("匯入完成! Raw data    比對: " + compare_result + "   檔名:" + list_filename[i]);
-                        Console.WriteLine("匯入完成! Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
+                        Console.WriteLine("匯入完成! recoveryRate    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
@@ -153,7 +153,7 @@ namespace DCT_data_import.ReadAndImport
                     }
                     else
                     {
-                        Console.WriteLine("匯入失敗: Raw data " + filename);
+                        Console.WriteLine("匯入失敗: recoveryRate " + filename);
                         writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
                         RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
@@ -162,10 +162,9 @@ namespace DCT_data_import.ReadAndImport
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //Console.WriteLine(ftpserver + ": " + ex.ToString());
-                //writeToLog.writeToDataImportLog(ftpserver + ": " + ex.ToString());
+                writeToLog.WriteErrorLog($"RecoveryRate 匯入處理發生例外錯誤: {ftpserver}, 檔案: {filename}, 錯誤: {ex.Message}");
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }

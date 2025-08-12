@@ -45,7 +45,7 @@ namespace DCT_data_import.ReadAndImport
             if (!isFileExist)
             {
                 Console.WriteLine("Tester Status File not found:  " + filename);
-                writeToLog.WriteToDataImportLog("Tester Status File not found: " + ftpserver);
+                writeToLog.WriteErrorLog("Tester Status File not found: " + ftpserver);
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
@@ -71,27 +71,27 @@ namespace DCT_data_import.ReadAndImport
                 if (testStatusContentFormat == null || testStatusContentFormat.Tester_device_info.Rows.Count < 1)
                 {
                     Console.WriteLine("Tester Status 讀檔失敗:  " + filename);
-                    writeToLog.WriteToDataImportLog("Tester Status  讀檔失敗: " + ftpserver);
+                    writeToLog.WriteErrorLog("Tester Status  讀檔失敗: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. " + testStatusContentFormat.ErrMsg);
                 }
                 if (!testStatusContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Tester Status 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Tester Status 之 information 欄位名稱不符: " + ftpserver);
+                    writeToLog.WriteErrorLog("Tester Status 之 information 欄位名稱不符: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
                 if (!testStatusContentFormat.CompareStatus())
                 {
                     Console.WriteLine("Tester Status 之 tester_status 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Tester Status 之 tester_status 欄位名稱不符: " + ftpserver);
+                    writeToLog.WriteErrorLog("Tester Status 之 tester_status 欄位名稱不符: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "tester_status field name not match.");
                 }
                 if (!dbKey.Equals(testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString()))
                 {
-                    writeToLog.WriteToDataImportLog("檔名與內容的DB_Key不相符: " + ftpserver);
+                    writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
@@ -129,7 +129,7 @@ namespace DCT_data_import.ReadAndImport
                     else
                     {
                         Console.WriteLine("匯入失敗: Tester Status " + filename);
-                        writeToLog.WriteToDataImportLog("匯入失敗: " + ftpserver);
+                        writeToLog.WriteErrorLog("匯入失敗: " + ftpserver);
                         RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();

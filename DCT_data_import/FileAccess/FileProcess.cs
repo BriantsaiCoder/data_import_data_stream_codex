@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
@@ -18,16 +18,12 @@ namespace DCT_data_import
         }
         public bool IsDBKeyExistInDB(string db_table_name, string db_key, DatabaseService DatabaseService)
         {
-            // âœ… ç¢ºä¿è³‡æ–™åº«å’Œç›¸é—œè³‡æ–™è¡¨å­˜åœ¨
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-            bool tableExists = DatabaseService.EnsureTableExistsAsync(db_table_name).GetAwaiter().GetResult();
-
-            if (!databaseExists || !tableExists)
+            // ÀË¬d¸ê®Æ®w©M¸ê®Æªí¬O§_¦s¦b
+            if (!DatabaseService.CheckDatabaseAndTableExists(db_table_name))
             {
-                writeToLog.WriteToDataImportLog($"ç„¡æ³•ç¢ºä¿è³‡æ–™åº«æˆ–è³‡æ–™è¡¨ {db_table_name} å­˜åœ¨");
+                writeToLog.WriteErrorLog($"¸ê®Æ®w©Î¸ê®Æªí {db_table_name} ¤£¦s¦b");
                 return false;
             }
-
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             var execute_query = new Execute_query
@@ -37,8 +33,8 @@ namespace DCT_data_import
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query).GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
+                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"Error: {response.Error}");
                 return false;
             }
             int length = 0;
@@ -50,7 +46,7 @@ namespace DCT_data_import
             long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             return (length > 0);
         }
-        // è§£ææ—¥æœŸæ ¼å¼ "Jun_06_2022_12_08_22"
+        // ¸ÑªR¤é´Á®æ¦¡ "Jun_06_2022_12_08_22"
         public string CustomizeDateTimeParser(string datetime)
         {
             string[] time_split = datetime.Split('_');
@@ -61,7 +57,7 @@ namespace DCT_data_import
             {
                 return dateTime.ToString("yyyy-MM-dd hh:mm:ss");
             }
-            // æ—¥æœŸæ ¼å¼è§£æå¤±æ•—
+            // ¤é´Á®æ¦¡¸ÑªR¥¢±Ñ
             else
             {
                 return DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
@@ -79,20 +75,20 @@ namespace DCT_data_import
                 return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             }
         }
-        // Recovery Rate åŒ¯å…¥è³‡æ–™åº«
+        // Recovery Rate ¶×¤J¸ê®Æ®w
         public bool ImportRecoveryData(RecoveryRateDataContentFormat content, DatabaseService DatabaseService)
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotRecoveryRate.Rows.Count < 1) return false;
-            #region insert recovery rate çš„ data
+            #region insert recovery rate ªº data
             int cut_size = (content.FinalRecoveryRateTable.Rows.Count > 5000) ? 5000 : content.FinalRecoveryRateTable.Rows.Count;
-            // assign éœ€è¦ insert çš„ æ¬„ä½åç¨±
+            // assign »İ­n insert ªº Äæ¦ì¦WºÙ
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             for (int i = 0; i < content.FinalRecoveryRateTable.Columns.Count; i++)
             {
                 string column_name = content.FinalRecoveryRateTable.Columns[i].ColumnName.ToLower();
                 //column_name = column_name.Split('(', ')')[0];
-                // æ¬„ä½åç¨±èª¿æ•´
+                // Äæ¦ì¦WºÙ½Õ¾ã
                 if (column_name == "DB Key".ToLower()) column_name = "db_key";
                 if (column_name == "OS Machine".ToLower()) column_name = "os_machine";
                 if (column_name == "AO Lot".ToLower()) column_name = "ao_lot";
@@ -107,16 +103,16 @@ namespace DCT_data_import
             }
             try
             {
-                // é–‹å§‹é€ä¸€insert recovery rate data
+                // ¶}©l³v¤@insert recovery rate data
                 values = string.Empty;
                 for (int i = 0; i < content.FinalRecoveryRateTable.Rows.Count; i++)
                 {
                     values += "(\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim()) + "\",";
                     for (int j = 1; j < content.FinalRecoveryRateTable.Columns.Count; j++)
-                    { // è™•ç†æ—¥æœŸæ ¼å¼
+                    { // ³B²z¤é´Á®æ¦¡
                         if (string.Equals(content.FinalRecoveryRateTable.Columns[j].ColumnName.ToLower(), "date", StringComparison.OrdinalIgnoreCase))
                         {
-                            // æ—¥æœŸæ ¼å¼è§£ææ­£ç¢º
+                            // ¤é´Á®æ¦¡¸ÑªR¥¿½T
                             content.FinalRecoveryRateTable.Rows[i][j] = ValidateDateTime(content.FinalRecoveryRateTable.Rows[i][j].ToString());
                         }
                         values += "\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][j].ToString().Trim()) + "\"";
@@ -125,7 +121,7 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    // æ¯cut_sizeå€‹rowå°±åŒ¯å…¥ä¸€æ¬¡
+                    // ¨Ccut_size­Órow´N¶×¤J¤@¦¸
                     if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
                     {
                         values += ")";
@@ -133,7 +129,7 @@ namespace DCT_data_import
                         response2 = ExecuteInsertWithAPI(DatabaseService, "recovery_rate", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
-                            writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + response2.Error);
+                            writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' error:" + response2.Error);
                             return false;
                         }
                         values = string.Empty;
@@ -150,7 +146,7 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
-                    // å¦‚æœæœ€å¾Œä¸€å€‹å­—å…ƒæ˜¯')' å‰‡ç§»é™¤
+                    // ¦pªG³Ì«á¤@­Ó¦r¤¸¬O')' «h²¾°£
                     string last_str = values.Substring(values.Length - 1);
                     if (last_str == ")")
                     {
@@ -159,32 +155,32 @@ namespace DCT_data_import
                     response2 = ExecuteInsertWithAPI(DatabaseService, "recovery_rate", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'INSERT INTO recovery_rate' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' error:" + ex.Message);
                 return false;
             }
             #endregion
             return true;
         }
-        // RawData åŒ¯å…¥è³‡æ–™åº«
+        // RawData ¶×¤J¸ê®Æ®w
         public bool ImportRawData(RawDataContentFormat content, DatabaseService DatabaseService)
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
-            // assign éœ€è¦ insert çš„ æ¬„ä½åç¨± èˆ‡ values
+            // assign »İ­n insert ªº Äæ¦ì¦WºÙ »P values
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
-            #region insert raw data çš„ info è¡¨æ ¼
+            #region insert raw data ªº info ªí®æ
             for (int i = 0; i < content.LotInfo.Columns.Count; i++)
             {
                 string column_name = content.LotInfo.Columns[i].ColumnName.ToLower();
                 column_name = column_name.Split('(', ')')[0];
-                // æ¬„ä½åç¨±èª¿æ•´
+                // Äæ¦ì¦WºÙ½Õ¾ã
                 if (column_name == "bondingdiagram") column_name = "bonding_diagram";
                 if (column_name == "pass without ocr".ToLower()) column_name = "pass_without_ocr";
                 if (column_name == "open without ocr".ToLower()) column_name = "open_without_ocr";
@@ -192,10 +188,10 @@ namespace DCT_data_import
                 if (column_name == "pass without ocr_ppm".ToLower()) column_name = "pass_without_ocr_ppm";
                 if (column_name == "open without ocr_ppm".ToLower()) column_name = "open_without_ocr_ppm";
                 if (column_name == "short & others_ppm".ToLower()) column_name = "short_others_ppm";
-                // è™•ç†æ—¥æœŸæ ¼å¼
+                // ³B²z¤é´Á®æ¦¡
                 if (column_name == "start" || column_name == "stop")
                 {
-                    // æ—¥æœŸæ ¼å¼è§£ææ­£ç¢º
+                    // ¤é´Á®æ¦¡¸ÑªR¥¿½T
                     content.LotInfo.Rows[0][i] = CustomizeDateTimeParser(content.LotInfo.Rows[0][i].ToString());
                 }
                 columns += "`" + column_name.Trim() + "`";
@@ -212,31 +208,31 @@ namespace DCT_data_import
                 response2 = ExecuteInsertWithAPI(DatabaseService, "lots_info", columns, values);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO lots_info' error:" + response2.Error);
+                    writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + response2.Error);
                     return false;
                 }
             }
             catch (Exception ex)
             {
                 //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO lots_info' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + ex.Message);
                 return false;
             }
             #endregion
             string lotId = string.Empty;
             try
             {
-                // å–å¾—ç•¶å‰ lot id å€¼
+                // ¨ú±o·í«e lot id ­È
                 lotId = response2.Data[0]["insertId"].ToString();
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'å–å¾—ç•¶å‰ lot id å€¼ error:" + ex.Message);
+                writeToLog.WriteErrorLog("'¨ú±o·í«e lot id ­È error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return false;
             }
             //string lotId = "3";
-            #region insert raw data çš„ statistic è¡¨æ ¼
+            #region insert raw data ªº statistic ªí®æ
             columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotStatistic.Tables[0].Columns.Count; i++)
             {
@@ -257,7 +253,7 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert çµ±è¨ˆå€¼è¡¨
+            // ¶}©l³v¤@insert ²Î­p­Èªí
             int test_count = 0, cut_size = 0;
             int.TryParse(content.LotStatistic.Tables[0].Rows[0]["# of PASS"].ToString(), out test_count);
             int tableCount = content.LotStatistic.Tables.Count;
@@ -272,7 +268,7 @@ namespace DCT_data_import
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
                     values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
                     values += "\"" + string.Join("\",\"", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))) + "\"";
-                    // æ¯cut_sizeå€‹rowå°±åŒ¯å…¥ä¸€æ¬¡
+                    // ¨Ccut_size­Órow´N¶×¤J¤@¦¸
                     if (i != 0 && i % cut_size == 0)
                     {
                         values += ")";
@@ -280,7 +276,7 @@ namespace DCT_data_import
                         response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
-                            writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
+                            writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
                             response2 = DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
@@ -301,7 +297,7 @@ namespace DCT_data_import
                     response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
                         response2 = DeleteRawData(DatabaseService, lotId);
                         return false;
                     }
@@ -309,12 +305,12 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'INSERT INTO lots_statistic' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' error:" + ex.Message);
                 response2 = DeleteRawData(DatabaseService, lotId);
                 return false;
             }
             #endregion
-            #region insert raw data çš„ result è¡¨æ ¼
+            #region insert raw data ªº result ªí®æ
             cut_size = (content.LotResult.Rows.Count > 5000) ? 5000 : content.LotResult.Rows.Count;
             columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotResult.Columns.Count; i++)
@@ -335,13 +331,13 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert resultè¡¨
+            // ¶}©l³v¤@insert resultªí
             try
             {
                 values = string.Empty;
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
                 {
-                    //// åˆ¤æ–· index=1 çš„Serialæ˜¯å¦ç‚ºç©ºï¼Œè‹¥ç‚ºç©ºå‰‡è·³é
+                    //// §PÂ_ index=1 ªºSerial¬O§_¬°ªÅ¡A­Y¬°ªÅ«h¸õ¹L
                     if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
                     {
                         values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
@@ -358,7 +354,7 @@ namespace DCT_data_import
                             }
                             else if (content.LotResult.Columns[j].ColumnName == "real time")
                             {
-                                // åˆ¤æ–·æ˜¯å¦ç‚ºæ™‚é–“æ ¼å¼ï¼Œè‹¥ä¸ç¬¦åˆå‰‡çµ¦NULL
+                                // §PÂ_¬O§_¬°®É¶¡®æ¦¡¡A­Y¤£²Å¦X«hµ¹NULL
                                 DateTime out_dateTime;
                                 if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
                                 {
@@ -378,7 +374,7 @@ namespace DCT_data_import
                                 values += ",";
                             }
                         }
-                        // æ¯cut_sizeå€‹rowå°±åŒ¯å…¥ä¸€æ¬¡
+                        // ¨Ccut_size­Órow´N¶×¤J¤@¦¸
                         if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
                         {
                             values += ")";
@@ -386,7 +382,7 @@ namespace DCT_data_import
                             response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
-                                writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + response2.Error);
+                                writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
                                 return false;
                             }
                             values = string.Empty;
@@ -404,7 +400,7 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
-                    // å¦‚æœæœ€å¾Œä¸€å€‹å­—å…ƒæ˜¯')' å‰‡ç§»é™¤
+                    // ¦pªG³Ì«á¤@­Ó¦r¤¸¬O')' «h²¾°£
                     string last_str = values.Substring(values.Length - 1);
                     if (last_str == ")")
                     {
@@ -413,24 +409,24 @@ namespace DCT_data_import
                     response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' response error:" + response2.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO lots_result' response error:" + response2.Error);
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'INSERT INTO lots_result' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + ex.Message);
                 return false;
             }
             #endregion
             return true;
         }
-        // Tester Status åŒ¯å…¥è³‡æ–™åº«
+        // Tester Status ¶×¤J¸ê®Æ®w
         public bool ImportTesterStatus(TestStatusContentFormat content, DatabaseService DatabaseService)
         {
             if (content.Tester_device_info.Rows.Count < 1 || content.Tester_status.Rows.Count < 1 || content.Tester_sw_version.Rows.Count < 1) return false;
-            // assign éœ€è¦ insert çš„ æ¬„ä½åç¨± èˆ‡ values
+            // assign »İ­n insert ªº Äæ¦ì¦WºÙ »P values
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             #region insert `tester_device_info`
@@ -438,7 +434,7 @@ namespace DCT_data_import
             {
                 string column_name = content.Tester_device_info.Columns[i].ColumnName.ToLower();
                 column_name = column_name.Trim().Replace(" ", "_");
-                // æ¬„ä½åç¨±èª¿æ•´
+                // Äæ¦ì¦WºÙ½Õ¾ã
                 if (column_name == "prober_/_handler") column_name = "prober/handler";
                 if (column_name == "l/b_id") column_name = "L/B_id";
                 if (column_name == "handler_repair_starttime") column_name = "handler_repair_start_time";
@@ -450,7 +446,7 @@ namespace DCT_data_import
                 }
                 else
                 {
-                    // è·¯å¾‘çš„(\) è¦è™•ç†æˆ (\\)
+                    // ¸ô®|ªº(\) ­n³B²z¦¨ (\\)
                     if (column_name == "program_path")
                     {
                         values += "\"" + ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()).Replace(@"\", @"\\") + "\"";
@@ -484,14 +480,14 @@ namespace DCT_data_import
                 response = ExecuteInsertWithAPI(DatabaseService, "tester_device_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO tester_device_info' error:" + response.Error);
+                    writeToLog.WriteErrorLog("'INSERT INTO tester_device_info' error:" + response.Error);
                     return false;
                 }
             }
             catch (Exception ex)
             {
                 //Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_device_info' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO tester_device_info' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -502,7 +498,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("get tester_device_info insertId error:" + ex.Message);
+                writeToLog.WriteErrorLog("get tester_device_info insertId error:" + ex.Message);
                 return false;
             }
             #region insert `tester_status`
@@ -522,12 +518,12 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert
+            // ¶}©l³v¤@insert
             try
             {
                 for (int i = 0; i < content.Tester_status.Rows.Count; i++)
                 {
-                    // åªå­˜ä¸€è¡Œè³‡æ–™ï¼Œè¶…éå°±ä¸å­˜
+                    // ¥u¦s¤@¦æ¸ê®Æ¡A¶W¹L´N¤£¦s
                     if (i > 0) break;
                     values = "\"" + ConvertEmptyToDefaultString(device_info_Id) + "\",";
                     //values = "\"" + device_info_Id + "\",";
@@ -551,7 +547,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "tester_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO tester_status' error:" + response.Error);
                         response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
@@ -560,7 +556,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_status' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO tester_status' error:" + ex.Message);
                 response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
@@ -581,7 +577,7 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert
+            // ¶}©l³v¤@insert
             try
             {
                 for (int i = 0; i < content.Tester_sw_version.Rows.Count; i++)
@@ -599,7 +595,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "tester_sw_version", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO tester_sw_version' error:" + response.Error);
                         response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
@@ -607,7 +603,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_sw_version' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO tester_sw_version' error:" + ex.Message);
                 response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
@@ -624,7 +620,7 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert
+            // ¶}©l³v¤@insert
             try
             {
                 for (int i = 0; i < content.Tester_production_analysis.Rows.Count; i++)
@@ -649,7 +645,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "tester_production_analysis", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO tester_production_analysis' error:" + response.Error);
                         response = DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
@@ -657,18 +653,18 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("'INSERT INTO tester_production_analysis'  error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO tester_production_analysis'  error:" + ex.Message);
                 response = DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
             return true;
         }
-        // UI Status åŒ¯å…¥è³‡æ–™åº«
+        // UI Status ¶×¤J¸ê®Æ®w
         public bool ImportUIStatus(UIStatusContentFormat content, DatabaseService DatabaseService)
         {
             if (content.UI_status.Rows.Count < 1) return false;
-            // assign éœ€è¦ insert çš„ æ¬„ä½åç¨± èˆ‡ values
+            // assign »İ­n insert ªº Äæ¦ì¦WºÙ »P values
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             string mac_address, area, factory, os_machine, date;
@@ -714,29 +710,28 @@ namespace DCT_data_import
                 }
                 try
                 {
-
                     response = ExecuteInsertWithAPI(DatabaseService, "ui_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO ui_status' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO ui_status' error:" + response.Error);
                         return false;
                     }
                     //}
                 }
                 catch (Exception ex)
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO ui_status' error:" + ex.Message);
+                    writeToLog.WriteErrorLog("'INSERT INTO ui_status' error:" + ex.Message);
                     return false;
                 }
             }
             #endregion
             return true;
         }
-        // Fail Pin Log åŒ¯å…¥è³‡æ–™åº«
+        // Fail Pin Log ¶×¤J¸ê®Æ®w
         public bool ImportFailPinLog(FailPinLogContentFormat content, DatabaseService DatabaseService)
         {
             if (content.Fail_pin_rate_info.Rows.Count < 1) return false;
-            // assign éœ€è¦ insert çš„ æ¬„ä½åç¨± èˆ‡ values
+            // assign »İ­n insert ªº Äæ¦ì¦WºÙ »P values
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             #region insert `fail_pin_rate_info`
@@ -744,7 +739,7 @@ namespace DCT_data_import
             {
                 string column_name = content.Fail_pin_rate_info.Columns[i].ColumnName.ToLower();
                 column_name = column_name.Trim().Replace(" ", "_");
-                // æ¬„ä½åç¨±èª¿æ•´
+                // Äæ¦ì¦WºÙ½Õ¾ã
                 //if (column_name == "db_key") column_name = "db_version";
                 if (!string.IsNullOrEmpty(content.Fail_pin_rate_info.Rows[0][i].ToString().Trim()))
                 {
@@ -767,14 +762,14 @@ namespace DCT_data_import
                 response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_info' error:" + response.Error);
+                    writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_info' error:" + response.Error);
                     return false;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_info' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_info' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -792,7 +787,7 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert
+            // ¶}©l³v¤@insert
             try
             {
                 for (int i = 0; i < content.Fail_pin_rate_list.Rows.Count; i++)
@@ -818,18 +813,18 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list' error:" + response.Error);
                         response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
-                    // å°‡æ­¤ç­†insertçš„fail_pin_rate_list_idä¿å­˜è‡³é™£åˆ—
+                    // ±N¦¹µ§insertªºfail_pin_rate_list_id«O¦s¦Ü°}¦C
                     fail_pin_rate_list_Id.Add(response.Data[0]["insertId"].ToString());
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list' error:" + ex.Message);
                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
@@ -846,7 +841,7 @@ namespace DCT_data_import
                     columns += ",";
                 }
             }
-            // é–‹å§‹é€ä¸€insert
+            // ¶}©l³v¤@insert
             try
             {
                 values = string.Empty;
@@ -870,7 +865,7 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    // æ¯50å€‹rowå°±åŒ¯å…¥ä¸€æ¬¡
+                    // ¨C50­Órow´N¶×¤J¤@¦¸
                     if (i != 0 && i % 50 == 0)
                     {
                         values += ")";
@@ -878,7 +873,7 @@ namespace DCT_data_import
                         response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                         if (!string.IsNullOrEmpty(response.Error))
                         {
-                            writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
+                            writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
                             response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                             return false;
                         }
@@ -899,7 +894,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
                         response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
@@ -908,14 +903,14 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + ex.Message);
                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
-            #region insert `fail_pin_rate_test_result`             2024/3/1 æ–°å¢
+            #region insert `fail_pin_rate_test_result`             2024/3/1 ·s¼W
             columns = "`fail_pin_rate_list_id`,`item_name`,`open`,`short`,`vmeas`";
-            // é–‹å§‹é€ä¸€insert
+            // ¶}©l³v¤@insert
             try
             {
                 values = string.Empty;
@@ -939,7 +934,7 @@ namespace DCT_data_import
                                 values += ",";
                             }
                         }
-                        // æ¯50å€‹rowå°±åŒ¯å…¥ä¸€æ¬¡
+                        // ¨C50­Órow´N¶×¤J¤@¦¸
                         if (i != 0 && i % 50 == 0)
                         {
                             values += ")";
@@ -947,7 +942,7 @@ namespace DCT_data_import
                             response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
                             if (!string.IsNullOrEmpty(response.Error))
                             {
-                                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
+                                writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
                                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                                 return false;
                             }
@@ -976,7 +971,7 @@ namespace DCT_data_import
                     response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
-                        writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
+                        writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
                         response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
@@ -985,7 +980,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog("'INSERT INTO fail_pin_rate_test_result' error:" + ex.Message);
+                writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + ex.Message);
                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
@@ -996,59 +991,47 @@ namespace DCT_data_import
         {
             try
             {
-                // âœ… ç¢ºä¿è³‡æ–™åº«å’Œç›¸é—œè³‡æ–™è¡¨å­˜åœ¨
-                bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-
-                if (!databaseExists || !tableExists)
+                // ÀË¬d¸ê®Æ®w©M¸ê®Æªí¬O§_¦s¦b
+                if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
-                    writeToLog.WriteToDataImportLog($"ç„¡æ³•ç¢ºä¿è³‡æ–™åº«æˆ–è³‡æ–™è¡¨ {tableName} å­˜åœ¨");
+                    writeToLog.WriteErrorLog($"¸ê®Æ®w©Î¸ê®Æªí {tableName} ¤£¦s¦b");
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
-                // å®£å‘Š Web API body
+                // «Å§i Web API body
                 Execute_query execute_query = new Execute_query
                 {
                     Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
                 };
-                // å›å‚³ {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+                // ¦^¶Ç {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                    writeToLog.WriteToDataImportLog($"INSERT {tableName} error");
+                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"Error: {response.Error}");
+                    writeToLog.WriteErrorLog($"INSERT {tableName} error");
                 }
                 return response;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                writeToLog.WriteToDataImportLog($"INSERT {tableName} error : {ex.Message}");
+                writeToLog.WriteErrorLog($"INSERT {tableName} error : {ex.Message}");
                 return new Execute_query_response { Error = ex.Message };
             }
         }
         private Execute_query_response DeleteRawData(DatabaseService DatabaseService, string lot_id)
         {
-            // âœ… ç¢ºä¿è³‡æ–™åº«å’Œç›¸é—œè³‡æ–™è¡¨å­˜åœ¨
+            // ÀË¬d¸ê®Æ®w©M¬ÛÃö¸ê®Æªí¬O§_¦s¦b
             string[] requiredTables = { "lots_info", "lots_statistic", "lots_result" };
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-
-            if (!databaseExists)
-            {
-                writeToLog.WriteToDataImportLog("ç„¡æ³•ç¢ºä¿è³‡æ–™åº«å­˜åœ¨ï¼Œç„¡æ³•åŸ·è¡Œåˆªé™¤æ“ä½œ");
-                return new Execute_query_response { Error = "Database does not exist" };
-            }
-
             foreach (string tableName in requiredTables)
             {
-                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-                if (!tableExists)
+                if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
-                    writeToLog.WriteToDataImportLog($"ç„¡æ³•ç¢ºä¿è³‡æ–™è¡¨ {tableName} å­˜åœ¨ï¼Œç„¡æ³•åŸ·è¡Œåˆªé™¤æ“ä½œ");
-                    return new Execute_query_response { Error = $"Table {tableName} does not exist" };
+                    writeToLog.WriteErrorLog($"¸ê®Æ®w©Î¸ê®Æªí {tableName} ¤£¦s¦b¡AµLªk°õ¦æ§R°£¾Ş§@");
+                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            // å®£å‘Š Web API body
+            // «Å§i Web API body
             Execute_query execute_query = new Execute_query
             {
                 Query = @"DELETE t1, t2, t3
@@ -1057,38 +1040,29 @@ namespace DCT_data_import
 										  LEFT JOIN lots_result t3 ON t1.id = t3.lot_id
 									WHERE t1.id = " + lot_id + "; "
             };
-            // å›å‚³ {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+            // ¦^¶Ç {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                writeToLog.WriteToDataImportLog("DELETE lots_info, lots_statistic, lots_result error");
+                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"Error: {response.Error}");
+                writeToLog.WriteErrorLog("DELETE lots_info, lots_statistic, lots_result error");
             }
             return response;
         }
         private Execute_query_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
         {
-            // âœ… ç¢ºä¿è³‡æ–™åº«å’Œç›¸é—œè³‡æ–™è¡¨å­˜åœ¨
+            // ÀË¬d¸ê®Æ®w©M¬ÛÃö¸ê®Æªí¬O§_¦s¦b
             string[] requiredTables = { "tester_device_info", "tester_status", "tester_sw_version", "tester_production_analysis" };
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-
-            if (!databaseExists)
-            {
-                writeToLog.WriteToDataImportLog("ç„¡æ³•ç¢ºä¿è³‡æ–™åº«å­˜åœ¨ï¼Œç„¡æ³•åŸ·è¡Œåˆªé™¤æ“ä½œ");
-                return new Execute_query_response { Error = "Database does not exist" };
-            }
-
             foreach (string tableName in requiredTables)
             {
-                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-                if (!tableExists)
+                if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
-                    writeToLog.WriteToDataImportLog($"ç„¡æ³•ç¢ºä¿è³‡æ–™è¡¨ {tableName} å­˜åœ¨ï¼Œç„¡æ³•åŸ·è¡Œåˆªé™¤æ“ä½œ");
-                    return new Execute_query_response { Error = $"Table {tableName} does not exist" };
+                    writeToLog.WriteErrorLog($"¸ê®Æ®w©Î¸ê®Æªí {tableName} ¤£¦s¦b¡AµLªk°õ¦æ§R°£¾Ş§@");
+                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            // å®£å‘Š Web API body
+            // «Å§i Web API body
             Execute_query execute_query = new Execute_query
             {
                 Query = @"DELETE t1, t2, t3, t4
@@ -1098,38 +1072,29 @@ namespace DCT_data_import
 										  LEFT JOIN tester_production_analysis t4 ON t1.id = t4.device_info_id
 									 WHERE t1.id = " + device_info_id + "; "
             };
-            // å›å‚³ {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+            // ¦^¶Ç {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                writeToLog.WriteToDataImportLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error");
+                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"Error: {response.Error}");
+                writeToLog.WriteErrorLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error");
             }
             return response;
         }
         private Execute_query_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
         {
-            // âœ… ç¢ºä¿è³‡æ–™åº«å’Œç›¸é—œè³‡æ–™è¡¨å­˜åœ¨
+            // ÀË¬d¸ê®Æ®w©M¬ÛÃö¸ê®Æªí¬O§_¦s¦b
             string[] requiredTables = { "fail_pin_rate_info", "fail_pin_rate_list", "fail_pin_rate_list_pin_ball", "fail_pin_rate_test_result" };
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-
-            if (!databaseExists)
-            {
-                writeToLog.WriteToDataImportLog("ç„¡æ³•ç¢ºä¿è³‡æ–™åº«å­˜åœ¨ï¼Œç„¡æ³•åŸ·è¡Œåˆªé™¤æ“ä½œ");
-                return new Execute_query_response { Error = "Database does not exist" };
-            }
-
             foreach (string tableName in requiredTables)
             {
-                bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-                if (!tableExists)
+                if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
-                    writeToLog.WriteToDataImportLog($"ç„¡æ³•ç¢ºä¿è³‡æ–™è¡¨ {tableName} å­˜åœ¨ï¼Œç„¡æ³•åŸ·è¡Œåˆªé™¤æ“ä½œ");
-                    return new Execute_query_response { Error = $"Table {tableName} does not exist" };
+                    writeToLog.WriteErrorLog($"¸ê®Æ®w©Î¸ê®Æªí {tableName} ¤£¦s¦b¡AµLªk°õ¦æ§R°£¾Ş§@");
+                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            // å®£å‘Š Web API body
+            // «Å§i Web API body
             Execute_query execute_query = new Execute_query
             {
                 Query = @"DELETE t3
@@ -1137,15 +1102,15 @@ namespace DCT_data_import
 										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
 									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
-            // å›å‚³ {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+            // ¦^¶Ç {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list_pin_ball error");
+                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"Error: {response.Error}");
+                writeToLog.WriteErrorLog("DELETE fail_pin_rate_list_pin_ball error");
             }
-            // å®£å‘Š Web API body
+            // «Å§i Web API body
             execute_query = new Execute_query
             {
                 Query = @"DELETE t4
@@ -1153,15 +1118,15 @@ namespace DCT_data_import
 										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
 									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
-            // å›å‚³ {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+            // ¦^¶Ç {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_test_result error ");
+                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"Error: {response.Error}");
+                writeToLog.WriteErrorLog("DELETE fail_pin_rate_test_result error ");
             }
-            // å®£å‘Š Web API body
+            // «Å§i Web API body
             execute_query = new Execute_query
             {
                 Query = @"DELETE t1, t2
@@ -1169,13 +1134,13 @@ namespace DCT_data_import
 										  LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
 									WHERE t1.id = " + fail_pin_id + "; "
             };
-            // å›å‚³ {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
+            // ¦^¶Ç {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                writeToLog.WriteToDataImportLog("DELETE fail_pin_rate_list and fail_pin_rate_info error");
+                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"Error: {response.Error}");
+                writeToLog.WriteErrorLog("DELETE fail_pin_rate_list and fail_pin_rate_info error");
             }
             return response;
         }
@@ -1192,11 +1157,11 @@ namespace DCT_data_import
             }
         }
         /// <summary>
-        /// è™•ç†è¼¸å…¥å­—ä¸²ï¼Œé€²è¡Œç©ºå€¼æª¢æŸ¥åŠå–ä»£æˆé è¨­å€¼
+        /// ³B²z¿é¤J¦r¦ê¡A¶i¦æªÅ­ÈÀË¬d¤Î¨ú¥N¦¨¹w³]­È
         /// </summary>
-        /// <param name="input">è¼¸å…¥å­—ä¸²</param>
-        /// <param name="defaultValue">é è¨­å€¼ï¼Œé è¨­ç‚º"No Data"</param>
-        /// <returns>è™•ç†å¾Œçš„å­—ä¸²</returns>
+        /// <param name="input">¿é¤J¦r¦ê</param>
+        /// <param name="defaultValue">¹w³]­È¡A¹w³]¬°"No Data"</param>
+        /// <returns>³B²z«áªº¦r¦ê</returns>
         public string ConvertEmptyToDefaultString(string inputValue, string defaultValue = "No Data")
         {
             if (string.IsNullOrEmpty(inputValue?.Trim()))

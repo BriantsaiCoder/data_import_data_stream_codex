@@ -10,18 +10,13 @@ namespace DCT_data_import
         public int SelectDataCountInDays(DatabaseService DatabaseService, int day, string mode = "tester")
         {
             WriteToLog writeToLog = new WriteToLog();
-
-            // 確保資料庫和相關資料表存在
+            // 檢查資料庫和相關資料表是否存在
             string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-            bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-
-            if (!databaseExists || !tableExists)
+            if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
             {
-                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
+                writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return -1;
             }
-
             string sql = "";
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             long threeHourAgoTimeStamp = nowTimeStamp - 86400 * day;  // 24小時=86400秒
@@ -45,9 +40,9 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
+                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"Error: {response.Error}");
+                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
                 }
                 if (int.TryParse(response.Data[0]["count_id"].ToString(), out count))
                 {
@@ -60,7 +55,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("SelectDataCountInDays() error:" + ex.Message);
+                writeToLog.WriteErrorLog("SelectDataCountInDays() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return -1;
             }
@@ -75,18 +70,13 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyList = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
-
-            // 確保資料庫和相關資料表存在
+            // 檢查資料庫和相關資料表是否存在
             string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-            bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-
-            if (!databaseExists || !tableExists)
+            if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
             {
-                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
+                writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return new List<DbKeyObject>();
             }
-
             string sql = string.Empty;
             if (mode == "tester")
             {
@@ -108,9 +98,9 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
+                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"Error: {response.Error}");
+                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
                 }
                 for (int i = 0; i < response.Data.Count; i++)
                 {
@@ -124,17 +114,35 @@ namespace DCT_data_import
                     if (mode == "tester")
                     {
                         //dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
-                        dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["recovery_rate"].ToString()), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
+                        // Safe parsing for all integer fields
+                        if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id) ||
+                            !int.TryParse(response.Data[i]["recovery_rate"]?.ToString(), out int recoveryRate) ||
+                            !int.TryParse(response.Data[i]["tester"]?.ToString(), out int tester) ||
+                            !int.TryParse(response.Data[i]["test_result"]?.ToString(), out int testResult) ||
+                            !int.TryParse(response.Data[i]["fail_pin"]?.ToString(), out int failPin) ||
+                            !int.TryParse(response.Data[i]["check_status"]?.ToString(), out int checkStatus))
+                        {
+                            writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
+                            continue;
+                        }
+                        dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), recoveryRate, tester, testResult, failPin, checkStatus));
                     }
                     else
                     {
-                        dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["check_status"].ToString())));
+                        // Safe parsing for id and check_status fields
+                        if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id) ||
+                            !int.TryParse(response.Data[i]["check_status"]?.ToString(), out int checkStatus))
+                        {
+                            writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
+                            continue;
+                        }
+                        dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), checkStatus));
                     }
                 }
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("SelectDbKey() error:" + ex.Message);
+                writeToLog.WriteErrorLog("SelectDbKey() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return new List<DbKeyObject>();
             }
@@ -143,17 +151,12 @@ namespace DCT_data_import
         public string UpdateDbKeyImportStatus(DatabaseService DatabaseService, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
-
-            // 確保資料庫和 db_key 資料表存在
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-            bool tableExists = DatabaseService.EnsureTableExistsAsync("db_key").GetAwaiter().GetResult();
-
-            if (!databaseExists || !tableExists)
+            // 檢查資料庫和 db_key 資料表是否存在
+            if (!DatabaseService.CheckDatabaseAndTableExists("db_key"))
             {
-                writeToLog.WriteToDataImportLog("無法確保資料庫或 db_key 資料表存在");
+                writeToLog.WriteErrorLog("資料庫或 db_key 資料表不存在");
                 return "Fail. Database or table does not exist";
             }
-
             //int importResult = 4 * tester + 2 * testResult + failPin;
             int importResult = 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
             string id, checkStatus, importStatus = "1", mail = "0";
@@ -167,9 +170,9 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
+                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"Error: {response.Error}");
+                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
                     return "Fail. Execution 'select' error: " + response.Error;
                 }
                 if (response.Data.Count > 0)
@@ -187,12 +190,16 @@ namespace DCT_data_import
                 //    importStatus = "0";
                 //}
                 /*else */
-                if (importResult == int.Parse(checkStatus))
+                if (int.TryParse(checkStatus, out int checkStatusInt) && importResult == checkStatusInt)
                 {
                     importStatus = "1"; // import successfully
                 }
                 else
                 {
+                    if (!int.TryParse(checkStatus, out checkStatusInt))
+                    {
+                        writeToLog.WriteErrorLog($"UpdateDbKey() invalid checkStatus value: {checkStatus}");
+                    }
                     importStatus = "2"; // import fail
                     mail = "1";
                     // 寫入寄信暫存檔
@@ -214,13 +221,13 @@ namespace DCT_data_import
                 response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
+                    writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
                     return "Fail. Execution 'update' error: " + response.Error;
                 }
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("UpdateDbKeyImportStatus() error:" + ex.Message);
+                writeToLog.WriteErrorLog("UpdateDbKeyImportStatus() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return "Fail. Exception error";
             }
@@ -229,17 +236,12 @@ namespace DCT_data_import
         public string UpdateDbKeyUiStatusImportStatus(DatabaseService DatabaseService, string dbKey, int uiStatus, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
-
-            // 確保資料庫和 db_key_ui_status 資料表存在
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-            bool tableExists = DatabaseService.EnsureTableExistsAsync("db_key_ui_status").GetAwaiter().GetResult();
-
-            if (!databaseExists || !tableExists)
+            // 檢查資料庫和 db_key_ui_status 資料表是否存在
+            if (!DatabaseService.CheckDatabaseAndTableExists("db_key_ui_status"))
             {
-                writeToLog.WriteToDataImportLog("無法確保資料庫或 db_key_ui_status 資料表存在");
+                writeToLog.WriteErrorLog("資料庫或 db_key_ui_status 資料表不存在");
                 return "Fail. Database or table does not exist";
             }
-
             int importResult = uiStatus;
             string id, checkStatus, importStatus = "1", mail = "0";
             try
@@ -252,9 +254,9 @@ namespace DCT_data_import
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
+                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"Error: {response.Error}");
+                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
                     return "Fail. Execution 'select' error: " + response.Error;
                 }
                 if (response.Data.Count > 0)
@@ -272,12 +274,16 @@ namespace DCT_data_import
                 //    importStatus = "0";
                 //}
                 /*else*/
-                if (importResult == int.Parse(checkStatus))
+                if (int.TryParse(checkStatus, out int checkStatusInt) && importResult == checkStatusInt)
                 {
                     importStatus = "1";
                 }
                 else
                 {
+                    if (!int.TryParse(checkStatus, out checkStatusInt))
+                    {
+                        writeToLog.WriteErrorLog($"UpdateDbKeyUiStatus() invalid checkStatus value: {checkStatus}");
+                    }
                     importStatus = "2";
                     mail = "1";
                     // 寫入寄信暫存檔
@@ -296,78 +302,17 @@ namespace DCT_data_import
                 response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteToDataImportLog("UPDATE `db_key` error! ");
+                    writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
                     return "Fail. Execution 'update' error: " + response.Error;
                 }
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("UpdateDbKeyUiStatusImportStatus() error:" + ex.Message);
+                writeToLog.WriteErrorLog("UpdateDbKeyUiStatusImportStatus() error:" + ex.Message);
                 Console.WriteLine(ex.ToString());
                 return "Fail. Exception error";
             }
             return "OK";
-        }
-        public List<DbKeyObject> SelectFailDbKeyResult(DatabaseService DatabaseService, string mode = "")
-        {
-            List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
-            WriteToLog writeToLog = new WriteToLog();
-
-            // 確保資料庫和相關資料表存在
-            string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
-            bool databaseExists = DatabaseService.EnsureDatabaseExistsAsync(Program.DATABASE).GetAwaiter().GetResult();
-            bool tableExists = DatabaseService.EnsureTableExistsAsync(tableName).GetAwaiter().GetResult();
-
-            if (!databaseExists || !tableExists)
-            {
-                writeToLog.WriteToDataImportLog($"無法確保資料庫或資料表 {tableName} 存在");
-                return new List<DbKeyObject>();
-            }
-
-            string sql = string.Empty, remark = string.Empty;
-            long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
-            //long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒  3小時前
-            long threeHourAgoTimeStamp = nowTimeStamp - 1200;  // 20分鐘前
-            //long threeHourAgoTimeStamp = nowTimeStamp + 10800;  // 3小時=10800秒  3小時後
-            if (mode == "tester")
-            {
-                sql = @"SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`=0 AND `import_status`=0 AND datetime <= " + threeHourAgoTimeStamp +
-                          @" union ALL
-                                SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`= 0 AND `import_status`>=2 AND datetime <= " + threeHourAgoTimeStamp;
-            }
-            else if (mode == "ui_status")
-            {
-                sql = @"SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`=0 AND `import_status`=0 AND datetime <= " + threeHourAgoTimeStamp +
-                          @" union ALL
-                                SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`= 0 AND `import_status` >=2 AND datetime <= " + threeHourAgoTimeStamp;
-            }
-            try
-            {
-                Execute_query execute_query = new Execute_query
-                {
-                    Query = sql
-                };
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.Error))
-                {
-                    writeToLog.WriteToDataImportLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteToDataImportLog($"Error: {response.Error}");
-                    writeToLog.WriteToDataImportLog("SELECT `db_key` error! ");
-                }
-                for (int i = 0; i < response.Data.Count; i++)
-                {
-                    //Console.WriteLine(response.data[i]["db_key"].ToString());
-                    remark = (response.Data[i]["check_status"].ToString() == "0") ? "未更新check status" : response.Data[i]["remark"].ToString();
-                    dbKeyObject.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), remark));
-                }
-            }
-            catch (Exception ex)
-            {
-                writeToLog.WriteToDataImportLog("SelectFailDbKeyResult() error:" + ex.Message);
-                Console.WriteLine(ex.ToString());
-                return dbKeyObject;
-            }
-            return dbKeyObject;
         }
         public List<DbKeyObject> SelectFailDbKeyFromFile()
         {

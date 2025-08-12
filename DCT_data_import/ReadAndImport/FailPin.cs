@@ -48,7 +48,7 @@ namespace DCT_data_import.ReadAndImport
                 if (!isFileExist)
                 {
                     Console.WriteLine("Fail Pin Log File not found:  " + filename);
-                    writeToLog.WriteToDataImportLog("Fail Pin Log File not found: " + ftpserver);
+                    writeToLog.WriteErrorLog("Fail Pin Log File not found: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(0, "File not found.");
                 }
@@ -73,14 +73,14 @@ namespace DCT_data_import.ReadAndImport
                 if (failPinLogContent == null || failPinLogContent.Fail_pin_rate_info.Rows.Count < 1)
                 {
                     Console.WriteLine("Fail Pin Log 讀取失敗:  " + filename);
-                    writeToLog.WriteToDataImportLog("Fail Pin Log 讀取失敗: " + ftpserver);
+                    writeToLog.WriteErrorLog("Fail Pin Log 讀取失敗: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. ");
                 }
                 if (!failPinLogContent.CompareInfo())
                 {
                     Console.WriteLine("Fail Pin Log 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
+                    writeToLog.WriteErrorLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
@@ -120,7 +120,7 @@ namespace DCT_data_import.ReadAndImport
                     else
                     {
                         Console.WriteLine("匯入失敗: Fail Pin " + filename);
-                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
+                        writeToLog.WriteErrorLog("匯入失敗:" + ftpserver);
                         RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
@@ -131,7 +131,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                writeToLog.WriteToDataImportLog(ex.Message);
+                writeToLog.WriteErrorLog(ex.Message);
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }

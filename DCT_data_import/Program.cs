@@ -7,19 +7,20 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
+using DCT_data_import.Common;
 using DCT_data_import.ReadAndImport;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
     class Program
     {
+        private static readonly NotificationService _notificationService = new NotificationService();
         public static string Environment = GetEnvironment(); // Dev : Development 環境(本機資料庫); Prod: Production 環境(Server資料庫)
         public static string HOST = ConfigurationManager.AppSettings[$"{Environment}Host"];
         public static string USER = ConfigurationManager.AppSettings[$"{Environment}UserName"];
         public static string PASSWORD = ConfigurationManager.AppSettings[$"{Environment}Password"];
         public static string PORT = ConfigurationManager.AppSettings[$"{Environment}Port"];
         public static string DATABASE = ConfigurationManager.AppSettings[$"{Environment}Database"];
-        public static string POOL_NAME = ConfigurationManager.AppSettings["PoolName"];
         public static string FTP_IP = ConfigurationManager.ConnectionStrings["FtpIp"].ConnectionString;
         public static string FTP_USER = ConfigurationManager.ConnectionStrings["FtpUser"].ConnectionString;
         public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"].ConnectionString;
@@ -35,19 +36,21 @@ namespace DCT_data_import
             DbAccess dbAccess = new DbAccess();
             int count = 0;
             ////TEST CASE
-            //Tester tester = new Tester();
-            //ImportResult importResult1;
-            ////importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService , "ASEF3-5070-026-172.21.84.46_MT6897Z_ZAHJC-H-D_20250314-152944").GetAwaiter().GetResult();
+            //RecoveryRate recoveryRate = new RecoveryRate();
             //RawData rawData = new RawData();
-            //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService , "ASEF1-5070-B81-172.22.105.32_TMTY34C-009C1L1T1D1CNAAN-S_Fixed_20250506-220731").GetAwaiter().GetResult();
+            //Tester tester = new Tester();
+            //FailPin failPin = new FailPin();
+            //UiStatus uiStatus = new UiStatus();
+            //TsmcIeda tsmcIeda = new TsmcIeda();
+            //ImportResult importResult1;
+            //importResult1 = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
+            //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "DCT-2025-ASECL-10.24.9.142_68BRSA00194O000 - 複製_20250611-170230").GetAwaiter().GetResult();
+            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-040624").GetAwaiter().GetResult();
+            //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-035452").GetAwaiter().GetResult();
+            //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-040624").GetAwaiter().GetResult();
+            //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_44_41");
             //Console.WriteLine("importResult1.Result: " + importResult1.Result);
             //Console.ReadLine();
-            //bool isConnect = DatabaseService .checkDBConnect(POOL_NAME);
-            //if (!isConnect)
-            //{
-            //    // 如果建立pool失敗就中斷程式
-            //    if (!createPool(DatabaseService , writeToLog)) return;
-            //}
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
             Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
@@ -79,12 +82,18 @@ namespace DCT_data_import
                     threadTsmcMode.Start();
                 }
                 #region 固定時間通報程式還活著
-                DateTime nowTime = DateTime.Now;
-                if ((int)nowTime.DayOfWeek == 1 && nowTime.Hour == 8 && nowTime.Minute < 10)
+                // 原始邏輯 (備份):
+                // DateTime nowTime = DateTime.Now;
+                // if ((int)nowTime.DayOfWeek == 1 && nowTime.Hour == 8 && nowTime.Minute < 10)
+                // {
+                //     string mailBody = "Dear all,<br>DCT資料庫匯入程式正常執行中!<br>Thanks. <br>";
+                //     string mailTitle = "DCT data notification - 正常運行中";
+                //     string sendResult = SendMailModel(mailBody, mailTitle);
+                // }
+                // 新的簡化版實作:
+                if (_notificationService.ShouldSendProgramStatusNotification())
                 {
-                    string mailBody = "Dear all,<br>DCT資料庫匯入程式正常執行中!<br>Thanks. <br>";
-                    string mailTitle = "DCT data notification - 正常運行中";
-                    string sendResult = SendMailModel(mailBody, mailTitle);
+                    _notificationService.SendProgramStatusNotification();
                 }
                 #endregion 固定時間通報程式還活著
                 Thread.Sleep(432000); // 432000秒 --> 2H 執行一次
@@ -161,7 +170,7 @@ namespace DCT_data_import
             }
             else
             {
-                writeToLog.WriteToDataImportLog("寄信失敗!");
+                writeToLog.WriteErrorLog("寄信失敗!");
                 return "FAIL";
             }
         }
@@ -174,7 +183,8 @@ namespace DCT_data_import
                 {
                     if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
                     {
-                        SendMailModel("Dear all,<br><br>Tester 已超過1天無資料匯入，請確認!<br><br>Thanks.");
+                        // 原始邏輯 (備份): SendMailModel("Dear all,<br><br>Tester 已超過1天無資料匯入，請確認!<br><br>Thanks.");
+                        _notificationService.SendDataMissingNotification("Tester");
                     }
                 }
             #endregion
@@ -279,6 +289,8 @@ namespace DCT_data_import
             // 通報
             if (failDbKeyFromFile.Count > 0)
             {
+                // 原始邏輯 (備份):
+                /*
                 // 統計 Remark 出現次數
                 var remarkCountDict = new Dictionary<string, int>();
                 foreach (var item in failDbKeyFromFile)
@@ -311,6 +323,14 @@ namespace DCT_data_import
                     // 刪除信件暫存檔
                     string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\mail_temp.txt").LocalPath;
                     File.Delete(log_path);
+                }
+                */
+                // 新的簡化版實作:
+                var details = failDbKeyFromFile.Select(x => $"DB_Key:{x.DbKey}, {x.Remark}").ToList();
+                bool sendResult = _notificationService.SendErrorNotification("下列資料發生異常，請確認檔案內容", details);
+                if (sendResult)
+                {
+                    _notificationService.CleanupMailTempFiles();
                 }
             }
             #endregion 找出需要通報的db_key

@@ -6,14 +6,33 @@ using System.Text;
 using System.Threading;
 namespace DCT_data_import
 {
+    /// <summary>
+    /// 日誌層級列舉
+    /// </summary>
+    public enum LogLevel
+    {
+        Info = 0,    // 一般資訊
+        Error = 1    // 錯誤訊息
+    }
+
     public class WriteToLog
     {
-        public void WriteToDataImportLog(string message)
+        /// <summary>
+        /// 寫入資料匯入日誌，包含層級資訊
+        /// </summary>
+        /// <param name="level">日誌層級</param>
+        /// <param name="message">日誌訊息</param>
+        public void WriteToDataImportLog(LogLevel level, string message)
         {
             string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
             string log_path = Path.Combine(logDirectory, $"DCT_data_import_Log_{DateTime.Now:yyyy_MM_dd}.txt");
             // 使用檔案路徑建立唯一的 Mutex 名稱
             string mutexName = "DCT_Log_" + log_path.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+
+            // 根據層級產生標籤
+            string levelTag = level == LogLevel.Error ? "[ERROR]" : "[INFO]";
+            string logMessage = $"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {levelTag} {message}";
+
             using (var mutex = new Mutex(false, mutexName))
             {
                 bool hasHandle = false;
@@ -34,15 +53,15 @@ namespace DCT_data_import
                         string swVersion = @"DCT_data_import v." + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
                         using (StreamWriter writer = new StreamWriter(log_path, false, Encoding.UTF8))
                         {
-                            writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {swVersion}");
-                            writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {message}");
+                            writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [INFO] {swVersion}");
+                            writer.WriteLine(logMessage);
                         }
                         return;
                     }
                     // 改用同步寫入，避免 WriteLineAsync 的 fire-and-forget 問題
                     using (StreamWriter writer = new StreamWriter(log_path, true, Encoding.UTF8))
                     {
-                        writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {message}");
+                        writer.WriteLine(logMessage);
                     }
                 }
                 catch (Exception ex)
@@ -55,6 +74,34 @@ namespace DCT_data_import
                         mutex.ReleaseMutex();
                 }
             }
+        }
+
+        /// <summary>
+        /// 寫入資料匯入日誌（向後相容方法，預設為 Info 層級）
+        /// </summary>
+        /// <param name="message">日誌訊息</param>
+        public void WriteToDataImportLog(string message)
+        {
+            // 呼叫新方法，預設為 Info 層級以保持向後相容性
+            WriteToDataImportLog(LogLevel.Info, message);
+        }
+
+        /// <summary>
+        /// 寫入資訊層級日誌的便利方法
+        /// </summary>
+        /// <param name="message">日誌訊息</param>
+        public void WriteInfoLog(string message)
+        {
+            WriteToDataImportLog(LogLevel.Info, message);
+        }
+
+        /// <summary>
+        /// 寫入錯誤層級日誌的便利方法
+        /// </summary>
+        /// <param name="message">日誌訊息</param>
+        public void WriteErrorLog(string message)
+        {
+            WriteToDataImportLog(LogLevel.Error, message);
         }
         public string WriteToMailTemp(string message)
         {
@@ -150,116 +197,5 @@ namespace DCT_data_import
             }
         }
     }
-    //public class WriteToLog
-    //{
-    //    int FailedCount = 0;
-    //    public void WriteToDataImportLog(string message)
-    //    {
-    //        string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
-    //        string log_path = Path.Combine(logDirectory, $"DCT_data_import_Log_{DateTime.Now:yyyy_MM_dd}.txt");
-    //        //string log_path = @"C:\temp\HL_System_WEB_Log.txt";
-    //        //string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\DCT_data_import_Log.txt").LocalPath;
-    //        // string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + $"\\data_import_logs\\DCT_data_import_Log_{DateTime.Now.ToString("yyyy_MM_dd")}.txt").LocalPath;
-    //        //using (var mutex = new Mutex(false, log_path.Replace("\\", "")))
-    //        //{
-    //        //    var hasHandle = false;
-    //        try
-    //        {
-    //            // 檢查資料夾是否存在，若不存在則建立
-    //            if (!Directory.Exists(logDirectory))
-    //            {
-    //                Directory.CreateDirectory(logDirectory);
-    //            }
-    //            //hasHandle = mutex.WaitOne(Timeout.Infinite, false);
-    //            if (!File.Exists(log_path))
-    //            {
-    //                string swVersion = @"DCT_data_import v." + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
-    //                //File.Create(log_path);
-    //                using (StreamWriter writer = new StreamWriter(log_path, false, Encoding.UTF8))
-    //                {
-    //                    writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {swVersion}");
-    //                    writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {message}");
-    //                }
-    //                //using (StreamWriter writer = File.CreateText(log_path))
-    //                //{
-    //                //    writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + swVersion);
-    //                //    writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
-    //                //}
-    //                return;
-    //            }
-    //            //File.AppendAllText(log_path, DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + " " + message);
-    //            // Write file using StreamWriter
-    //            using (StreamWriter writer = new StreamWriter(log_path, true, Encoding.UTF8))
-    //            {
-    //                writer.WriteLineAsync($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {message}");
-    //            }
-    //            //using (StreamWriter writer = File.AppendText(log_path))
-    //            //{
-    //            //    //writer.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
-    //            //    writer.WriteLineAsync(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
-    //            //}
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            FailedCount++;
-    //            Console.WriteLine(ex.Message);
-    //        }
-    //        //    finally
-    //        //    {
-    //        //        if (hasHandle)
-    //        //            mutex.ReleaseMutex();
-    //        //    }
-    //        //}
-    //    }
-    //    public string WriteToMailTemp(string message)
-    //    {
-    //        string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\mail_temp.txt").LocalPath;
-    //        if (!File.Exists(log_path))
-    //        {
-    //            //File.Create(log_path);
-    //            using (StreamWriter writer = File.CreateText(log_path))
-    //            {
-    //                writer.WriteLine(message);
-    //            }
-    //            return "";
-    //        }
-    //        // Write file using StreamWriter
-    //        using (StreamWriter writer = new StreamWriter(log_path, true, System.Text.Encoding.UTF8))
-    //        {
-    //            writer.WriteLine(message);
-    //        }
-    //        return "";
-    //    }
-    //    public void WriteToCheckLog(string logFilename, string content)
-    //    {
-    //        string checkLogFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\" + "check_logs";
-    //        checkLogFolder = checkLogFolder.Substring(6);
-    //        if (!Directory.Exists(checkLogFolder))
-    //        {
-    //            Directory.CreateDirectory(checkLogFolder);
-    //        }
-    //        string log_path = new Uri(checkLogFolder + "\\" + logFilename).LocalPath;
-    //        try
-    //        {
-    //            if (!File.Exists(log_path))
-    //            {
-    //                using (StreamWriter writer = File.CreateText(log_path))
-    //                {
-    //                    writer.WriteLine("File Name, File Size, Time, Read File Takes Time, Import Takes Time");
-    //                    writer.WriteLine(content);
-    //                }
-    //                return;
-    //            }
-    //            using (StreamWriter writer = File.AppendText(log_path))
-    //            {
-    //                writer.WriteLine(content);
-    //            }
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            FailedCount++;
-    //            Console.WriteLine(ex.Message);
-    //        }
-    //    }
-    //}
+
 }

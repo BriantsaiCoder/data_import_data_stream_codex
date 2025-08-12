@@ -49,7 +49,7 @@ namespace DCT_data_import.ReadAndImport
             if (!isFileExist)
             {
                 Console.WriteLine("Raw data File not found:  " + filename);
-                writeToLog.WriteToDataImportLog("Raw data File not found: " + ftpserver);
+                writeToLog.WriteErrorLog("Raw data File not found: " + ftpserver);
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
@@ -79,27 +79,27 @@ namespace DCT_data_import.ReadAndImport
                 if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
                 {
                     Console.WriteLine("Raw data 讀檔失敗:  " + filename);
-                    writeToLog.WriteToDataImportLog("Raw data  讀檔失敗: " + ftpserver);
+                    writeToLog.WriteErrorLog("Raw data  讀檔失敗: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. " + rawDataContentFormat.ErrMsg);
                 }
                 if (!rawDataContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Raw data 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
+                    writeToLog.WriteErrorLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
                 if (!rawDataContentFormat.CompareStatistic())
                 {
                     Console.WriteLine("Raw data 之 statistic 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Raw data 之 statistic 欄位名稱不符:" + ftpserver);
+                    writeToLog.WriteErrorLog("Raw data 之 statistic 欄位名稱不符:" + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Statistic field name not match.");
                 }
                 if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
                 {
-                    writeToLog.WriteToDataImportLog("檔名與內容的DB_Key不相符: " + ftpserver);
+                    writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpserver);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
@@ -141,7 +141,7 @@ namespace DCT_data_import.ReadAndImport
                     else
                     {
                         Console.WriteLine("匯入失敗: Raw data " + filename);
-                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
+                        writeToLog.WriteErrorLog("匯入失敗:" + ftpserver);
                         RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
@@ -149,8 +149,9 @@ namespace DCT_data_import.ReadAndImport
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                writeToLog.WriteErrorLog($"RawData 匯入處理發生例外錯誤: {ftpserver}, 檔案: {filename}, 錯誤: {ex.Message}");
                 RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
@@ -198,10 +199,21 @@ namespace DCT_data_import.ReadAndImport
                     // 第一部分  info
                     if (content_part == 1)
                     {
+                        // Safe string splitting with bounds checking
+                        var firstValueParts = values[0]?.Split(':');
+                        if (firstValueParts == null || firstValueParts.Length == 0)
+                        {
+                            Console.WriteLine($"RawData invalid first value format: {values[0]}");
+                            continue;
+                        }
+
+                        string firstValueKey = firstValueParts[0];
+
                         // "Open fail"與"Short fail"為TSMC 客戶中兩個非必要欄位，故排除不存進資料庫
-                        if (values[0].Split(':')[0] == "Open fail" || values[0].Split(':')[0] == "Short fail") continue;
-                        fileContentFormat.LotInfo.Columns.Add(values[0].Split(':')[0], typeof(string));
-                        fileContentFormat.LotInfo.Rows[0][values[0].Split(':')[0]] = values[1];
+                        if (firstValueKey == "Open fail" || firstValueKey == "Short fail") continue;
+
+                        fileContentFormat.LotInfo.Columns.Add(firstValueKey, typeof(string));
+                        fileContentFormat.LotInfo.Rows[0][firstValueKey] = values[1];
                     }
                     // 第二部分  statistic
                     else if (content_part == 2)

@@ -104,7 +104,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("AverageOfSumSquare() error: " + ex.Message);
+                writeToLog.WriteErrorLog("AverageOfSumSquare() error: " + ex.Message);
                 Console.WriteLine("AverageOfSumSquare() error: " + ex.Message);
             }
             return list_statistic_item;

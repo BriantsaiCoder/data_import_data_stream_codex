@@ -1,9 +1,9 @@
-﻿using Dapper;
-using MySql.Data.MySqlClient;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using Dapper;
+using MySql.Data.MySqlClient;
+using Newtonsoft.Json.Linq;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
@@ -13,7 +13,7 @@ namespace DCT_data_import
         {
             MySqlConnectionManager.Initialize(IP, Port, user, password, dbName);
         }
-        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select", object parameters = null)
+        public Execute_query_response ExcuteMysqlCmd(string cmd_string, string mode = "select", object parameters = null)
         {
             Execute_query_response response = new Execute_query_response();
             response.Data = new JArray();
@@ -128,7 +128,7 @@ namespace DCT_data_import
                                     jsonRow[kvp.Key] = null;
                                     // 可選：記錄警告日誌
                                     System.Diagnostics.Debug.WriteLine($"欄位 {kvp.Key} 轉換失敗: {fieldEx.Message}");
-                                    writeToLog.WriteToDataImportLog($"cmd_string {cmd_string} 欄位 {kvp.Key} 轉換失敗: {fieldEx.Message}");
+                                    writeToLog.WriteErrorLog($"cmd_string {cmd_string} 欄位 {kvp.Key} 轉換失敗: {fieldEx.Message}");
                                 }
                             }
                         }
@@ -165,7 +165,7 @@ namespace DCT_data_import
                     {
                         // LAST_INSERT_ID 取得失敗不應該影響主要操作
                         System.Diagnostics.Debug.WriteLine($"取得 LAST_INSERT_ID 失敗: {insertIdEx.Message}");
-                        writeToLog.WriteToDataImportLog($"cmd_string {cmd_string} INSERT, 取得 LAST_INSERT_ID 失敗: {insertIdEx.Message}");
+                        writeToLog.WriteErrorLog($"cmd_string {cmd_string} INSERT, 取得 LAST_INSERT_ID 失敗: {insertIdEx.Message}");
                         insertId = 0;
                     }
                 }
@@ -189,9 +189,15 @@ namespace DCT_data_import
                 }
                 catch (Exception rollbackEx)
                 {
-                    throw new InvalidOperationException($"執行 {cmd_string.Split(' ')[0].ToUpper()} 操作失敗，且回滾交易時也發生錯誤。原始錯誤: {ex.Message}，回滾錯誤: {rollbackEx.Message}", ex);
+                    // Safe string splitting with bounds checking
+                    var cmdParts = cmd_string?.Split(' ');
+                    string operationType = (cmdParts != null && cmdParts.Length > 0) ? cmdParts[0].ToUpper() : "UNKNOWN";
+                    throw new InvalidOperationException($"執行 {operationType} 操作失敗，且回滾交易時也發生錯誤。原始錯誤: {ex.Message}，回滾錯誤: {rollbackEx.Message}", ex);
                 }
-                throw new InvalidOperationException($"執行 {cmd_string.Split(' ')[0].ToUpper()} 操作失敗: {ex.Message}", ex);
+                // Safe string splitting with bounds checking
+                var cmdParts2 = cmd_string?.Split(' ');
+                string operationType2 = (cmdParts2 != null && cmdParts2.Length > 0) ? cmdParts2[0].ToUpper() : "UNKNOWN";
+                throw new InvalidOperationException($"執行 {operationType2} 操作失敗: {ex.Message}", ex);
             }
             finally
             {
@@ -274,8 +280,9 @@ namespace DCT_data_import
                     return connection.State == ConnectionState.Open;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"TestConnection() failed: {ex.Message}");
                 return false;
             }
         }
@@ -289,84 +296,3 @@ namespace DCT_data_import
         }
     }
 }
-//namespace DCT_data_import
-//{
-//    public class DBmysql
-//    {
-//        private static readonly object lockObj = new object();
-//        public void Connect(string IP, string Port, string user, string password, string dbName)
-//        {
-//            MySqlConnectionManager.Initialize(IP, Port, user, password, dbName);
-//        }
-//        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select")
-//        {
-//            Execute_query_response response = new Execute_query_response();
-//            response.Data = new JArray();
-//            try
-//            {
-//                // 使用新的連線物件
-//                using (MySqlConnection localConnection = new MySqlConnection(MySqlConnectionManager.ConnectionString))
-//                {
-//                    localConnection.Open();
-//                    using (MySqlCommand SQLcmd = new MySqlCommand(cmd_string, localConnection))
-//                    {
-//                        if (mode == "select")
-//                        {
-//                            lock (lockObj) // 加鎖，確保執行緒安全
-//                            {
-//                                using (MySqlDataReader receiveSQLdata = SQLcmd.ExecuteReader())
-//                                {
-//                                    // 將資料存儲到 JArray
-//                                    JArray jsonArray = new JArray();
-//                                    while (receiveSQLdata.Read())
-//                                    {
-//                                        JObject row = new JObject();
-//                                        // 逐列讀取
-//                                        for (int i = 0; i < receiveSQLdata.FieldCount; i++)
-//                                        {
-//                                            string columnName = receiveSQLdata.GetName(i);
-//                                            object columnValue = receiveSQLdata.GetValue(i);
-//                                            row[columnName] = JToken.FromObject(columnValue);
-//                                        }
-//                                        // 將行資料添加到 JArray 中
-//                                        jsonArray.Add(row);
-//                                    }
-//                                    response.Data = jsonArray;
-//                                }
-//                            }
-//                        }
-//                        else
-//                        {
-//                            int affectedRows = SQLcmd.ExecuteNonQuery();
-//                            long insertId = SQLcmd.LastInsertedId;  // 獲取自動生成的主鍵ID
-//                            JObject resultObj = new JObject();  // 用於存放回傳結果
-//                                                                // 設定回傳的 JSON 結果
-//                            resultObj["fieldCount"] = 0; // MySQL 的插入操作 fieldCount 通常為 0
-//                            resultObj["affectedRows"] = affectedRows;
-//                            resultObj["insertId"] = insertId;
-//                            resultObj["info"] = "";  // 可能為空
-//                            resultObj["serverStatus"] = 2;  // 模擬結果值，通常 2 代表連接正常
-//                            resultObj["warningStatus"] = 0;  // 假設沒有警告
-//                            response.Data.Add(resultObj);
-//                        }
-//                    }
-//                }
-//            }
-//            catch (Exception ex)
-//            {
-//                //response.Error = ex.Message;
-//                response.Error = $"{ex.Message}\n{", StackTrace:" + ex.StackTrace}";
-//            }
-//            return response;
-//        }
-//    }
-//    public class MySqlConnectionManager
-//    {
-//        private static string connectionString;
-//        public static string ConnectionString { get { return connectionString; } }
-//        public static void Initialize(string IP, string Port, string user, string password, string dbName)
-//        {
-//            connectionString = $"server={IP};port={Port};user id={user};password={password};database={dbName};sslMode=none;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;";
-//        }
-//    }
-//}

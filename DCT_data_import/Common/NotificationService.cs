@@ -3,188 +3,188 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
-using static DCT_data_import.DbObject;
-
 namespace DCT_data_import.Common
 {
     /// <summary>
-    /// 通知服務
-    /// 統一管理郵件通知邏輯
+    /// 簡化版通知服務 - 適合小型專案
+    /// 移除過度設計的抽象層級，直接整合現有的郵件發送邏輯
     /// </summary>
     public class NotificationService
     {
         private readonly WriteToLog _writeToLog;
-
         public NotificationService()
         {
             _writeToLog = new WriteToLog();
         }
-
-        /// <summary>
-        /// 郵件配置類別
-        /// </summary>
-        public class MailConfiguration
-        {
-            public List<string> ToList { get; set; }
-            public List<string> CcList { get; set; }
-            public List<string> BccList { get; set; }
-
-            public MailConfiguration()
-            {
-                ToList = new List<string>();
-                CcList = new List<string>();
-                BccList = new List<string>();
-            }
-        }
-
-        /// <summary>
-        /// 郵件內容類別
-        /// </summary>
-        public class MailContent
-        {
-            public string Subject { get; set; }
-            public string Body { get; set; }
-            public List<string> Attachments { get; set; }
-
-            public MailContent()
-            {
-                Attachments = new List<string>();
-            }
-        }
-
-        /// <summary>
-        /// 發送郵件結果
-        /// </summary>
-        public class MailResult
-        {
-            public bool Success { get; set; }
-            public string Message { get; set; }
-
-            public MailResult(bool success, string message)
-            {
-                Success = success;
-                Message = message;
-            }
-        }
-
-        /// <summary>
-        /// 發送一般通知郵件
-        /// </summary>
-        public async Task<MailResult> SendNotificationAsync(string subject, string body)
-        {
-            try
-            {
-                var mailConfig = LoadMailConfiguration();
-                var mailContent = new MailContent
-                {
-                    Subject = subject,
-                    Body = body
-                };
-
-                return await SendMailAsync(mailConfig, mailContent);
-            }
-            catch (Exception ex)
-            {
-                _writeToLog.WriteToDataImportLog(string.Format("發送通知郵件時發生錯誤: {0}", ex.Message));
-                return new MailResult(false, ex.Message);
-            }
-        }
-
         /// <summary>
         /// 發送程式狀態通知
         /// </summary>
-        public async Task<MailResult> SendProgramStatusNotificationAsync()
+        public bool SendProgramStatusNotification()
         {
             try
             {
                 string subject = "DCT data notification - 正常運行中";
                 string body = "Dear all,<br>DCT資料庫匯入程式正常執行中!<br>Thanks. <br>";
-
-                return await SendNotificationAsync(subject, body);
+                return SendNotification(subject, body);
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog(string.Format("發送程式狀態通知時發生錯誤: {0}", ex.Message));
-                return new MailResult(false, ex.Message);
+                _writeToLog.WriteToDataImportLog($"發送程式狀態通知時發生錯誤: {ex.Message}");
+                return false;
             }
         }
-
         /// <summary>
-        /// 載入郵件配置
+        /// 發送異常通知
         /// </summary>
-        private MailConfiguration LoadMailConfiguration()
+        /// <param name="errorMessage">錯誤訊息</param>
+        /// <param name="details">詳細資料清單</param>
+        public bool SendErrorNotification(string errorMessage, List<string> details = null)
         {
             try
             {
+                string subject = BuildErrorNotificationSubject(details);
+                string body = BuildErrorNotificationBody(errorMessage, details);
+                return SendNotification(subject, body);
+            }
+            catch (Exception ex)
+            {
+                _writeToLog.WriteToDataImportLog($"發送異常通知時發生錯誤: {ex.Message}");
+                return false;
+            }
+        }
+        /// <summary>
+        /// 發送資料遺失警告通知
+        /// </summary>
+        /// <param name="dataType">資料類型 (如: "Tester", "ui_status")</param>
+        public bool SendDataMissingNotification(string dataType)
+        {
+            try
+            {
+                string subject = $"DCT data notification - {dataType} 資料遺失警告";
+                string body = $"Dear all,<br><br>{dataType} 已超過1天無資料匯入，請確認!<br><br>Thanks.";
+                return SendNotification(subject, body);
+            }
+            catch (Exception ex)
+            {
+                _writeToLog.WriteToDataImportLog($"發送資料遺失通知時發生錯誤: {ex.Message}");
+                return false;
+            }
+        }
+        /// <summary>
+        /// 統一的郵件發送方法
+        /// </summary>
+        private bool SendNotification(string subject, string body)
+        {
+            try
+            {
+                string result = SendMailModelInternal(body, subject);
+                return result == "OK";
+            }
+            catch (Exception ex)
+            {
+                _writeToLog.WriteToDataImportLog($"發送通知失敗: {ex.Message}");
+                return false;
+            }
+        }
+        /// <summary>
+        /// 建立錯誤通知的主旨
+        /// </summary>
+        private string BuildErrorNotificationSubject(List<string> details)
+        {
+            if (details == null || details.Count == 0)
+            {
+                return "DCT data notification - 處理異常";
+            }
+            // 統計 Remark 出現次數（模仿原始邏輯）
+            var remarkCounts = new Dictionary<string, int>();
+            foreach (var detail in details)
+            {
+                // 假設 detail 格式為 "DB_Key:xxx, Remark"，提取 Remark 部分
+                var parts = detail.Split(',');
+                if (parts.Length >= 2)
+                {
+                    var remark = parts[1].Trim();
+                    remarkCounts[remark] = remarkCounts.ContainsKey(remark) ? remarkCounts[remark] + 1 : 1;
+                }
+            }
+            if (remarkCounts.Count > 0)
+            {
+                var remarkSummary = string.Join(", ", remarkCounts.Select(kvp => $"{kvp.Key} x {kvp.Value}"));
+                return $"DCT data notification - {remarkSummary}";
+            }
+            return "DCT data notification - 處理異常";
+        }
+        /// <summary>
+        /// 建立錯誤通知的內容
+        /// </summary>
+        private string BuildErrorNotificationBody(string errorMessage, List<string> details)
+        {
+            var body = $"Dear all,<br>{errorMessage}<br>";
+            if (details != null && details.Count > 0)
+            {
+                for (int i = 0; i < details.Count; i++)
+                {
+                    body += $"{i + 1}. {details[i]}<br>";
+                }
+            }
+            body += "Thanks. <br>";
+            return body;
+        }
+        /// <summary>
+        /// 整合現有的 SendMailModel 邏輯
+        /// 這是從 Program.cs 複製過來的邏輯，移除對靜態方法的依賴
+        /// </summary>
+        private string SendMailModelInternal(string mailBody, string mailTitle)
+        {
+            try
+            {
+                // 獲取執行檔路徑
                 string strAppPath = Assembly.GetExecutingAssembly().Location;
                 string strWorkPath = Path.GetDirectoryName(strAppPath);
+                // 讀取郵件清單配置
                 ReadWriteINIfile readWriteINIfile = new ReadWriteINIfile(strWorkPath + "\\dct_import_mail_list.ini");
-
-                var config = new MailConfiguration();
-
-                // 讀取收件人清單
+                // 建立郵件物件
+                EmailModels emailModel = new EmailModels
+                {
+                    Subject = mailTitle,
+                    Body = mailBody
+                };
+                // 設定收件人清單
                 string toListStr = readWriteINIfile.ReadINI("mail_list", "mail_to");
                 if (!string.IsNullOrEmpty(toListStr))
                 {
-                    config.ToList = toListStr.Split(',').Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
+                    emailModel.ToList = toListStr.Split(',').Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
                 }
-
-                // 讀取副本清單
+                // 設定副本清單
                 string ccListStr = readWriteINIfile.ReadINI("mail_list", "mail_cc");
                 if (!string.IsNullOrEmpty(ccListStr))
                 {
-                    config.CcList = ccListStr.Split(',').Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
+                    emailModel.CCList = ccListStr.Split(',').Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
                 }
-
-                // 讀取密送清單
+                // 設定密送清單
                 string bccListStr = readWriteINIfile.ReadINI("mail_list", "mail_bcc");
                 if (!string.IsNullOrEmpty(bccListStr))
                 {
-                    config.BccList = bccListStr.Split(',').Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
+                    emailModel.BccList = bccListStr.Split(',').Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
                 }
-
-                return config;
-            }
-            catch (Exception ex)
-            {
-                _writeToLog.WriteToDataImportLog(string.Format("載入郵件配置時發生錯誤: {0}", ex.Message));
-                return new MailConfiguration();
-            }
-        }
-
-        /// <summary>
-        /// 發送郵件
-        /// </summary>
-        private async Task<MailResult> SendMailAsync(MailConfiguration config, MailContent content)
-        {
-            try
-            {
-                return await Task.Run(() =>
+                // 發送郵件
+                if (emailModel.SendEmail())
                 {
-                    EmailModels emailModel = new EmailModels
-                    {
-                        Subject = content.Subject,
-                        Body = content.Body,
-                        ToList = config.ToList,
-                        CCList = config.CcList,
-                        BccList = config.BccList
-                    };
-
-                    bool result = emailModel.SendEmail();
-                    string message = result ? "寄信成功!" : "寄信失敗!";
-                    
-                    _writeToLog.WriteToDataImportLog(message);
-                    return new MailResult(result, message);
-                });
+                    _writeToLog.WriteToDataImportLog("寄信成功!");
+                    return "OK";
+                }
+                else
+                {
+                    _writeToLog.WriteToDataImportLog("寄信失敗!");
+                    return "FAIL";
+                }
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog(string.Format("發送郵件時發生錯誤: {0}", ex.Message));
-                return new MailResult(false, ex.Message);
+                _writeToLog.WriteToDataImportLog($"SendMailModelInternal 發生錯誤: {ex.Message}");
+                return "ERROR";
             }
         }
-
         /// <summary>
         /// 檢查是否應該發送程式狀態通知
         /// </summary>
@@ -193,7 +193,6 @@ namespace DCT_data_import.Common
             DateTime nowTime = DateTime.Now;
             return (int)nowTime.DayOfWeek == 1 && nowTime.Hour == 8 && nowTime.Minute < 10;
         }
-
         /// <summary>
         /// 清理郵件暫存檔
         /// </summary>
@@ -210,7 +209,7 @@ namespace DCT_data_import.Common
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog(string.Format("清理郵件暫存檔時發生錯誤: {0}", ex.Message));
+                _writeToLog.WriteToDataImportLog($"清理郵件暫存檔時發生錯誤: {ex.Message}");
             }
         }
     }

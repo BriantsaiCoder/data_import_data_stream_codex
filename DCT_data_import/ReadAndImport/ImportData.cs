@@ -79,7 +79,7 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                writeToLog.WriteToDataImportLog("RenameFile() Fail, Exception :" + ex.Message);
+                writeToLog.WriteErrorLog("RenameFile() Fail, Exception :" + ex.Message);
                 return "RenameFile() Fail";
             }
         }
