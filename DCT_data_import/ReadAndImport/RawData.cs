@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
+using DCT_data_import.Common;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
@@ -15,7 +16,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            String ftpserver;
             FtpWebRequest reqFTP;
             FtpWebResponse response;
             Stream responseStream;
@@ -33,24 +33,15 @@ namespace DCT_data_import.ReadAndImport
             string macid = nics[0].GetPhysicalAddress().ToString();
             // 檢查FTP是否有此檔案
             string filename = "test_result_" + dbKey + ".csv";
-            string errorDir = string.Empty;
-            ftpserver = "ftp://" + Program.FTP_IP;
-            if (Program.Environment == "Dev")
-            {
-                ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/Data_Cloud_CSV/" + filename;
-                errorDir = "/DCT_Log/DCT_DB_DATA_Dev/Data_Cloud_CSV_Error/";
-            }
-            else if (Program.Environment == "Prod")
-            {
-                ftpserver += "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV/" + filename;
-                errorDir = "/DCT_Log/DCT_DB_DATA/Data_Cloud_CSV_Error/";
-            }
-            bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            string ftpFilePath = GetFilePath("rawdata", dbKey);
+            string errorPath = GetErrorPath("rawdata", dbKey);
+
+            bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
                 Console.WriteLine("Raw data File not found:  " + filename);
-                writeToLog.WriteErrorLog("Raw data File not found: " + ftpserver);
-                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                writeToLog.WriteErrorLog("Raw data File not found: " + ftpFilePath);
+                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
             // 開始讀檔與匯入
@@ -59,12 +50,12 @@ namespace DCT_data_import.ReadAndImport
                 bool import_result = false;
                 bool isDBKeyExist = false;
                 // 取得編碼格式
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
                 stopWatch.Reset();
                 stopWatch.Start();
                 RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
@@ -79,28 +70,28 @@ namespace DCT_data_import.ReadAndImport
                 if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
                 {
                     Console.WriteLine("Raw data 讀檔失敗:  " + filename);
-                    writeToLog.WriteErrorLog("Raw data  讀檔失敗: " + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteErrorLog("Raw data  讀檔失敗: " + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. " + rawDataContentFormat.ErrMsg);
                 }
                 if (!rawDataContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Raw data 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteErrorLog("Raw data 之 information 欄位名稱不符:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteErrorLog("Raw data 之 information 欄位名稱不符:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
                 if (!rawDataContentFormat.CompareStatistic())
                 {
                     Console.WriteLine("Raw data 之 statistic 欄位名稱不符:  " + filename);
-                    writeToLog.WriteErrorLog("Raw data 之 statistic 欄位名稱不符:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteErrorLog("Raw data 之 statistic 欄位名稱不符:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "Statistic field name not match.");
                 }
                 if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
                 {
-                    writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
@@ -108,7 +99,7 @@ namespace DCT_data_import.ReadAndImport
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compareResult + "   檔名:" + filename);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -134,15 +125,15 @@ namespace DCT_data_import.ReadAndImport
                     {
                         Console.WriteLine("匯入完成! Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
-                        deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                        deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: Raw data " + filename);
-                        writeToLog.WriteErrorLog("匯入失敗:" + ftpserver);
-                        RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        writeToLog.WriteErrorLog("匯入失敗:" + ftpFilePath);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
                         return new ImportResult(3, "Import failed.");
@@ -151,8 +142,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                writeToLog.WriteErrorLog($"RawData 匯入處理發生例外錯誤: {ftpserver}, 檔案: {filename}, 錯誤: {ex.Message}");
-                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                writeToLog.WriteErrorLog($"RawData 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
+                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
             GC.Collect();
@@ -403,6 +394,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
+                WriteToLog writeToLogService = new WriteToLog();
+                writeToLogService.WriteErrorLog($"[FileReadRawData] 讀檔內容錯誤, 錯誤: {ex.Message}");
                 Console.WriteLine(ex.Message);
                 fileContentFormat.ErrMsg = "讀檔內容錯誤, Error:" + ex.Message;
                 return null;

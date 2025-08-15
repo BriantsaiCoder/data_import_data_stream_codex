@@ -14,7 +14,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportRecoveryRateData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            string ftpserver;
             FtpWebRequest reqFTP;
             FtpWebResponse response;
             Stream responseStream;
@@ -34,25 +33,14 @@ namespace DCT_data_import.ReadAndImport
             //    return new ImportResult(0, "FTP server connection failed.");
             // 檢查FTP是否有此檔案
             string filename = "Recovery_rate_" + dbKey + ".csv";
-            string errorDir = string.Empty;
-            ftpserver = "ftp://" + Program.FTP_IP;
-            if (Program.Environment == "Dev")
-            {
-                ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/Recovery_rate_data/" + filename;
-                errorDir = "/DCT_Log/DCT_DB_DATA_Dev/Recovery_rate_data_Error/";
-            }
-            else if (Program.Environment == "Prod")
-            {
-                ftpserver += "/DCT_Log/DCT_DB_DATA/Recovery_rate_data/" + filename;
-                errorDir = "/DCT_Log/DCT_DB_DATA/Recovery_rate_data_Error/";
-            }
-            //ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/Recovery_rate_data/" + filename;
-            bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            string ftpFilePath = GetFilePath("recovery", dbKey);
+            string errorPath = GetErrorPath("recovery", dbKey);
+            bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
                 Console.WriteLine("Recovery Rate File not found:  " + filename);
-                writeToLog.WriteErrorLog("Recovery Rate File not found: " + ftpserver);
-                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                writeToLog.WriteErrorLog("Recovery Rate File not found: " + ftpFilePath);
+                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
             //// 確認 pool 連線狀態
@@ -66,12 +54,12 @@ namespace DCT_data_import.ReadAndImport
                 bool import_result = false;
                 bool isDBKeyExist = false;
                 // 取得編碼格式
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
                 reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                long fileSize = GetFileSize(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
                 stopWatch.Reset();
                 stopWatch.Start();
                 RecoveryRateDataContentFormat recoveryRateDataContentFormat = FileReadRecoveryRateData(reader);
@@ -87,24 +75,24 @@ namespace DCT_data_import.ReadAndImport
                 if (recoveryRateDataContentFormat == null || recoveryRateDataContentFormat.LotInfo.Rows.Count < 1)
                 {
                     Console.WriteLine("Recovery Rate 讀檔失敗:  " + filename);
-                    writeToLog.WriteToDataImportLog("Recovery Rate  讀檔失敗: " + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("Recovery Rate  讀檔失敗: " + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. " + recoveryRateDataContentFormat.ErrMsg);
                 }
                 if (!recoveryRateDataContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Recovery Rate 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Recovery Rate 之 information 欄位名稱不符:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("Recovery Rate 之 information 欄位名稱不符:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
                 }
                 if (!recoveryRateDataContentFormat.CompareRecoveryRate())
                 {
                     Console.WriteLine("Recovery Rate 之 data 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Recovery Rate 之 data 欄位名稱不符:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("Recovery Rate 之 data 欄位名稱不符:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "Recovery data field name not match.");
                 }
@@ -112,8 +100,8 @@ namespace DCT_data_import.ReadAndImport
                 Console.WriteLine("dbkey =" + queryDbKey);
                 if (!dbKey.Equals(recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString()))
                 {
-                    writeToLog.WriteToDataImportLog("檔名與內容的DB_Key不相符: " + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
@@ -122,7 +110,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("資料庫已存在此資料:  " + "   檔名:" + filename);
                     writeToLog.WriteToDataImportLog("資料庫已存在此資料:  " + "   檔名:" + filename);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -144,18 +132,18 @@ namespace DCT_data_import.ReadAndImport
                     if (import_result)
                     {
                         //Console.WriteLine("匯入完成! Raw data    比對: " + compare_result + "   檔名:" + list_filename[i]);
-                        Console.WriteLine("匯入完成! recoveryRate    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
+                        Console.WriteLine("匯入完成! Recovery Rate    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
-                        deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                        deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
                         //return new ImportResult(1, "");
                     }
                     else
                     {
-                        Console.WriteLine("匯入失敗: recoveryRate " + filename);
-                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
-                        RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                        Console.WriteLine("匯入失敗: Recovery Rate " + filename);
+                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpFilePath);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
                         return new ImportResult(3, "Import failed.");
@@ -164,8 +152,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                writeToLog.WriteErrorLog($"RecoveryRate 匯入處理發生例外錯誤: {ftpserver}, 檔案: {filename}, 錯誤: {ex.Message}");
-                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                writeToLog.WriteErrorLog($"RecoveryRate 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
+                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
             GC.Collect();
@@ -234,6 +222,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
+                WriteToLog writeToLogService = new WriteToLog();
+                writeToLogService.WriteErrorLog($"[FileReadRecoveryRateData] 讀檔內容錯誤, 錯誤: {ex.Message}");
                 Console.WriteLine(ex.Message);
                 fileContentFormat.ErrMsg = "讀檔內容錯誤, Error:" + ex.Message;
                 return null;

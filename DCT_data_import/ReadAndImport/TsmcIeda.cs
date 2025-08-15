@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
@@ -15,7 +15,7 @@ namespace DCT_data_import.ReadAndImport
         private readonly DataTable _lotMappingDt = new DataTable();
         public TsmcIeda()
         {
-            // ³]©w¥ş°ìÅÜ¼Æ¤¤ªºDataTable _lotMappingDt
+            // è¨­å®šå…¨åŸŸè®Šæ•¸ä¸­çš„DataTable _lotMappingDt
             GetLotMapping();
         }
         public ImportResult ReadAndImportIeda(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
@@ -27,7 +27,7 @@ namespace DCT_data_import.ReadAndImport
             StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
-            //§ìmac id
+            //æŠ“mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
             bool import_result;
@@ -58,12 +58,12 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                writeToLog.WriteErrorLog($"TSMC ¤§ IEDA Åª¨úÀÉ®×²M³æ¿ù»~: {ftpserver}, ¸Ô²Ó¿ù»~: {ex.Message}");
+                writeToLog.WriteErrorLog($"TSMC ä¹‹ IEDA è®€å–æª”æ¡ˆæ¸…å–®éŒ¯èª¤: {ftpserver}, è©³ç´°éŒ¯èª¤: {ex.Message}");
             }
-            // ¬d¸ß©Ò¦³ÀÉ®×
+            // æŸ¥è©¢æ‰€æœ‰æª”æ¡ˆ
             for (int i = list_filename.Count - 1; i >= 0; i--)
             {
-                // ¨ú±oIEDAÀÉ®×¦W
+                // å–å¾—IEDAæª”æ¡ˆå
                 string filename = list_filename[i];
                 try
                 {
@@ -91,25 +91,28 @@ namespace DCT_data_import.ReadAndImport
                     }
                     stopWatch.Reset();
                     stopWatch.Start();
-                    // ¶}©l¶×¤J
+                    // é–‹å§‹åŒ¯å…¥
                     import_result = ImportIeda(iedaDataFormat, DatabaseService);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     if (import_result)
                     {
-                        Console.WriteLine("¶×¤J§¹¦¨! TSMC IEDA    ÀÉ¦W:" + filename + "    ¯Ó®É: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " ¬í");
-                        // §R°£¤w¦s¦bªºªºCSVÀÉ®×
+                        Console.WriteLine("åŒ¯å…¥å®Œæˆ! TSMC IEDA    æª”å:" + filename + "    è€—æ™‚: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " ç§’");
+                        // åˆªé™¤å·²å­˜åœ¨çš„çš„CSVæª”æ¡ˆ
                         deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
                     else
                     {
+                        Console.WriteLine("åŒ¯å…¥å¤±æ•—: TSMC IEDA " + filename);
+                        writeToLog.WriteErrorLog("åŒ¯å…¥å¤±æ•—: " + ftpserver);
                         RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
                 }
                 catch (Exception ex)
                 {
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
-                    writeToLog.WriteErrorLog($"TSMC ¤§ IEDA ÅªÀÉ¥¢±Ñ: {ftpserver}, ÀÉ®×: {filename}, ¿ù»~: {ex.Message}");
+                    writeToLog.WriteErrorLog($"TSMC ä¹‹ IEDA è®€æª”å¤±æ•—: {ftpserver}, æª”æ¡ˆ: {filename}, éŒ¯èª¤: {ex.Message}");
+                    Console.WriteLine($"TSMC ä¹‹ IEDA è®€æª”å¤±æ•—: {ftpserver}, æª”æ¡ˆ: {filename}, éŒ¯èª¤: {ex.Message}");
                 }
             }
             return new ImportResult(1, string.Empty);
@@ -133,7 +136,7 @@ namespace DCT_data_import.ReadAndImport
                             dr[j] = split_lines[r].Substring(charIdx, iedaDataFormat.titleColumnsDataSize[j]).Trim();
                             charIdx += iedaDataFormat.titleColumnsDataSize[j];
                         }
-                        // ¨ú±oase_lot
+                        // å–å¾—ase_lot
                         DataRow[] mappingDtRows = _lotMappingDt.Select("tsmc_lot='" + dr["lot_id"].ToString() + "'");
                         if (mappingDtRows.Length > 0)
                         {
@@ -156,12 +159,40 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                iedaDataFormat.ErrMsg = "ÅªÀÉ¤º®e¿ù»~, Error:" + ex.Message;
+                WriteToLog writeToLogService = new WriteToLog();
+                writeToLogService.WriteErrorLog($"[TSMC IEDAæª”æ¡ˆè§£æ] è®€æª”å…§å®¹éŒ¯èª¤, éŒ¯èª¤: {ex.Message}");
+                iedaDataFormat.ErrMsg = "è®€æª”å…§å®¹éŒ¯èª¤, Error:" + ex.Message;
                 Console.WriteLine($"{ex.Message} ");
             }
             //Console.ReadLine();
             return iedaDataFormat;
         }
+        #region GetAseLot()
+        //public string GetAseLot(string DbKey)
+        //{
+        //    String ftpserver;
+        //    FtpWebRequest reqFTP;
+        //    FtpWebResponse response;
+        //    Stream responseStream;
+        //    StreamReader reader;
+        //    try
+        //    {
+        //        string filename = DbKey+".txt";
+        //        ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/" + filename;
+        //        reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+        //        reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
+        //        response = (FtpWebResponse)reqFTP.GetResponse();
+        //        responseStream = response.GetResponseStream();
+        //        reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+        //        string lines = reader.ReadToEnd();
+        //        return lines.Split(',')[0];
+        //    }
+        //    catch(Exception ex)
+        //    {
+        //        return "";
+        //    }
+        //}
+        #endregion GetAseLot() end
         public List<string> GetNetNameList(string aseLot, int recursive = 0)
         {
             string ftpserver = string.Empty;
@@ -170,7 +201,7 @@ namespace DCT_data_import.ReadAndImport
             Stream responseStream;
             WriteToLog writeToLog = new WriteToLog();
             string filename = string.Empty;
-            //§ìmac id
+            //æŠ“mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
             List<string> netNameList = new List<string>();
@@ -188,11 +219,11 @@ namespace DCT_data_import.ReadAndImport
             }
             try
             {
-                // ¨ú±o CSV ÀÉ¦W
+                // å–å¾— CSV æª”å
                 DataRow[] mappingDtRows = _lotMappingDt.Select("ase_lot='" + aseLot + "'");
                 if (mappingDtRows.Length > 0)
                 {
-                    filename = mappingDtRows[0]["csv"].ToString();  //mappingDtRows[2] ¬O "csv" Äæ¦ì­È
+                    filename = mappingDtRows[0]["csv"].ToString();  //mappingDtRows[2] æ˜¯ "csv" æ¬„ä½å€¼
                 }
                 else
                 {
@@ -220,7 +251,7 @@ namespace DCT_data_import.ReadAndImport
                 reader.Close();
                 netNameList = netNameLine.Split(',').ToList();
                 if (netNameList.Count > 0) netNameList.RemoveAt(0);
-                // §R°£¤w¦¨¥\Åª§¹ªºTSMC CSVÀÉ®×
+                // åˆªé™¤å·²æˆåŠŸè®€å®Œçš„TSMC CSVæª”æ¡ˆ
                 string deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
             }
             catch (Exception ex)
@@ -231,7 +262,7 @@ namespace DCT_data_import.ReadAndImport
                 }
                 else
                 {
-                    writeToLog.WriteErrorLog("TSMC ¤§ CSV ÅªÀÉ¿ù»~:" + ftpserver + "  error:" + ex.Message);
+                    writeToLog.WriteErrorLog("TSMC ä¹‹ CSV è®€æª”éŒ¯èª¤:" + ftpserver + "  error:" + ex.Message);
                     RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new List<string>();
                 }
@@ -267,7 +298,7 @@ namespace DCT_data_import.ReadAndImport
                 for (int i = 0; i < split_lines.Count; i++)
                 {
                     string[] values = split_lines[i].Trim().Split(',', '\0', '\r', '\n');
-                    // assign DataTable Äæ¦ì
+                    // assign DataTable æ¬„ä½
                     if (i == 0)
                     {
                         for (int j = 0; j < values.Length; j++)
@@ -296,12 +327,12 @@ namespace DCT_data_import.ReadAndImport
         public bool ImportIeda(IedaDataFormat content, DatabaseService DatabaseService)
         {
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
-            // assign »İ­n insert ªº Äæ¦ì¦WºÙ »P values
+            // assign éœ€è¦ insert çš„ æ¬„ä½åç¨± èˆ‡ values
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
-            #region insert ieda ªº title ªí®æ
+            #region insert ieda çš„ title è¡¨æ ¼
             try
             {
                 for (int i = 0; i < content.IedaTitle.Columns.Count; i++)
@@ -327,7 +358,7 @@ namespace DCT_data_import.ReadAndImport
                 return false;
             }
             #endregion
-            #region  ¨ú±o·í«e title id ­È
+            #region  å–å¾—ç•¶å‰ title id å€¼
             string titleId = string.Empty;
             try
             {
@@ -335,12 +366,12 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
-                writeToLog.WriteErrorLog("'¨ú±o·í«e lot id ­È error:" + ex.Message);
+                writeToLog.WriteErrorLog("'å–å¾—ç•¶å‰ lot id å€¼ error:" + ex.Message);
                 Console.WriteLine(ex.Message);
                 return false;
             }
             #endregion
-            #region insert ieda ªº content ªí®æ
+            #region insert ieda çš„ content è¡¨æ ¼
             try
             {
                 columns = string.Empty;

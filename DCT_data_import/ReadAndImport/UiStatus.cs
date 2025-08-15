@@ -13,7 +13,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKeyUiStatus)
         {
-            String ftpserver;
             FtpWebRequest reqFTP;
             FtpWebResponse response;
             Stream responseStream;
@@ -29,30 +28,20 @@ namespace DCT_data_import.ReadAndImport
             string macid = nics[0].GetPhysicalAddress().ToString();
             // 檢查FTP是否有此檔案
             string filename = "ui_status_" + dbKeyUiStatus + ".csv";
-            string errorDir = string.Empty;
-            ftpserver = "ftp://" + Program.FTP_IP;
-            if (Program.Environment == "Dev")
-            {
-                ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/UI_Status/" + filename;
-                errorDir = "/DCT_Log/DCT_DB_DATA_Dev/UI_Status_Error/";
-            }
-            else if (Program.Environment == "Prod")
-            {
-                ftpserver += "/DCT_Log/DCT_DB_DATA/UI_Status/" + filename;
-                errorDir = "/DCT_Log/DCT_DB_DATA/UI_Status_Error/";
-            }
-            bool isFileExist = CheckIfFileExistsOnServer(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+            string ftpFilePath = GetFilePath("uistatus", dbKeyUiStatus);
+            string errorPath = GetErrorPath("uistatus", dbKeyUiStatus);
+            bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
                 Console.WriteLine("UI Status File not found:  " + filename);
-                writeToLog.WriteToDataImportLog("UI Status File not found: " + ftpserver);
-                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                writeToLog.WriteToDataImportLog("UI Status File not found: " + ftpFilePath);
+                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
             try
             {
                 import_result = false;
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
@@ -66,15 +55,15 @@ namespace DCT_data_import.ReadAndImport
                 if (uiStatusContentFormat == null)
                 {
                     Console.WriteLine("UI Status 讀取失敗: " + filename);
-                    writeToLog.WriteToDataImportLog("UI Status 讀取失敗:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("UI Status 讀取失敗:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing.");
                 }
                 if (!uiStatusContentFormat.CompareUiStatus())
                 {
                     Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + filename);
-                    writeToLog.WriteToDataImportLog("UI Status 之 ui_status 欄位名稱不符:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("UI Status 之 ui_status 欄位名稱不符:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, "ui_status field name not match.");
                 }
                 stopWatch.Reset();
@@ -87,15 +76,15 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("匯入完成! UI Status " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                     // 刪除已存在的的CSV檔案
-                    deleteStatus = DeleteFile(ftpserver, Program.FTP_USER, Program.FTP_PASSWORD);
+                    deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
                     reader.Close();
                     response.Close();
                 }
                 else
                 {
                     Console.WriteLine("匯入失敗: UI Status " + filename);
-                    writeToLog.WriteToDataImportLog("匯入失敗:" + ftpserver);
-                    RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                    writeToLog.WriteToDataImportLog("匯入失敗:" + ftpFilePath);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     reader.Close();
                     response.Close();
                     return new ImportResult(3, "Import failed.");
@@ -105,8 +94,10 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
+                WriteToLog writeToLogService = new WriteToLog();
+                writeToLogService.WriteErrorLog($"[UI Status匯入] 處理異常: {filename}, 錯誤: {ex.Message}");
                 Console.WriteLine(ex.Message);
-                RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
+                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import. " + ex.Message);
             }
             GC.Collect();
@@ -142,6 +133,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (Exception ex)
             {
+                WriteToLog writeToLogService = new WriteToLog();
+                writeToLogService.WriteErrorLog($"[FileReadUIStatus] 檔案讀取失敗, 錯誤: {ex.Message}");
                 uiStatusContentFormat.ErrMsg = ex.Message;
                 Console.WriteLine(ex.Message);
                 return null;

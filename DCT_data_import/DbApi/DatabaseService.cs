@@ -44,7 +44,7 @@ namespace DCT_data_import
                 {
                     var DB = new DBmysql();
                     DB.Connect(server, port, user, password, database);
-                    return DB.ExcuteMysqlCmd(Execute_query.Query, mode);
+                    return DB.Excute_mysql_cmd(Execute_query.Query, mode);
                 }).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -73,7 +73,7 @@ namespace DCT_data_import
                 }
                 var DB = new DBmysql();
                 DB.Connect(server, port, user, password, database);
-                var testResult = DB.ExcuteMysqlCmd("SELECT 1 as test", "select");
+                var testResult = DB.Excute_mysql_cmd("SELECT 1 as test", "select");
                 return string.IsNullOrEmpty(testResult.Error);
             }
             catch

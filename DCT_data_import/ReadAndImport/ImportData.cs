@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Net;
+using DCT_data_import.Common;
 namespace DCT_data_import.ReadAndImport
 {
     public class ImportData
@@ -20,6 +21,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (WebException ex)
             {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {requestUri}, 錯誤: {ex.Message}");
                 response = (FtpWebResponse)ex.Response;
                 if (response.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
                     return false;
@@ -118,7 +121,8 @@ namespace DCT_data_import.ReadAndImport
             }
             catch (WebException ex)
             {
-                // 处理可能出现的错误
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[GetFileSize] FTP取得檔案大小失敗: {ftpUrl}, 狀態: {ex.Status}, 錯誤: {ex.Message}");
                 Console.WriteLine($"FTP GetFileSize 錯誤: {ex.Status}, {ex.Message}");
                 return 0;
             }
@@ -140,6 +144,67 @@ namespace DCT_data_import.ReadAndImport
             }
             return string.Format("{0:0.##} {1}", fileSize, sizes[order]);
         }
+
+        /// <summary>
+        /// 根據檔案類型和DB Key產生FTP檔案路徑
+        /// </summary>
+        /// <param name="fileType">檔案類型 (rawdata, failpin, recovery, tester, uistatus, tsmc_ieda)</param>
+        /// <param name="dbKey">資料庫鍵值</param>
+        /// <returns>完整的FTP檔案路徑</returns>
+        protected string GetFilePath(string fileType, string dbKey)
+        {
+            string basePath = Program.Environment == "Dev"
+                ? "/DCT_Log/DCT_DB_DATA_Dev/"
+                : "/DCT_Log/DCT_DB_DATA/";
+
+            var pathMap = new Dictionary<string, string>
+            {
+                {"rawdata", "Data_Cloud_CSV/test_result_"},
+                {"failpin", "Fail_Pin_Log/ST_RT_AT/fail_pin_"},
+                {"recovery", "Recovery_rate_data/Recovery_rate_"},
+                {"tester", "Tester_Status/tester_"},
+                {"uistatus", "UI_Status/ui_status_"},
+                {"tsmc_ieda", "TSMC_DATA/IEDA/"}
+            };
+
+            if (!pathMap.ContainsKey(fileType))
+            {
+                throw new ArgumentException($"不支援的檔案類型: {fileType}");
+            }
+
+            return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}{dbKey}.csv";
+        }
+
+        /// <summary>
+        /// 根據檔案類型和DB Key產生FTP錯誤檔案路徑
+        /// </summary>
+        /// <param name="fileType">檔案類型 (rawdata, failpin, recovery, tester, uistatus, tsmc_ieda)</param>
+        /// <param name="dbKey">資料庫鍵值</param>
+        /// <returns>完整的FTP錯誤檔案路徑</returns>
+        protected string GetErrorPath(string fileType, string dbKey)
+        {
+            string basePath = Program.Environment == "Dev"
+                ? "/DCT_Log/DCT_DB_DATA_Dev/"
+                : "/DCT_Log/DCT_DB_DATA/";
+
+            var pathMap = new Dictionary<string, string>
+            {
+                {"rawdata", "Data_Cloud_CSV/Error/test_result_"},
+                {"failpin", "Fail_Pin_Log/ST_RT_AT/Error/fail_pin_"},
+                {"recovery", "Recovery_rate_data/Error/Recovery_rate_"},
+                {"tester", "Tester_Status/Error/tester_"},
+                {"uistatus", "UI_Status/Error/ui_status_"},
+                {"tsmc_ieda", "TSMC_DATA/IEDA/Error/"}
+            };
+
+            if (!pathMap.ContainsKey(fileType))
+            {
+                throw new ArgumentException($"不支援的檔案類型: {fileType}");
+            }
+
+            return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}{dbKey}.csv";
+        }
+
         #endregion Common tool
     }
 }

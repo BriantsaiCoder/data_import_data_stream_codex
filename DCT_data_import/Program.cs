@@ -35,22 +35,27 @@ namespace DCT_data_import
             WriteToLog writeToLog = new WriteToLog();
             DbAccess dbAccess = new DbAccess();
             int count = 0;
-            ////TEST CASE
-            //RecoveryRate recoveryRate = new RecoveryRate();
-            //RawData rawData = new RawData();
-            //Tester tester = new Tester();
-            //FailPin failPin = new FailPin();
-            //UiStatus uiStatus = new UiStatus();
-            //TsmcIeda tsmcIeda = new TsmcIeda();
-            //ImportResult importResult1;
-            //importResult1 = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
-            //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "DCT-2025-ASECL-10.24.9.142_68BRSA00194O000 - 複製_20250611-170230").GetAwaiter().GetResult();
-            //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-040624").GetAwaiter().GetResult();
-            //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-035452").GetAwaiter().GetResult();
-            //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-040624").GetAwaiter().GetResult();
-            //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_44_41");
-            //Console.WriteLine("importResult1.Result: " + importResult1.Result);
-            //Console.ReadLine();
+            //TEST CASE
+            RecoveryRate recoveryRate = new RecoveryRate();
+            RawData rawData = new RawData();
+            Tester tester = new Tester();
+            FailPin failPin = new FailPin();
+            UiStatus uiStatus = new UiStatus();
+            TsmcIeda tsmcIeda = new TsmcIeda();
+            ImportResult importResult1;
+            importResult1 = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
+            Console.WriteLine("tsmcIeda importResult1.Result: " + importResult1.Result);
+            importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250713-230625").GetAwaiter().GetResult();
+            Console.WriteLine("recoveryRate importResult1.Result: " + importResult1.Result);
+            importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-035452").GetAwaiter().GetResult();
+            Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
+            importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250714-040624").GetAwaiter().GetResult();
+            Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
+            importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "ASE03-5070-033-10.10.187.94_AAH@A237390002-A_1007_T_D_20250718-065227").GetAwaiter().GetResult();
+            Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
+            importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH075_2025_08_04_14_02_33");
+            Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);
+            Console.ReadLine();
             bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
             Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
             Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
@@ -140,6 +145,8 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
+                WriteToLog writeToLogService = new WriteToLog();
+                writeToLogService.WriteErrorLog($"[GetLocalIPAddress] 取得本機 IP 時發生錯誤: {ex.Message}");
                 Console.WriteLine($"取得本機 IP 時發生錯誤: {ex.Message}");
                 return string.Empty;
             }
