@@ -23,6 +23,7 @@ namespace DCT_data_import.ReadAndImport
             {
                 var writeToLog = new WriteToLog();
                 writeToLog.WriteErrorLog($"[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {requestUri}, 錯誤: {ex.Message}");
+                Console.WriteLine($"[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {requestUri}, 錯誤: {ex.Message}");
                 response = (FtpWebResponse)ex.Response;
                 if (response.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
                     return false;

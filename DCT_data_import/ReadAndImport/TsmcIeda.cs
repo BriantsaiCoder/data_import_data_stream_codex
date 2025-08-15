@@ -104,7 +104,7 @@ namespace DCT_data_import.ReadAndImport
                     else
                     {
                         Console.WriteLine("匯入失敗: TSMC IEDA " + filename);
-                        writeToLog.WriteErrorLog("匯入失敗: " + ftpserver);
+                        writeToLog.WriteErrorLog("匯入失敗: TSMC IEDA " + ftpserver);
                         RenameFile(ftpserver, errorDir + filename, Program.FTP_USER, Program.FTP_PASSWORD);
                     }
                 }

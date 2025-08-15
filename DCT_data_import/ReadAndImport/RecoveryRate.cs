@@ -142,7 +142,7 @@ namespace DCT_data_import.ReadAndImport
                     else
                     {
                         Console.WriteLine("匯入失敗: Recovery Rate " + filename);
-                        writeToLog.WriteToDataImportLog("匯入失敗:" + ftpFilePath);
+                        writeToLog.WriteToDataImportLog("匯入失敗 Recovery Rate:" + ftpFilePath);
                         RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
                         response.Close();
@@ -153,6 +153,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog($"RecoveryRate 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
+                Console.WriteLine($"RecoveryRate 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
                 RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }

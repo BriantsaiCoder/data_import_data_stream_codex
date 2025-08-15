@@ -24,7 +24,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"資料庫或資料表 {db_table_name} 不存在");
                 return false;
             }
-
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             var execute_query = new Execute_query
@@ -164,6 +163,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' error:" + ex.Message);
+                Console.WriteLine("'INSERT INTO recovery_rate' error:" + ex.Message);
                 return false;
             }
             #endregion
@@ -215,7 +215,7 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                //Console.WriteLine(ex.ToString());
+                Console.WriteLine("'INSERT INTO lots_info' error:" + ex.Message);
                 writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + ex.Message);
                 return false;
             }
@@ -711,7 +711,6 @@ namespace DCT_data_import
                 }
                 try
                 {
-
                     response = ExecuteInsertWithAPI(DatabaseService, "ui_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
@@ -1025,7 +1024,6 @@ namespace DCT_data_import
         {
             // 檢查資料庫和相關資料表是否存在
             string[] requiredTables = { "lots_info", "lots_statistic", "lots_result" };
-
             foreach (string tableName in requiredTables)
             {
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
@@ -1057,7 +1055,6 @@ namespace DCT_data_import
         {
             // 檢查資料庫和相關資料表是否存在
             string[] requiredTables = { "tester_device_info", "tester_status", "tester_sw_version", "tester_production_analysis" };
-
             foreach (string tableName in requiredTables)
             {
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
@@ -1090,7 +1087,6 @@ namespace DCT_data_import
         {
             // 檢查資料庫和相關資料表是否存在
             string[] requiredTables = { "fail_pin_rate_info", "fail_pin_rate_list", "fail_pin_rate_list_pin_ball", "fail_pin_rate_test_result" };
-
             foreach (string tableName in requiredTables)
             {
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))

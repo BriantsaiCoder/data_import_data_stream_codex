@@ -87,31 +87,37 @@ namespace DCT_data_import
             catch (SmtpException ex)
             {
                 SendResult = $"SMTP 錯誤: {ex.Message}";
+                Console.WriteLine($"[EmailModels] SMTP 錯誤: {ex.Message}");
                 return false;
             }
             catch (FileNotFoundException ex)
             {
                 SendResult = $"找不到附件檔案: {ex.FileName}";
+                Console.WriteLine($"[EmailModels] 找不到附件檔案: {ex.FileName}");
                 return false;
             }
             catch (UnauthorizedAccessException ex)
             {
                 SendResult = $"檔案存取權限不足: {ex.Message}";
+                Console.WriteLine($"[EmailModels] 檔案存取權限不足: {ex.Message}");
                 return false;
             }
             catch (ArgumentException ex)
             {
                 SendResult = $"參數錯誤: {ex.Message}";
+                Console.WriteLine($"[EmailModels] 參數錯誤: {ex.Message}");
                 return false;
             }
             catch (InvalidOperationException ex)
             {
                 SendResult = $"操作無效: {ex.Message}";
+                Console.WriteLine($"[EmailModels] 操作無效: {ex.Message}");
                 return false;
             }
             catch (Exception ex)
             {
                 SendResult = $"未預期的錯誤: {ex.Message}";
+                Console.WriteLine($"[EmailModels] 未預期的錯誤: {ex.Message}");
                 return false;
             }
         }

@@ -8,7 +8,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using DCT_data_import.Common;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
@@ -35,7 +34,6 @@ namespace DCT_data_import.ReadAndImport
             string filename = "test_result_" + dbKey + ".csv";
             string ftpFilePath = GetFilePath("rawdata", dbKey);
             string errorPath = GetErrorPath("rawdata", dbKey);
-
             bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
@@ -65,6 +63,9 @@ namespace DCT_data_import.ReadAndImport
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
                 if (!string.IsNullOrEmpty(rawDataContentFormat.ErrMsg))
                 {
+                    Console.WriteLine("Raw data Error:  " + rawDataContentFormat.ErrMsg);
+                    writeToLog.WriteErrorLog("Raw data Error: " + rawDataContentFormat.ErrMsg);
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(2, rawDataContentFormat.ErrMsg);
                 }
                 if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
@@ -143,6 +144,7 @@ namespace DCT_data_import.ReadAndImport
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog($"RawData 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
+                Console.WriteLine($"RawData 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
                 RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
@@ -197,12 +199,9 @@ namespace DCT_data_import.ReadAndImport
                             Console.WriteLine($"RawData invalid first value format: {values[0]}");
                             continue;
                         }
-
                         string firstValueKey = firstValueParts[0];
-
                         // "Open fail"與"Short fail"為TSMC 客戶中兩個非必要欄位，故排除不存進資料庫
                         if (firstValueKey == "Open fail" || firstValueKey == "Short fail") continue;
-
                         fileContentFormat.LotInfo.Columns.Add(firstValueKey, typeof(string));
                         fileContentFormat.LotInfo.Rows[0][firstValueKey] = values[1];
                     }

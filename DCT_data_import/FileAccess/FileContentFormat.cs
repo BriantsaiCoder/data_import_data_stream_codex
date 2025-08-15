@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Linq;
 namespace DCT_data_import
 {
@@ -23,36 +24,56 @@ namespace DCT_data_import
         // 比對 infoColumns 與 lotInfo 的欄位
         public bool CompareInfo()
         {
-            if (LotInfo.Rows.Count < 1) return false;
-            string[] columnNames = LotInfo.Columns.Cast<DataColumn>()
-                                 .Select(x => x.ColumnName)
-                                 .ToArray();
-            bool result = true; // infoColumns.SequenceEqual(columnNames);
-            for (int i = 0; i < LotInfo.Columns.Count; i++)
+            try
             {
-                if (!_infoColumns.Contains(LotInfo.Columns[i].ColumnName))
+                if (LotInfo.Rows.Count < 1) return false;
+                string[] columnNames = LotInfo.Columns.Cast<DataColumn>()
+                                     .Select(x => x.ColumnName)
+                                     .ToArray();
+                bool result = true; // infoColumns.SequenceEqual(columnNames);
+                for (int i = 0; i < LotInfo.Columns.Count; i++)
                 {
-                    return false;
+                    if (!_infoColumns.Contains(LotInfo.Columns[i].ColumnName))
+                    {
+                        return false;
+                    }
                 }
+                return result;
             }
-            return result;
+            catch (Exception ex)
+            {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[RecoveryRateDataContentFormat.CompareInfo] 比對欄位失敗: {ex.Message}");
+                Console.WriteLine($"[RecoveryRateDataContentFormat] 比對欄位失敗: {ex.Message}");
+                return false;
+            }
         }
         // 比對 recoveryRateColumns 與 LotRecoveryRate 的欄位
         public bool CompareRecoveryRate()
         {
-            if (LotRecoveryRate.Rows.Count < 1) return false;
-            string[] columnNames = LotRecoveryRate.Columns.Cast<DataColumn>()
-                                 .Select(x => x.ColumnName)
-                                 .ToArray();
-            bool result = true; // recoveryRateColumns.SequenceEqual(columnNames);
-            for (int i = 0; i < LotRecoveryRate.Columns.Count; i++)
+            try
             {
-                if (!_recoveryRateColumns.Contains(LotRecoveryRate.Columns[i].ColumnName))
+                if (LotRecoveryRate.Rows.Count < 1) return false;
+                string[] columnNames = LotRecoveryRate.Columns.Cast<DataColumn>()
+                                     .Select(x => x.ColumnName)
+                                     .ToArray();
+                bool result = true; // recoveryRateColumns.SequenceEqual(columnNames);
+                for (int i = 0; i < LotRecoveryRate.Columns.Count; i++)
                 {
-                    return false;
+                    if (!_recoveryRateColumns.Contains(LotRecoveryRate.Columns[i].ColumnName))
+                    {
+                        return false;
+                    }
                 }
+                return result;
             }
-            return result;
+            catch (Exception ex)
+            {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[RecoveryRateDataContentFormat.CompareRecoveryRate] 比對欄位失敗: {ex.Message}");
+                Console.WriteLine($"[RecoveryRateDataContentFormat] 比對Recovery Rate欄位失敗: {ex.Message}");
+                return false;
+            }
         }
     }
     public class RawDataContentFormat

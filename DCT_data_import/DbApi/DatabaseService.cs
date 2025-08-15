@@ -49,7 +49,9 @@ namespace DCT_data_import
             }
             catch (Exception ex)
             {
-                // 保留完整錯誤訊息以便除錯，只移除 StackTrace 部分 - 完全相同於原始程式碼
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[DatabaseService.ExecuteSqlAsync] 資料庫操作失敗: {ex.Message}");
+                Console.WriteLine($"[DatabaseService] 資料庫操作失敗: {ex.Message}");
                 return new Execute_query_response { Error = GetSafeErrorMessage(ex) };
             }
         }
@@ -76,8 +78,11 @@ namespace DCT_data_import
                 var testResult = DB.Excute_mysql_cmd("SELECT 1 as test", "select");
                 return string.IsNullOrEmpty(testResult.Error);
             }
-            catch
+            catch (Exception ex)
             {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[DatabaseService.TestConnection] 測試連線失敗: {ex.Message}");
+                Console.WriteLine($"[DatabaseService] 測試連線失敗: {ex.Message}");
                 return false;
             }
         }
@@ -104,8 +109,11 @@ namespace DCT_data_import
 
                 return string.IsNullOrEmpty(tableResult.Error) && tableResult.Data != null && tableResult.Data.Count > 0;
             }
-            catch
+            catch (Exception ex)
             {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[DatabaseService.CheckDatabaseAndTableExists] 檢查資料庫/資料表存在性失敗: {ex.Message}");
+                Console.WriteLine($"[DatabaseService] 檢查資料庫/資料表存在性失敗: {ex.Message}");
                 return false;
             }
         }
