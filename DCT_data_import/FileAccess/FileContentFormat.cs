@@ -232,7 +232,7 @@ namespace DCT_data_import
     }
     public class FailPinLogContentFormat
     {
-        private readonly string[] _infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date", "Total", "Pass", "Open", "Short", "LK" };
+        private readonly string[] _infoColumns = { "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format", "File Name", "Date", "Total", "Pass", "Open", "Short", "LK", "nVTEP" };
         public string ErrMsg { get; set; }
         public DataTable Fail_pin_rate_info { get; set; }
         public DataTable Fail_pin_rate_list { get; set; }

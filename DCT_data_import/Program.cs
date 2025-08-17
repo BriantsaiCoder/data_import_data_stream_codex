@@ -37,14 +37,14 @@ namespace DCT_data_import
                 DatabaseService DatabaseService = new DatabaseService();
                 DbAccess dbAccess = new DbAccess();
                 int count = 0;
-                ////TEST CASE
-                //RecoveryRate recoveryRate = new RecoveryRate();
-                //RawData rawData = new RawData();
-                //Tester tester = new Tester();
-                //FailPin failPin = new FailPin();
-                //UiStatus uiStatus = new UiStatus();
-                //TsmcIeda tsmcIeda = new TsmcIeda();
-                //ImportResult importResult1;
+                //TEST CASE
+                RecoveryRate recoveryRate = new RecoveryRate();
+                RawData rawData = new RawData();
+                Tester tester = new Tester();
+                FailPin failPin = new FailPin();
+                UiStatus uiStatus = new UiStatus();
+                TsmcIeda tsmcIeda = new TsmcIeda();
+                ImportResult importResult1;
                 //importResult1 = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
                 //Console.WriteLine("tsmcIeda importResult1.Result: " + importResult1.Result);
                 //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250712-204923").GetAwaiter().GetResult();
@@ -53,11 +53,11 @@ namespace DCT_data_import
                 //Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
                 //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "OSH088-10.24.80.58_20250430的396 是AL Wafer_20250501-013510").GetAwaiter().GetResult();
                 //Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
-                //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "ASE03-5070-051-10.10.183.122_AAH@A287920013-0_0921_T_D_20250718-081941").GetAwaiter().GetResult();
-                //Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
+                importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "ASE07-5070-025-10.10.204.99_AAH@A297540004-0-G-Q_20250718-072112").GetAwaiter().GetResult();
+                Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
                 //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_14_33");
                 //Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);
-                //Console.ReadLine();
+                Console.ReadLine();
                 bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
                 Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
                 Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
