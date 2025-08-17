@@ -38,6 +38,8 @@ namespace DCT_data_import
             // 根據層級產生標籤
             string levelTag = level == LogLevel.Error ? "[ERROR]" : "[INFO]";
             string logMessage = $"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {levelTag} {message}";
+            // 使用 UTF-8 with BOM 確保相容性
+            Encoding utf8WithBom = new UTF8Encoding(true);
             using (var mutex = new Mutex(false, mutexName))
             {
                 bool hasHandle = false;
@@ -56,7 +58,7 @@ namespace DCT_data_import
                     if (!File.Exists(log_path))
                     {
                         string swVersion = @"DCT_data_import v." + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
-                        using (StreamWriter writer = new StreamWriter(log_path, false, Encoding.UTF8))
+                        using (StreamWriter writer = new StreamWriter(log_path, false, utf8WithBom))
                         {
                             writer.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [INFO] {swVersion}");
                             writer.WriteLine(logMessage);
@@ -64,7 +66,7 @@ namespace DCT_data_import
                         return;
                     }
                     // 改用同步寫入，避免 WriteLineAsync 的 fire-and-forget 問題
-                    using (StreamWriter writer = new StreamWriter(log_path, true, Encoding.UTF8))
+                    using (StreamWriter writer = new StreamWriter(log_path, true, utf8WithBom))
                     {
                         writer.WriteLine(logMessage);
                     }
@@ -181,16 +183,18 @@ namespace DCT_data_import
                     {
                         Directory.CreateDirectory(checkLogFolder);
                     }
+                    // 使用 UTF-8 with BOM 編碼
+                    Encoding utf8WithBom = new UTF8Encoding(true);
                     if (!File.Exists(log_path))
                     {
-                        using (StreamWriter writer = File.CreateText(log_path))
+                        using (StreamWriter writer = new StreamWriter(log_path, false, utf8WithBom))
                         {
                             writer.WriteLine("File Name, File Size, Time, Read File Takes Time, Import Takes Time");
                             writer.WriteLine(content);
                         }
                         return;
                     }
-                    using (StreamWriter writer = File.AppendText(log_path))
+                    using (StreamWriter writer = new StreamWriter(log_path, true, utf8WithBom))
                     {
                         writer.WriteLine(content);
                     }
