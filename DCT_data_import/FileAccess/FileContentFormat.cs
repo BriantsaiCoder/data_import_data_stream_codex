@@ -80,8 +80,8 @@ namespace DCT_data_import
     {
         private readonly string[] _infoColumns = { "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
             "Control_lot", "AO_lot", "OS_Machine_ID", "OS_Test_Board_ID", "User_ID", "Schedule_Lot", "File_Name", "Yield(%)", "TOTAL", "PASS",
-            "OPEN_PIN_FAIL", "SHORT_PIN_FAIL", "LEAKAGE_PIN_FAIL", "TOTAL_PPM", "OPEN_PIN_FAIL_PPM", "SHORT_PIN_FAIL_PPM",
-            "LEAKAGE_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop",
+            "OPEN_PIN_FAIL", "SHORT_PIN_FAIL", "LEAKAGE_PIN_FAIL", "nVTEP_PIN_FAIL", "TOTAL_PPM", "OPEN_PIN_FAIL_PPM", "SHORT_PIN_FAIL_PPM",
+            "LEAKAGE_PIN_FAIL_PPM", "nVTEP_PIN_FAIL_PPM", "Total_Test_Items", "Average_Test_Time", "Clear_Count", "Start", "Stop",
             "Pass", "Pass without OCR","OPEN","OPEN without OCR","Short & Others","Pass without OCR_PPM","OPEN_PPM","OPEN without OCR_PPM","Short & Others_PPM" };
         private readonly string[] _statisticColumns = { "Item No", "Item Name", "net_name", "Force", "Wait time", "Spec MAX", "Spec MIN", "# of PASS", "# of FAIL", "MIN", "MAX", "AVG",
             "STDEV", "Cp", "Cpk", "Ppk", "unit", "value" };
