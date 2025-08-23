@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using DCT_data_import.Common;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
@@ -36,7 +35,6 @@ namespace DCT_data_import.ReadAndImport
             {
                 Console.WriteLine("Tester Status File not found:  " + filename);
                 writeToLog.WriteErrorLog("Tester Status File not found: " + ftpFilePath);
-                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
             try

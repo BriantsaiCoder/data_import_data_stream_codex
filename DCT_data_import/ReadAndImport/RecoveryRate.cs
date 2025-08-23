@@ -40,7 +40,6 @@ namespace DCT_data_import.ReadAndImport
             {
                 Console.WriteLine("Recovery Rate File not found:  " + filename);
                 writeToLog.WriteErrorLog("Recovery Rate File not found: " + ftpFilePath);
-                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                 return new ImportResult(0, "File not found.");
             }
             //// 確認 pool 連線狀態

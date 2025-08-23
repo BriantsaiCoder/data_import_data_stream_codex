@@ -51,9 +51,9 @@ namespace DCT_data_import
                 //Console.WriteLine("recoveryRate importResult1.Result: " + importResult1.Result);
                 //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250713-230625").GetAwaiter().GetResult();
                 //Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
-                importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASE07-5070-028-10.10.204.190_AAH@A296960004-0-S_20250718-082815").GetAwaiter().GetResult();
+                importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASE08-5070-008-10.10.124.98_AAH@A251990015-0-S-Q_6STD_NewSpecLeak_20250718-075136").GetAwaiter().GetResult();
                 Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
-                //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "ASE07-5070-025-10.10.204.99_AAH@A297540004-0-G-Q_20250718-072112").GetAwaiter().GetResult();
+                //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "789").GetAwaiter().GetResult();
                 //Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
                 //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_14_33");
                 //Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);

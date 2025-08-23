@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
-    public class RawData : ImportData
+    public class RawDataMultiSpec : ImportData
     {
         public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
@@ -37,8 +37,8 @@ namespace DCT_data_import.ReadAndImport
             bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
             if (!isFileExist)
             {
-                Console.WriteLine("Raw data File not found:  " + filename);
-                writeToLog.WriteErrorLog("Raw data File not found: " + ftpFilePath);
+                Console.WriteLine("Raw data MultiSpec File not found:  " + filename);
+                writeToLog.WriteErrorLog("Raw data MultiSpec File not found: " + ftpFilePath);
                 return new ImportResult(0, "File not found.");
             }
             // 開始讀檔與匯入

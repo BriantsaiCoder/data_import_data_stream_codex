@@ -7,7 +7,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using DCT_data_import.Common;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
@@ -39,7 +38,6 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("Fail Pin Log File not found:  " + filename);
                     writeToLog.WriteErrorLog("Fail Pin Log File not found: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                     return new ImportResult(0, "File not found.");
                 }
                 reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
@@ -78,9 +76,7 @@ namespace DCT_data_import.ReadAndImport
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);
-
                     RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -94,7 +90,6 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-
                     string dateStr = DateTime.Now.ToString("yyyyMMdd");
                     string checkLogFileName = "DCT_data_check_log_failPin_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time
@@ -135,7 +130,6 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 string data_format = string.Empty;
-
                 int content_part = 1;
                 int fail_pin_list_id = 0;
                 while (!reader.EndOfStream)
@@ -244,7 +238,6 @@ namespace DCT_data_import.ReadAndImport
                         }
                     }
                 }
-
             }
             catch (Exception ex)
             {
