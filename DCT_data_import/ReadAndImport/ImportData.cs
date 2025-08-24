@@ -1,14 +1,71 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 namespace DCT_data_import.ReadAndImport
 {
     public class ImportData
     {
+        /// <summary>
+        /// 在FTP目錄中搜尋符合模式的檔案
+        /// </summary>
+        /// <param name="ftpDirectoryPath">FTP目錄路徑</param>
+        /// <param name="filePattern">檔案名稱模式</param>
+        /// <param name="ftpUser">FTP使用者</param>
+        /// <param name="ftpPassword">FTP密碼</param>
+        /// <returns>符合模式的檔案名稱列表</returns>
+        protected List<string> SearchFilesInFtpDirectory(string ftpDirectoryPath, string filePattern, string ftpUser, string ftpPassword)
+        {
+            var matchingFiles = new List<string>();
+            var writeToLog = new WriteToLog();
+            try
+            {
+                FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpDirectoryPath);
+                request.Credentials = new NetworkCredential(ftpUser, ftpPassword);
+                request.Method = WebRequestMethods.Ftp.ListDirectory;
+                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+                using (Stream responseStream = response.GetResponseStream())
+                using (StreamReader reader = new StreamReader(responseStream))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        // 使用正規表示式檢查檔案名稱是否符合模式
+                        if (IsFileMatchPattern(line, filePattern))
+                        {
+                            matchingFiles.Add(line);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog(string.Format("[SearchFilesInFtpDirectory] FTP目錄搜尋失敗: {0}, 錯誤: {1}", ftpDirectoryPath, ex.Message));
+                Console.WriteLine(string.Format("[SearchFilesInFtpDirectory] FTP目錄搜尋失敗: {0}, 錯誤: {1}", ftpDirectoryPath, ex.Message));
+            }
+            return matchingFiles;
+        }
+        /// <summary>
+        /// 檢查檔案名稱是否符合指定模式
+        /// </summary>
+        /// <param name="fileName">檔案名稱</param>
+        /// <param name="pattern">模式字串，如 "test_result_site*_{dbKey}.csv"</param>
+        /// <returns>是否符合模式</returns>
+        protected bool IsFileMatchPattern(string fileName, string pattern)
+        {
+            // 將模式轉換為正規表示式
+            // * 代表任意數字
+            string regexPattern = pattern.Replace("*", @"\d+");
+            regexPattern = "^" + regexPattern + "$";
+            return System.Text.RegularExpressions.Regex.IsMatch(fileName, regexPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+        /// <summary>
+        /// 檢查FTP伺服器上是否存在指定檔案
+        /// </summary>
         protected bool CheckIfFileExistsOnServer(string requestUri, string ftpUser, string ftpPassword)
         {
             FtpWebRequest request;
-            FtpWebResponse response;
+            FtpWebResponse response = null;
             try
             {
                 request = (FtpWebRequest)WebRequest.Create(requestUri);
@@ -21,11 +78,19 @@ namespace DCT_data_import.ReadAndImport
             catch (WebException ex)
             {
                 var writeToLog = new WriteToLog();
-                writeToLog.WriteErrorLog($"[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {requestUri}, 錯誤: {ex.Message}");
-                Console.WriteLine($"[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {requestUri}, 錯誤: {ex.Message}");
+                writeToLog.WriteErrorLog(string.Format("[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {0}, 錯誤: {1}", requestUri, ex.Message));
+                Console.WriteLine(string.Format("[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {0}, 錯誤: {1}", requestUri, ex.Message));
+                response?.Close();
                 response = (FtpWebResponse)ex.Response;
-                if (response.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
+                if (response != null && response.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
+                {
+                    response.Close();
                     return false;
+                }
+            }
+            finally
+            {
+                response?.Close();
             }
             return false;
         }
@@ -147,25 +212,31 @@ namespace DCT_data_import.ReadAndImport
         /// <summary>
         /// 根據檔案類型和DB Key產生FTP檔案路徑
         /// </summary>
-        /// <param name="fileType">檔案類型 (rawdata, failpin, recovery, tester, uistatus, tsmc_ieda)</param>
+        /// <param name="fileType">檔案類型 (rawdata, failpin, recovery, tester, uistatus, multiSpecRawdata)</param>
         /// <param name="dbKey">資料庫鍵值</param>
         /// <returns>完整的FTP檔案路徑</returns>
         protected string GetFilePath(string fileType, string dbKey)
         {
             string basePath = Program.Environment == "Dev"
-                ? "/DCT_Log/DCT_DB_DATA_Dev/"
-                : "/DCT_Log/DCT_DB_DATA/";
+              ? "/DCT_Log/DCT_DB_DATA_Dev/"
+              : "/DCT_Log/DCT_DB_DATA/";
             var pathMap = new Dictionary<string, string>
-            {
-                {"rawdata", "Data_Cloud_CSV/test_result_"},
-                {"failpin", "Fail_Pin_Log/ST_RT_AT/fail_pin_"},
-                {"recovery", "Recovery_rate_data/Recovery_rate_"},
-                {"tester", "Tester_Status/tester_"},
-                {"uistatus", "UI_Status/ui_status_"}
-            };
+        {
+            {"rawdata", "Data_Cloud_CSV/test_result_"},
+            {"failpin", "Fail_Pin_Log/ST_RT_AT/fail_pin_"},
+            {"recovery", "Recovery_rate_data/Recovery_rate_"},
+            {"tester", "Tester_Status/tester_"},
+            {"uistatus", "UI_Status/ui_status_"},
+            {"multiSpecRawdata", "Data_Cloud_CSV_MultiSpec/"} // 新增：只提供目錄路徑
+        };
             if (!pathMap.ContainsKey(fileType))
             {
-                throw new ArgumentException($"不支援的檔案類型: {fileType}");
+                throw new ArgumentException(string.Format("不支援的檔案類型: {0}", fileType));
+            }
+            // 對於 multiSpecRawdata，返回目錄路徑用於搜尋
+            if (fileType == "multiSpecRawdata")
+            {
+                return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}";
             }
             return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}{dbKey}.csv";
         }
@@ -178,21 +249,46 @@ namespace DCT_data_import.ReadAndImport
         protected string GetErrorPath(string fileType, string dbKey)
         {
             string basePath = Program.Environment == "Dev"
-                ? "/DCT_Log/DCT_DB_DATA_Dev/"
-                : "/DCT_Log/DCT_DB_DATA/";
+              ? "/DCT_Log/DCT_DB_DATA_Dev/"
+              : "/DCT_Log/DCT_DB_DATA/";
             var pathMap = new Dictionary<string, string>
-            {
-                {"rawdata", "Data_Cloud_CSV_Error/test_result_"},
-                {"failpin", "Fail_Pin_Log_Error/fail_pin_"},
-                {"recovery", "Recovery_rate_data_Error/Recovery_rate_"},
-                {"tester", "Tester_Status_Error/tester_"},
-                {"uistatus", "UI_Status_Error/ui_status_"}
-            };
+        {
+            {"rawdata", "Data_Cloud_CSV_Error/test_result_"},
+            {"failpin", "Fail_Pin_Log_Error/fail_pin_"},
+            {"recovery", "Recovery_rate_data_Error/Recovery_rate_"},
+            {"tester", "Tester_Status_Error/tester_"},
+            {"uistatus", "UI_Status_Error/ui_status_"},
+            {"multiSpecRawdata", "Data_Cloud_CSV_MultiSpec_Error/"} // 新增錯誤路徑目錄
+        };
             if (!pathMap.ContainsKey(fileType))
             {
                 throw new ArgumentException($"不支援的檔案類型: {fileType}");
             }
+            // 對於 multiSpecRawdata，返回目錄路徑，因為檔案名稱是動態的
+            if (fileType == "multiSpecRawdata")
+            {
+                return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}";
+            }
             return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}{dbKey}.csv";
+        }
+        /// <summary>
+        /// 根據實際檔案名稱產生對應的錯誤檔案路徑
+        /// </summary>
+        /// <param name="fileType">檔案類型</param>
+        /// <param name="fileName">實際找到的檔案名稱</param>
+        /// <param name="dbKey">資料庫鍵值</param>
+        /// <returns>對應的錯誤檔案完整路徑</returns>
+        protected string GetErrorPathForSpecificFile(string fileType, string fileName, string dbKey)
+        {
+            if (fileType == "multiSpecRawdata")
+            {
+                string errorDirectory = GetErrorPath(fileType, dbKey);
+                return errorDirectory + fileName;
+            }
+            else
+            {
+                return GetErrorPath(fileType, dbKey);
+            }
         }
         #endregion Common tool
     }

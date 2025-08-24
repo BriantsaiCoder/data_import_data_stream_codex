@@ -11,6 +11,8 @@ namespace DCT_data_import
     {
         //public DatabaseService  DatabaseService ;
         private readonly WriteToLog writeToLog;
+        public bool MultiSiteRawDataLotInfoIsImported { get; set; }
+        public string MultiSiteRawDataLotInfoInsertId { get; set; }
         public FileProcess()
         {
             //DatabaseService  = new DatabaseService ();
@@ -268,6 +270,267 @@ namespace DCT_data_import
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
                     values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
+                    values += "\"" + string.Join("\",\"", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))) + "\"";
+                    // 每cut_size個row就匯入一次
+                    if (i != 0 && i % cut_size == 0)
+                    {
+                        values += ")";
+                        values = values.Substring(1, values.Length - 2);
+                        response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                        if (!string.IsNullOrEmpty(response2.Error))
+                        {
+                            writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
+                            response2 = DeleteRawData(DatabaseService, lotId);
+                            return false;
+                        }
+                        values = string.Empty;
+                    }
+                    else if (i != content.LotStatistic.Tables.Count - 1)
+                    {
+                        values += "),";
+                    }
+                    else
+                    {
+                        values += ")";
+                    }
+                }
+                if (values.Length > 3)
+                {
+                    values = values.Substring(1, values.Length - 2);
+                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                    if (!string.IsNullOrEmpty(response2.Error))
+                    {
+                        writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
+                        response2 = DeleteRawData(DatabaseService, lotId);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' error:" + ex.Message);
+                response2 = DeleteRawData(DatabaseService, lotId);
+                return false;
+            }
+            #endregion
+            #region insert raw data 的 result 表格
+            cut_size = (content.LotResult.Rows.Count > 5000) ? 5000 : content.LotResult.Rows.Count;
+            columns = "`lot_id`,"; values = string.Empty;
+            for (int i = 0; i < content.LotResult.Columns.Count; i++)
+            {
+                string column_name = content.LotResult.Columns[i].ColumnName.ToLower();
+                column_name = column_name.Replace(" ", "_");
+                if (column_name == "siteid")
+                {
+                    column_name = "site_id";
+                }
+                if (column_name == "p/f")
+                {
+                    column_name = "pass/fail";
+                }
+                columns += "`" + column_name.Trim() + "`";
+                if (i != content.LotResult.Columns.Count - 1)
+                {
+                    columns += ",";
+                }
+            }
+            // 開始逐一insert result表
+            try
+            {
+                values = string.Empty;
+                for (int i = 0; i < content.LotResult.Rows.Count; i++)
+                {
+                    //// 判斷 index=1 的Serial是否為空，若為空則跳過
+                    if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
+                    {
+                        values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
+                        //values += "(\"" + lotId + "\",";
+                        for (int j = 0; j < content.LotResult.Columns.Count; j++)
+                        {
+                            if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
+                            {
+                                values += "NULL";
+                            }
+                            else if ((content.LotResult.Columns[j].ColumnName == "test time" || content.LotResult.Columns[j].ColumnName == "index time") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
+                            {
+                                values += "0";
+                            }
+                            else if (content.LotResult.Columns[j].ColumnName == "real time")
+                            {
+                                // 判斷是否為時間格式，若不符合則給NULL
+                                DateTime out_dateTime;
+                                if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
+                                {
+                                    values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
+                                }
+                                else
+                                {
+                                    values += "NULL";
+                                }
+                            }
+                            else
+                            {
+                                values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
+                            }
+                            if (j != content.LotResult.Columns.Count - 1)
+                            {
+                                values += ",";
+                            }
+                        }
+                        // 每cut_size個row就匯入一次
+                        if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
+                        {
+                            values += ")";
+                            values = values.Substring(1, values.Length - 2);
+                            response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
+                            if (!string.IsNullOrEmpty(response2.Error))
+                            {
+                                writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
+                                return false;
+                            }
+                            values = string.Empty;
+                        }
+                        else if (i != content.LotResult.Rows.Count - 1)
+                        {
+                            values += "),";
+                        }
+                        else
+                        {
+                            values += ")";
+                        }
+                    }
+                }
+                if (!string.IsNullOrEmpty(values))
+                {
+                    values = values.Substring(1, values.Length - 2);
+                    // 如果最後一個字元是')' 則移除
+                    string last_str = values.Substring(values.Length - 1);
+                    if (last_str == ")")
+                    {
+                        values = values.Substring(0, values.Length - 1);
+                    }
+                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
+                    if (!string.IsNullOrEmpty(response2.Error))
+                    {
+                        writeToLog.WriteErrorLog("'INSERT INTO lots_result' response error:" + response2.Error);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + ex.Message);
+                return false;
+            }
+            #endregion
+            return true;
+        }
+        // MultiSpecRawData 匯入資料庫
+        public bool ImportMultiSpecRawData(RawDataContentFormat content, DatabaseService DatabaseService, int siteId)
+        {
+            if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
+            // assign 需要 insert 的 欄位名稱 與 values
+            string columns = string.Empty, values = string.Empty;
+            string lotId = string.Empty;
+            Execute_query_response response2;
+            #region insert raw data 的 info 表格
+            if (!MultiSiteRawDataLotInfoIsImported)
+            {
+                for (int i = 0; i < content.LotInfo.Columns.Count; i++)
+                {
+                    string column_name = content.LotInfo.Columns[i].ColumnName.ToLower();
+                    column_name = column_name.Split('(', ')')[0];
+                    // 欄位名稱調整
+                    if (column_name == "bondingdiagram") column_name = "bonding_diagram";
+                    if (column_name == "pass without ocr".ToLower()) column_name = "pass_without_ocr";
+                    if (column_name == "open without ocr".ToLower()) column_name = "open_without_ocr";
+                    if (column_name == "short & others".ToLower()) column_name = "short_others";
+                    if (column_name == "pass without ocr_ppm".ToLower()) column_name = "pass_without_ocr_ppm";
+                    if (column_name == "open without ocr_ppm".ToLower()) column_name = "open_without_ocr_ppm";
+                    if (column_name == "short & others_ppm".ToLower()) column_name = "short_others_ppm";
+                    // 處理日期格式
+                    if (column_name == "start" || column_name == "stop")
+                    {
+                        // 日期格式解析正確
+                        content.LotInfo.Rows[0][i] = CustomizeDateTimeParser(content.LotInfo.Rows[0][i].ToString());
+                    }
+                    columns += "`" + column_name.Trim() + "`";
+                    values += "\"" + ConvertEmptyToDefaultString(content.LotInfo.Rows[0][i].ToString().Trim()) + "\"";
+                    //values += "\"" + content.lotInfo.Rows[0][i].ToString().Trim() + "\"";
+                    if (i != content.LotInfo.Columns.Count - 1)
+                    {
+                        columns += ",";
+                        values += ",";
+                    }
+                }
+                try
+                {
+                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_info", columns, values);
+                    if (!string.IsNullOrEmpty(response2.Error))
+                    {
+                        writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + response2.Error);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("'INSERT INTO lots_info' error:" + ex.Message);
+                    writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + ex.Message);
+                    return false;
+                }
+                try
+                {
+                    // 取得當前 lot id 值
+                    MultiSiteRawDataLotInfoIsImported = true;
+                    MultiSiteRawDataLotInfoInsertId = response2.Data[0]["insertId"].ToString();
+                }
+                catch (Exception ex)
+                {
+                    writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + ex.Message);
+                    Console.WriteLine(ex.ToString());
+                    return false;
+                }
+            }
+            #endregion
+            // 取得當前 lot id 值
+            lotId = MultiSiteRawDataLotInfoInsertId;
+            //string lotId = "3";
+            #region insert raw data 的 statistic 表格
+            columns = "`lot_id`,`site_id`,"; values = string.Empty;
+            for (int i = 0; i < content.LotStatistic.Tables[0].Columns.Count; i++)
+            {
+                string column_name = content.LotStatistic.Tables[0].Columns[i].ColumnName.ToLower();
+                column_name = column_name.Replace(" ", "_");
+                //System.Text.RegularExpressions.Regex.Replace(column_name, " ", "_");
+                if (column_name == "#_of_pass")
+                {
+                    column_name = "pass";
+                }
+                if (column_name == "#_of_fail")
+                {
+                    column_name = "fail";
+                }
+                columns += "`" + column_name.Trim() + "`";
+                if (i != content.LotStatistic.Tables[0].Columns.Count - 1)
+                {
+                    columns += ",";
+                }
+            }
+            // 開始逐一insert 統計值表
+            int test_count = 0, cut_size = 0;
+            int.TryParse(content.LotStatistic.Tables[0].Rows[0]["# of PASS"].ToString(), out test_count);
+            int tableCount = content.LotStatistic.Tables.Count;
+            cut_size = (test_count > 0 && test_count < 10000) ? 10000 / test_count : 1;
+            int lotResultCount = content.LotResult.Rows.Count;
+            Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
+            try
+            {
+                values = string.Empty;
+                for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
+                {
+                    if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
+                    values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
+                    values += "\"" + ConvertEmptyToDefaultString(siteId.ToString()) + "\",";
                     values += "\"" + string.Join("\",\"", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))) + "\"";
                     // 每cut_size個row就匯入一次
                     if (i != 0 && i % cut_size == 0)
@@ -1145,7 +1408,7 @@ namespace DCT_data_import
             }
             return response;
         }
-        public void AddColumnForDataset(DataSet ds_lot_statistic, string columnName, List<StatisticItem> values)
+        public void AddColumnForDataset(DataSet ds_lot_statistic, List<StatisticItem> values)
         {
             for (int i = 0; i < ds_lot_statistic.Tables.Count; i++)
             {

@@ -189,7 +189,7 @@ namespace DCT_data_import
                     {
                         using (StreamWriter writer = new StreamWriter(log_path, false, utf8WithBom))
                         {
-                            writer.WriteLine("File Name, File Size, Time, Read File Takes Time, Import Takes Time");
+                            writer.WriteLine("File Name, File Size, Time, Read File Takes Time(unit:s), Import Takes Time(unit:s)");
                             writer.WriteLine(content);
                         }
                         return;

@@ -159,6 +159,7 @@ namespace DCT_data_import
                 {
                     try
                     {
+                        // 這裡使用 MySQL 的 LAST_INSERT_ID() 函數(讀取DB datatable中有 AUTO_INCREMENT 的欄位（通常是 id 欄位))
                         insertId = connection.QuerySingleOrDefault<long>("SELECT LAST_INSERT_ID()", transaction: transaction);
                     }
                     catch (Exception insertIdEx)
@@ -192,14 +193,11 @@ namespace DCT_data_import
                     // Safe string splitting with bounds checking
                     var cmdParts = cmd_string?.Split(' ');
                     string operationType = (cmdParts != null && cmdParts.Length > 0) ? cmdParts[0].ToUpper() : "UNKNOWN";
-
                     throw new InvalidOperationException($"執行 {operationType} 操作失敗，且回滾交易時也發生錯誤。原始錯誤: {ex.Message}，回滾錯誤: {rollbackEx.Message}", ex);
                 }
-
                 // Safe string splitting with bounds checking
                 var cmdParts2 = cmd_string?.Split(' ');
                 string operationType2 = (cmdParts2 != null && cmdParts2.Length > 0) ? cmdParts2[0].ToUpper() : "UNKNOWN";
-
                 throw new InvalidOperationException($"執行 {operationType2} 操作失敗: {ex.Message}", ex);
             }
             finally

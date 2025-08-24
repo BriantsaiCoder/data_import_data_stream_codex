@@ -40,7 +40,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 import_result = false;
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
+                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();

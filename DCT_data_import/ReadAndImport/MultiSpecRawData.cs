@@ -10,10 +10,100 @@ using System.Text;
 using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
-{
-    public class RawDataMultiSpec : ImportData
+{/// <summary>
+ /// 檔案檢查結果類別 - 支援多個檔案及對應錯誤路徑
+ /// </summary>
+    public class FileCheckResult
     {
-        public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
+        public bool Exists { get; set; }
+        public List<string> FilePaths { get; set; }
+        public List<string> FileNames { get; set; }
+        public List<string> ErrorPaths { get; set; }
+        public List<int> SiteNumbers { get; set; }
+        public FileCheckResult(bool exists)
+        {
+            Exists = exists;
+            FilePaths = new List<string>();
+            FileNames = new List<string>();
+            ErrorPaths = new List<string>();
+            SiteNumbers = new List<int>();
+        }
+        public FileCheckResult(bool exists, List<string> filePaths, List<string> fileNames, List<string> errorPaths, List<int> siteNumbers)
+        {
+            Exists = exists;
+            FilePaths = filePaths ?? new List<string>();
+            FileNames = fileNames ?? new List<string>();
+            ErrorPaths = errorPaths ?? new List<string>();
+            SiteNumbers = siteNumbers ?? new List<int>();
+        }
+        // 為了向後相容，提供單一檔案的屬性
+        public string FilePath => FilePaths.Count > 0 ? FilePaths[0] : "";
+        public string FileName => FileNames.Count > 0 ? FileNames[0] : "";
+        public string ErrorPath => ErrorPaths.Count > 0 ? ErrorPaths[0] : "";
+        public int SiteNumber => SiteNumbers.Count > 0 ? SiteNumbers[0] : 0;
+    }
+    public class MultiSpecRawData : ImportData
+    {
+        /// <summary>
+        /// 從檔案名稱中提取 site 數值
+        /// </summary>
+        /// <param name="fileName">檔案名稱，例如 "test_result_site1_ABC123.csv"</param>
+        /// <returns>site 數值，如果無法解析則返回 0</returns>
+        protected int ExtractSiteNumberFromFileName(string fileName)
+        {
+            try
+            {
+                // 使用正規表示式提取 site 後面的數字
+                var match = System.Text.RegularExpressions.Regex.Match(fileName, @"test_result_site(\d+)_", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    int siteNumber;
+                    if (int.TryParse(match.Groups[1].Value, out siteNumber))
+                    {
+                        return siteNumber;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog(string.Format("[ExtractSiteNumberFromFileName] 提取 site 數值失敗: {0}, 錯誤: {1}", fileName, ex.Message));
+            }
+            return 0; // 如果無法提取，返回 0
+        }
+        /// <summary>
+        /// 搜尋並檢查 multiSpecRawdata 檔案是否存在 - 修改版本
+        /// </summary>
+        /// <param name="dbKey">資料庫鍵值</param>
+        /// <param name="ftpUser">FTP使用者</param>
+        /// <param name="ftpPassword">FTP密碼</param>
+        /// <returns>檔案存在結果，包含所有符合的檔案路徑、對應的錯誤路徑和 site 數值</returns>
+        protected FileCheckResult CheckMultiSpecRawDataFile(string dbKey, string ftpUser, string ftpPassword)
+        {
+            string directoryPath = GetFilePath("multiSpecRawdata", dbKey);
+            string filePattern = string.Format("test_result_site*_{0}.csv", dbKey);
+            var matchingFiles = SearchFilesInFtpDirectory(directoryPath, filePattern, ftpUser, ftpPassword);
+            if (matchingFiles.Count > 0)
+            {
+                var filePaths = new List<string>();
+                var fileNames = new List<string>();
+                var errorPaths = new List<string>();
+                var siteNumbers = new List<int>();
+                foreach (string fileName in matchingFiles)
+                {
+                    string fullPath = directoryPath + fileName;
+                    string errorPath = GetErrorPathForSpecificFile("multiSpecRawdata", fileName, dbKey);
+                    int siteNumber = ExtractSiteNumberFromFileName(fileName); // 提取 site 數值
+                    filePaths.Add(fullPath);
+                    fileNames.Add(fileName);
+                    errorPaths.Add(errorPath);
+                    siteNumbers.Add(siteNumber);
+                }
+                return new FileCheckResult(true, filePaths, fileNames, errorPaths, siteNumbers);
+            }
+            return new FileCheckResult(false);
+        }
+        public async Task<ImportResult> ReadAndImportMultiSpecRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             FtpWebRequest reqFTP;
             FtpWebResponse response;
@@ -22,7 +112,7 @@ namespace DCT_data_import.ReadAndImport
             WriteToLog writeToLog = new WriteToLog();
             bool compareResult = false;
             CalculateSPC calculateSPC = new CalculateSPC();
-            List<StatisticItem> avg2;
+            List<StatisticItem> list_statistic_item;
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
@@ -30,100 +120,117 @@ namespace DCT_data_import.ReadAndImport
             //抓mac id
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             string macid = nics[0].GetPhysicalAddress().ToString();
+            fileAccess.MultiSiteRawDataLotInfoInsertId = string.Empty;
+            fileAccess.MultiSiteRawDataLotInfoIsImported = false;
             // 檢查FTP是否有此檔案
-            string filename = "test_result_" + dbKey + ".csv";
-            string ftpFilePath = GetFilePath("rawdata", dbKey);
-            string errorPath = GetErrorPath("rawdata", dbKey);
-            bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
-            if (!isFileExist)
+            FileCheckResult result = CheckMultiSpecRawDataFile(dbKey, Program.FTP_USER, Program.FTP_PASSWORD);
+            if (!result.Exists)
             {
-                Console.WriteLine("Raw data MultiSpec File not found:  " + filename);
-                writeToLog.WriteErrorLog("Raw data MultiSpec File not found: " + ftpFilePath);
-                return new ImportResult(0, "File not found.");
+                string errorMessage = string.Format("MultiSpec Raw data Files not found for dbKey: {0}", dbKey);
+                Console.WriteLine(errorMessage);
+                writeToLog.WriteErrorLog(errorMessage);
+                return new ImportResult(0, "Files not found.");
             }
-            // 開始讀檔與匯入
-            try
+            bool isDBKeyExist = false;
+            //  DB_Key是否已存在於資料庫
+            isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", dbKey, DatabaseService);
+            if (isDBKeyExist)
             {
-                bool import_result = false;
-                bool isDBKeyExist = false;
-                // 取得編碼格式
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
-                reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
-                response = (FtpWebResponse)reqFTP.GetResponse();
-                responseStream = response.GetResponseStream();
-                reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
-                stopWatch.Reset();
-                stopWatch.Start();
-                RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
-                reader.Close();
-                stopWatch.Stop();
-                ts2 = stopWatch.Elapsed;
-                readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
-                if (!string.IsNullOrEmpty(rawDataContentFormat.ErrMsg))
+                for (int i = 0; i < result.FileNames.Count; i++)
                 {
-                    Console.WriteLine("Raw data Error:  " + rawDataContentFormat.ErrMsg);
-                    writeToLog.WriteErrorLog("Raw data Error: " + rawDataContentFormat.ErrMsg);
+                    string ftpFilePath = result.FilePaths[i];
+                    string filename = result.FileNames[i];
+                    string errorPath = result.ErrorPaths[i];
+                    Console.WriteLine("資料庫已存在此資料: MultiSpec Raw data 比對: " + compareResult + "   檔名:" + filename);
                     RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, rawDataContentFormat.ErrMsg);
                 }
-                if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
+                return new ImportResult(3, "The same DB_Key exists in the database.");
+            }
+            // 顯示所有找到的檔案
+            Console.WriteLine(string.Format("Found {0} matching multiSpecRawdata files for dbKey: {1}", result.FileNames.Count, dbKey));
+            writeToLog.WriteInfoLog(string.Format("Found {0} matching multiSpecRawdata files for dbKey: {1}", result.FileNames.Count, dbKey));
+            // 處理每個找到的檔案
+            for (int i = 0; i < result.FileNames.Count; i++)
+            {
+                string ftpFilePath = result.FilePaths[i];
+                string filename = result.FileNames[i];
+                string errorPath = result.ErrorPaths[i];
+                int siteNumber = result.SiteNumbers[i];
+                Console.WriteLine(string.Format("Processing file [{0}/{1}]: {2}", i + 1, result.FileNames.Count, filename));
+                //Console.WriteLine(string.Format("  File Path: {0}", currentFilePath));
+                //Console.WriteLine(string.Format("  Error Path: {0}", currentErrorPath));
+                // 開始讀檔與匯入
+                try
                 {
-                    Console.WriteLine("Raw data 讀檔失敗:  " + filename);
-                    writeToLog.WriteErrorLog("Raw data  讀檔失敗: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "File content is missing. " + rawDataContentFormat.ErrMsg);
-                }
-                if (!rawDataContentFormat.CompareInfo())
-                {
-                    Console.WriteLine("Raw data 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteErrorLog("Raw data 之 information 欄位名稱不符:" + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "Information field name not match.");
-                }
-                if (!rawDataContentFormat.CompareStatistic())
-                {
-                    Console.WriteLine("Raw data 之 statistic 欄位名稱不符:  " + filename);
-                    writeToLog.WriteErrorLog("Raw data 之 statistic 欄位名稱不符:" + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "Statistic field name not match.");
-                }
-                if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
-                {
-                    writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(2, "The filename does not match the DB_Key in the content.");
-                }
-                //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), DatabaseService);
-                if (isDBKeyExist)
-                {
-                    Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compareResult + "   檔名:" + filename);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                    return new ImportResult(3, "The same DB_Key exists in the database.");
-                }
-                else
-                {
+                    bool import_result = false;
+                    // 取得編碼格式
+                    reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
+                    reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
+                    response = (FtpWebResponse)reqFTP.GetResponse();
+                    responseStream = response.GetResponseStream();
+                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+                    long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    stopWatch.Reset();
+                    stopWatch.Start();
+                    RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
+                    reader.Close();
+                    stopWatch.Stop();
+                    ts2 = stopWatch.Elapsed;
+                    readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
+                    if (!string.IsNullOrEmpty(rawDataContentFormat.ErrMsg))
+                    {
+                        Console.WriteLine("MultiSpec Raw data Error:  " + rawDataContentFormat.ErrMsg);
+                        writeToLog.WriteErrorLog("MultiSpec Raw data Error: " + rawDataContentFormat.ErrMsg);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        return new ImportResult(2, rawDataContentFormat.ErrMsg);
+                    }
+                    if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
+                    {
+                        Console.WriteLine("MultiSpec Raw data 讀檔失敗:  " + filename);
+                        writeToLog.WriteErrorLog("MultiSpec Raw data 讀檔失敗: " + ftpFilePath);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        return new ImportResult(2, "File content is missing. " + rawDataContentFormat.ErrMsg);
+                    }
+                    if (!rawDataContentFormat.CompareInfo())
+                    {
+                        Console.WriteLine("MultiSpec Raw data 之 information 欄位名稱不符:  " + filename);
+                        writeToLog.WriteErrorLog("MultiSpec Raw data 之 information 欄位名稱不符:" + ftpFilePath);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        return new ImportResult(2, "Information field name not match.");
+                    }
+                    if (!rawDataContentFormat.CompareStatistic())
+                    {
+                        Console.WriteLine("MultiSpec Raw data 之 statistic 欄位名稱不符:  " + filename);
+                        writeToLog.WriteErrorLog("MultiSpec Raw data 之 statistic 欄位名稱不符:" + ftpFilePath);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        return new ImportResult(2, "Statistic field name not match.");
+                    }
+                    if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
+                    {
+                        writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
+                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        return new ImportResult(2, "The filename does not match the DB_Key in the content.");
+                    }
                     // 計算均方和
-                    avg2 = calculateSPC.AverageOfSumSquare(rawDataContentFormat);
-                    fileAccess.AddColumnForDataset(rawDataContentFormat.LotStatistic, "avg_2", avg2);
+                    list_statistic_item = calculateSPC.AverageOfSumSquare(rawDataContentFormat);
+                    fileAccess.AddColumnForDataset(rawDataContentFormat.LotStatistic, list_statistic_item);
                     stopWatch.Reset();
                     stopWatch.Start();
                     // 開始匯入
                     await Task.Run(() =>
                     {
-                        import_result = fileAccess.ImportRawData(rawDataContentFormat, DatabaseService);
+                        import_result = fileAccess.ImportMultiSpecRawData(rawDataContentFormat, DatabaseService, siteNumber);
                     }).ConfigureAwait(false);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
                     string dateStr = DateTime.Now.ToString("yyyyMMdd");
-                    string checkLogFileName = "DCT_data_check_log_rawData_" + dateStr + ".csv";
+                    string checkLogFileName = "DCT_data_check_log_multiSpecRawdata_" + dateStr + ".csv";
                     // 寫入 file name, file size, import time, read file take time, import take time
                     writeToLog.WriteToCheckLog(checkLogFileName, filename + "," + FormatFileSize(fileSize) + "," + DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss") + "," + readTakeTime.ToString() + "," + importTakeTime.ToString());
                     if (import_result)
                     {
-                        Console.WriteLine("匯入完成! Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
+                        Console.WriteLine("匯入完成! MultiSpec Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
                         deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
@@ -131,7 +238,7 @@ namespace DCT_data_import.ReadAndImport
                     }
                     else
                     {
-                        Console.WriteLine("匯入失敗: Raw data " + filename);
+                        Console.WriteLine("匯入失敗: MultiSpec Raw data " + filename);
                         writeToLog.WriteErrorLog("匯入失敗:" + ftpFilePath);
                         RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
                         reader.Close();
@@ -139,16 +246,20 @@ namespace DCT_data_import.ReadAndImport
                         return new ImportResult(3, "Import failed.");
                     }
                 }
+                catch (Exception ex)
+                {
+                    writeToLog.WriteErrorLog($"RawData MultiSpec 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
+                    Console.WriteLine($"RawData MultiSpec 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
+                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    return new ImportResult(3, "Exception error occurred during import.");
+                }
+                finally
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect(); // 二次回收，確保徹底清理
+                }
             }
-            catch (Exception ex)
-            {
-                writeToLog.WriteErrorLog($"RawData 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
-                Console.WriteLine($"RawData 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
-                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                return new ImportResult(3, "Exception error occurred during import.");
-            }
-            GC.Collect();
-            //Console.WriteLine("Raw data end~");
             return new ImportResult(1, string.Empty);
         }
         private RawDataContentFormat FileReadRawData(StreamReader reader)

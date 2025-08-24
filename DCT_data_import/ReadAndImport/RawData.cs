@@ -22,7 +22,7 @@ namespace DCT_data_import.ReadAndImport
             WriteToLog writeToLog = new WriteToLog();
             bool compareResult = false;
             CalculateSPC calculateSPC = new CalculateSPC();
-            List<StatisticItem> avg2;
+            List<StatisticItem> list_statistic_item;
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
             TimeSpan ts2 = stopWatch.Elapsed;
@@ -47,7 +47,7 @@ namespace DCT_data_import.ReadAndImport
                 bool import_result = false;
                 bool isDBKeyExist = false;
                 // 取得編碼格式
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
+                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
@@ -105,8 +105,8 @@ namespace DCT_data_import.ReadAndImport
                 else
                 {
                     // 計算均方和
-                    avg2 = calculateSPC.AverageOfSumSquare(rawDataContentFormat);
-                    fileAccess.AddColumnForDataset(rawDataContentFormat.LotStatistic, "avg_2", avg2);
+                    list_statistic_item = calculateSPC.AverageOfSumSquare(rawDataContentFormat);
+                    fileAccess.AddColumnForDataset(rawDataContentFormat.LotStatistic, list_statistic_item);
                     stopWatch.Reset();
                     stopWatch.Start();
                     // 開始匯入

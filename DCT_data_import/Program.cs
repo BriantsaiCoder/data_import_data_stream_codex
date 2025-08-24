@@ -39,20 +39,23 @@ namespace DCT_data_import
                 int count = 0;
                 //TEST CASE
                 RecoveryRate recoveryRate = new RecoveryRate();
+                MultiSpecRawData multiSpecRawData = new MultiSpecRawData();
                 RawData rawData = new RawData();
                 Tester tester = new Tester();
                 FailPin failPin = new FailPin();
                 UiStatus uiStatus = new UiStatus();
                 TsmcIeda tsmcIeda = new TsmcIeda();
-                ImportResult importResult1;
+                //ImportResult importResult1;
                 //importResult1 = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
                 //Console.WriteLine("tsmcIeda importResult1.Result: " + importResult1.Result);
                 //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250712-204923").GetAwaiter().GetResult();
                 //Console.WriteLine("recoveryRate importResult1.Result: " + importResult1.Result);
                 //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250713-230625").GetAwaiter().GetResult();
                 //Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
-                importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASE08-5070-008-10.10.124.98_AAH@A251990015-0-S-Q_6STD_NewSpecLeak_20250718-075136").GetAwaiter().GetResult();
-                Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
+                //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "OSH088-10.24.80.58_20250430的396 是AL Wafer_20250501-013510").GetAwaiter().GetResult();
+                //Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
+                //importResult1 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, "ASE07-5070-032-127.0.0.1_AAH@A190640075-0_0410_N_LeakChecked_6STD_NewSpecLeak_20250625-150640").GetAwaiter().GetResult();
+                //Console.WriteLine("multiSpecRawData importResult1.Result: " + importResult1.Result);
                 //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "789").GetAwaiter().GetResult();
                 //Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
                 //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_14_33");
@@ -360,6 +363,7 @@ namespace DCT_data_import
                 }
                 RecoveryRate recoveryRate = new RecoveryRate();
                 RawData rawData = new RawData();
+                MultiSpecRawData multiSpecRawData = new MultiSpecRawData();
                 Tester tester = new Tester();
                 FailPin failPin = new FailPin();
                 string updateImportStatus, remark;
@@ -395,6 +399,10 @@ namespace DCT_data_import
                                 if (dbKeyList[i].TestResult == 0)
                                 {
                                     importResult2 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                    if (importResult2.Result != 1)
+                                    {
+                                        importResult2 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                    }
                                 }
                                 else
                                 {

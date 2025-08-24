@@ -40,7 +40,7 @@ namespace DCT_data_import.ReadAndImport
                     writeToLog.WriteErrorLog("Fail Pin Log File not found: " + ftpFilePath);
                     return new ImportResult(0, "File not found.");
                 }
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpFilePath));
+                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();

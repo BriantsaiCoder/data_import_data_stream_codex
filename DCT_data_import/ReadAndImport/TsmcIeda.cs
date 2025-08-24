@@ -47,7 +47,7 @@ namespace DCT_data_import.ReadAndImport
             }
             try
             {
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpserver));
                 reqFTP.Method = WebRequestMethods.Ftp.ListDirectory;
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
@@ -78,7 +78,7 @@ namespace DCT_data_import.ReadAndImport
                         ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
                         errorDir = "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/";
                     }
-                    reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                    reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpserver));
                     reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                     response = (FtpWebResponse)reqFTP.GetResponse();
                     responseStream = response.GetResponseStream();
@@ -230,7 +230,7 @@ namespace DCT_data_import.ReadAndImport
                     return netNameList;
                 }
                 ftpserver += filename;
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
@@ -288,7 +288,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/lot_mapping.csv";
                 }
-                reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
+                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpserver));
                 reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
                 response = (FtpWebResponse)reqFTP.GetResponse();
                 responseStream = response.GetResponseStream();
