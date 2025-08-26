@@ -68,15 +68,16 @@ namespace DCT_data_import.ReadAndImport
                 try
                 {
                     ftpserver = "ftp://" + Program.FTP_IP;
+                    string ftpserverBase = ftpserver;
                     if (Program.Environment == "Dev")
                     {
                         ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/IEDA/" + filename;
-                        errorDir = "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/IEDA_error/";
+                        errorDir = ftpserverBase + "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/IEDA_error/";
                     }
                     else if (Program.Environment == "Prod")
                     {
                         ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA/" + filename;
-                        errorDir = "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/";
+                        errorDir = ftpserverBase + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/IEDA_error/";
                     }
                     reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpserver));
                     reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
@@ -207,15 +208,16 @@ namespace DCT_data_import.ReadAndImport
             List<string> netNameList = new List<string>();
             string errorDir = string.Empty;
             ftpserver = "ftp://" + Program.FTP_IP;
+            string ftpserverBase = ftpserver;
             if (Program.Environment == "Dev")
             {
                 ftpserver += "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/CSV/";
-                errorDir = "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/CSV_error/";
+                errorDir = ftpserverBase + "/DCT_Log/DCT_DB_DATA_Dev/TSMC_DATA/CSV_error/";
             }
             else if (Program.Environment == "Prod")
             {
                 ftpserver += "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV/";
-                errorDir = "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/";
+                errorDir = ftpserverBase + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/CSV_error/";
             }
             try
             {
