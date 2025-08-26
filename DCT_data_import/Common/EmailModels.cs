@@ -18,7 +18,7 @@ namespace DCT_data_import
         public string SendResult { get; set; }
         public bool SendEmail()
         {
-            string ipString = string.Empty;
+            const string ipString = "10.12.10.31";
             IPAddress tIP = IPAddress.Parse(ipString);
             using (Ping tPingControl = new Ping())
             {

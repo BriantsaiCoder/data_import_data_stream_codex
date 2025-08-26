@@ -46,6 +46,28 @@ namespace DCT_data_import
                 //UiStatus uiStatus = new UiStatus();
                 //TsmcIeda tsmcIeda = new TsmcIeda();
                 //ImportResult importResult1;
+                //#region 寄信通報
+                //try
+                //{
+                //    List<DbKeyObject> failDbKeyFromFile = dbAccess.SelectFailDbKeyFromFile();
+                //    // 通報
+                //    if (failDbKeyFromFile.Count > 0)
+                //    {
+                //        // 新的簡化版實作:
+                //        var details = failDbKeyFromFile.Select(x => $"DB_Key:{x.DbKey}, {x.Remark}").ToList();
+                //        bool sendResult = _notificationService.SendErrorNotification("下列資料發生異常(test)，請確認檔案內容", details);
+                //        if (sendResult)
+                //        {
+                //            _notificationService.CleanupMailTempFiles();
+                //        }
+                //    }
+                //}
+                //catch (Exception ex)
+                //{
+                //    writeToLog.WriteErrorLog($"[ImportTesterMode] 寄信通報失敗: {ex.Message}");
+                //    Console.WriteLine($"[ImportTesterMode] 寄信通報失敗: {ex.Message}");
+                //}
+                //#endregion
                 //rawData.RenameFile("ftp://10.16.92.67/DCT_Log/DCT_DB_DATA_Dev/Data_Cloud_CSV/test_result_OSH101-192.168.137.1_20250425 建的405是PC Wafer-1_20250603-010640.csv", "ftp://10.16.92.67/DCT_Log/DCT_DB_DATA_Dev/Data_Cloud_CSV_Error/test_result_OSH101-192.168.137.1_20250425 建的405是PC Wafer-1_20250603-010640.csv", Program.FTP_USER, Program.FTP_PASSWORD);
                 //Console.WriteLine("renameFile done");
                 //Console.ReadLine();
