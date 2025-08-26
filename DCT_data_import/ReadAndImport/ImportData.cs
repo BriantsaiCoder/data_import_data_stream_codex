@@ -131,24 +131,80 @@ namespace DCT_data_import.ReadAndImport
                 return response.StatusDescription;
             }
         }
-        public string RenameFile(string fileName, string newFileName, string user, string password)
+        public string RenameFile(string filePath, string newFilePath, string user, string password)
         {
-            WriteToLog writeToLog = new WriteToLog();
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
-            request.Method = WebRequestMethods.Ftp.Rename;
-            request.Credentials = new NetworkCredential(user, password);
-            request.RenameTo = newFileName;
-            request.Timeout = 10000;
+            var writeToLog = new WriteToLog();
+            if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(newFilePath))
+                return $"RenameFile() Fail: path is empty. [filePath={filePath}, newFilePath={newFilePath}]";
             try
             {
-                FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-                return response.StatusDescription;
+                var srcUri = new Uri(filePath, UriKind.Absolute);
+                var dstUri = new Uri(newFilePath, UriKind.Absolute);
+                if (srcUri.Scheme != Uri.UriSchemeFtp || dstUri.Scheme != Uri.UriSchemeFtp || srcUri.Host != dstUri.Host)
+                    return $"RenameFile() Fail: only same FTP host is supported. [filePath={filePath}, newFilePath={newFilePath}]";
+                string renameTo = Uri.UnescapeDataString(dstUri.AbsolutePath);
+                var request = (FtpWebRequest)WebRequest.Create(srcUri);
+                request.Method = WebRequestMethods.Ftp.Rename;
+                request.Credentials = new NetworkCredential(user, password);
+                request.UsePassive = true;
+                request.UseBinary = true;
+                request.KeepAlive = false;
+                request.Proxy = null;
+                request.Timeout = 10000;
+                request.RenameTo = renameTo;
+                using (var response = (FtpWebResponse)request.GetResponse())
+                {
+                    return response.StatusDescription;
+                }
+            }
+            catch (UriFormatException ex)
+            {
+                string msg = $"RenameFile() Fail: URI 格式錯誤. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Msg: {ex.Message}";
+                writeToLog.WriteErrorLog(msg);
+                return msg;
+            }
+            catch (ArgumentException ex)
+            {
+                string msg = $"RenameFile() Fail: 參數錯誤. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Msg: {ex.Message}";
+                writeToLog.WriteErrorLog(msg);
+                return msg;
+            }
+            catch (WebException ex)
+            {
+                string detail = string.Empty;
+                FtpStatusCode statusCode = 0;
+                if (ex.Response is FtpWebResponse ftpResp)
+                {
+                    statusCode = ftpResp.StatusCode;
+                    detail = $"FTP Status: {statusCode}, Description: {ftpResp.StatusDescription}";
+                }
+                if (statusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
+                {
+                    string msg = $"RenameFile() Fail: 檔案不存在或無法存取. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Msg: {ex.Message}";
+                    writeToLog.WriteErrorLog(msg);
+                    return msg;
+                }
+                string msg2 = $"RenameFile() Fail: 網路/FTP 錯誤. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Status: {statusCode}, {detail}, Msg: {ex.Message}";
+                writeToLog.WriteErrorLog(msg2);
+                return msg2;
+            }
+            catch (IOException ex)
+            {
+                string msg = $"RenameFile() Fail: IO 錯誤. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Msg: {ex.Message}";
+                writeToLog.WriteErrorLog(msg);
+                return msg;
+            }
+            catch (NotSupportedException ex)
+            {
+                string msg = $"RenameFile() Fail: 不支援的作業. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Msg: {ex.Message}";
+                writeToLog.WriteErrorLog(msg);
+                return msg;
             }
             catch (Exception ex)
             {
-                writeToLog.WriteErrorLog("RenameFile() Fail, Exception :" + ex.Message);
-                return "RenameFile() Fail";
+                string msg = $"RenameFile() Fail: 未預期的錯誤. [filePath={filePath}, newFilePath={newFilePath}, user={user}] Msg: {ex.Message}";
+                writeToLog.WriteErrorLog(msg);
+                return msg;
             }
         }
         public bool IsChinese(string input)

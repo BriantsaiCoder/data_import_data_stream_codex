@@ -37,15 +37,18 @@ namespace DCT_data_import
                 DatabaseService DatabaseService = new DatabaseService();
                 DbAccess dbAccess = new DbAccess();
                 int count = 0;
-                //TEST CASE
-                RecoveryRate recoveryRate = new RecoveryRate();
-                MultiSpecRawData multiSpecRawData = new MultiSpecRawData();
-                RawData rawData = new RawData();
-                Tester tester = new Tester();
-                FailPin failPin = new FailPin();
-                UiStatus uiStatus = new UiStatus();
-                TsmcIeda tsmcIeda = new TsmcIeda();
+                ////TEST CASE
+                //RecoveryRate recoveryRate = new RecoveryRate();
+                //MultiSpecRawData multiSpecRawData = new MultiSpecRawData();
+                //RawData rawData = new RawData();
+                //Tester tester = new Tester();
+                //FailPin failPin = new FailPin();
+                //UiStatus uiStatus = new UiStatus();
+                //TsmcIeda tsmcIeda = new TsmcIeda();
                 //ImportResult importResult1;
+                //rawData.RenameFile("ftp://10.16.92.67/DCT_Log/DCT_DB_DATA_Dev/Data_Cloud_CSV/test_result_OSH101-192.168.137.1_20250425 建的405是PC Wafer-1_20250603-010640.csv", "ftp://10.16.92.67/DCT_Log/DCT_DB_DATA_Dev/Data_Cloud_CSV_Error/test_result_OSH101-192.168.137.1_20250425 建的405是PC Wafer-1_20250603-010640.csv", Program.FTP_USER, Program.FTP_PASSWORD);
+                //Console.WriteLine("renameFile done");
+                //Console.ReadLine();
                 //importResult1 = tsmcIeda.ReadAndImportIeda(fileAccess, DatabaseService, string.Empty);
                 //Console.WriteLine("tsmcIeda importResult1.Result: " + importResult1.Result);
                 //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250712-204923").GetAwaiter().GetResult();
@@ -60,7 +63,7 @@ namespace DCT_data_import
                 //Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
                 //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_14_33");
                 //Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);
-                Console.ReadLine();
+                //Console.ReadLine();
                 bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
                 Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
                 Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
