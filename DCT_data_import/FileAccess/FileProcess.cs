@@ -234,7 +234,48 @@ namespace DCT_data_import
                 Console.WriteLine(ex.ToString());
                 return false;
             }
-            //string lotId = "3";
+            #region 驗證和轉換統計數據中的數字欄位
+            try
+            {
+                //writeToLog.WriteInfoLog("開始驗證統計數據中的數字欄位");
+                int validationCount = 0;
+                int conversionCount = 0;
+                // 定義需要數字驗證的統計欄位
+                string[] statisticParametersToValidate = { "stdev", "avg", "cp", "cpk" };
+                for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
+                {
+                    if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
+                    DataTable table = content.LotStatistic.Tables[i];
+                    DataRow row = table.Rows[0]; // 統計表通常只有一行數據
+                    // 取得項目名稱用於日誌記錄
+                    string itemName = table.Columns.Contains("Item Name") ?
+                                     (row["Item Name"]?.ToString() ?? string.Format("Table_{0}", i)) :
+                                     string.Format("Table_{0}", i);
+                    foreach (string paramName in statisticParametersToValidate)
+                    {
+                        if (table.Columns.Contains(paramName))
+                        {
+                            string originalValue = row[paramName]?.ToString() ?? "";
+                            double validatedValue = ValidateAndConvertStatisticValue(originalValue, paramName, itemName);
+                            // 如果值發生了變化，記錄轉換
+                            if (originalValue != validatedValue.ToString())
+                            {
+                                conversionCount++;
+                            }
+                            row[paramName] = validatedValue;
+                            validationCount++;
+                        }
+                    }
+                }
+                //writeToLog.WriteInfoLog(string.Format("統計數據驗證完成，共處理 {0} 個欄位，轉換 {1} 個非數字值", validationCount, conversionCount));
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog(string.Format("統計數據驗證過程發生錯誤：{0}", ex.Message));
+                writeToLog.WriteErrorLog(string.Format("錯誤詳細信息：{0}", ex.StackTrace));
+                return false;
+            }
+            #endregion
             #region insert raw data 的 statistic 表格
             columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotStatistic.Tables[0].Columns.Count; i++)
@@ -495,6 +536,48 @@ namespace DCT_data_import
             // 取得當前 lot id 值
             lotId = MultiSiteRawDataLotInfoInsertId;
             //string lotId = "3";
+            #region 驗證和轉換統計數據中的數字欄位
+            try
+            {
+                //writeToLog.WriteInfoLog("開始驗證統計數據中的數字欄位");
+                int validationCount = 0;
+                int conversionCount = 0;
+                // 定義需要數字驗證的統計欄位
+                string[] statisticParametersToValidate = { "stdev", "avg", "cp", "cpk" };
+                for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
+                {
+                    if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
+                    DataTable table = content.LotStatistic.Tables[i];
+                    DataRow row = table.Rows[0]; // 統計表通常只有一行數據
+                    // 取得項目名稱用於日誌記錄
+                    string itemName = table.Columns.Contains("Item Name") ?
+                                     (row["Item Name"]?.ToString() ?? string.Format("Table_{0}", i)) :
+                                     string.Format("Table_{0}", i);
+                    foreach (string paramName in statisticParametersToValidate)
+                    {
+                        if (table.Columns.Contains(paramName))
+                        {
+                            string originalValue = row[paramName]?.ToString() ?? "";
+                            double validatedValue = ValidateAndConvertStatisticValue(originalValue, paramName, itemName);
+                            // 如果值發生了變化，記錄轉換
+                            if (originalValue != validatedValue.ToString())
+                            {
+                                conversionCount++;
+                            }
+                            row[paramName] = validatedValue;
+                            validationCount++;
+                        }
+                    }
+                }
+                //writeToLog.WriteInfoLog(string.Format("統計數據驗證完成，共處理 {0} 個欄位，轉換 {1} 個非數字值", validationCount, conversionCount));
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog(string.Format("統計數據驗證過程發生錯誤：{0}", ex.Message));
+                writeToLog.WriteErrorLog(string.Format("錯誤詳細信息：{0}", ex.StackTrace));
+                return false;
+            }
+            #endregion
             #region insert raw data 的 statistic 表格
             columns = "`lot_id`,`site_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotStatistic.Tables[0].Columns.Count; i++)
@@ -1412,11 +1495,11 @@ namespace DCT_data_import
         {
             for (int i = 0; i < ds_lot_statistic.Tables.Count; i++)
             {
-                ds_lot_statistic.Tables[i].Columns.Add("avg_2", typeof(decimal));
+                ds_lot_statistic.Tables[i].Columns.Add("avg_2", typeof(double));
                 ds_lot_statistic.Tables[i].Columns.Add("pass_n", typeof(int));
                 if (ds_lot_statistic.Tables[i].Rows.Count < 1) continue;
                 ds_lot_statistic.Tables[i].Rows[0]["AVG"] = Math.Round(values[i].avg, 9);
-                ds_lot_statistic.Tables[i].Rows[0]["avg_2"] = values[i].avg2;
+                ds_lot_statistic.Tables[i].Rows[0]["avg_2"] = Math.Round(values[i].avg2, 9);
                 ds_lot_statistic.Tables[i].Rows[0]["pass_n"] = values[i].pass_n;
             }
         }
@@ -1433,6 +1516,39 @@ namespace DCT_data_import
                 return defaultValue;
             }
             return inputValue.Trim();
+        }
+        /// <summary>
+        /// 驗證並轉換統計參數，若為非數字字串則轉為 0
+        /// </summary>
+        /// <param name="value">待驗證的值</param>
+        /// <param name="columnName">欄位名稱（用於日誌記錄）</param>
+        /// <param name="itemName">項目名稱（用於日誌記錄）</param>
+        /// <returns>轉換後的 decimal 值</returns>
+        private double ValidateAndConvertStatisticValue(string value, string columnName = "", string itemName = "")
+        {
+            try
+            {
+                // 檢查輸入是否為空或 null
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    writeToLog.WriteInfoLog(string.Format("統計項目 [{0}] 欄位 [{1}] 值為空，轉換為 0", itemName, columnName));
+                    return 0;
+                }
+                string trimmedValue = value.Trim();
+                // 嘗試將字串轉換為 double
+                if (double.TryParse(trimmedValue, out double result))
+                {
+                    return result;
+                }
+                // 轉換失敗，記錄日誌並返回 0
+                writeToLog.WriteInfoLog(string.Format("統計項目 [{0}] 欄位 [{1}] 值 [{2}] 無法轉換為有效數字，轉換為 0", itemName, columnName, trimmedValue));
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog(string.Format("統計項目 [{0}] 欄位 [{1}] 值 [{2}] 驗證過程發生異常：{3}，轉換為 0", itemName, columnName, value, ex.Message));
+                return 0;
+            }
         }
     }
 }

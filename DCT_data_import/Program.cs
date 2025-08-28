@@ -77,7 +77,7 @@ namespace DCT_data_import
                 //Console.WriteLine("recoveryRate importResult1.Result: " + importResult1.Result);
                 //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250713-230625").GetAwaiter().GetResult();
                 //Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
-                //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "OSH088-10.24.80.58_20250430的396 是AL Wafer_20250501-013510").GetAwaiter().GetResult();
+                //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASE03-5070-035-10.10.187.89_AAH@A311530002-0_0727_T_D_fixed_20250827-061849").GetAwaiter().GetResult();
                 //Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
                 //importResult1 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, "ASE07-5070-032-127.0.0.1_AAH@A190640075-0_0410_N_LeakChecked_6STD_NewSpecLeak_20250625-150640").GetAwaiter().GetResult();
                 //Console.WriteLine("multiSpecRawData importResult1.Result: " + importResult1.Result);
