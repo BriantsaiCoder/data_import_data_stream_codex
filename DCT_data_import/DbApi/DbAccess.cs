@@ -10,7 +10,6 @@ namespace DCT_data_import
         public int SelectDataCountInDays(DatabaseService DatabaseService, int day, string mode = "tester")
         {
             WriteToLog writeToLog = new WriteToLog();
-
             // 檢查資料庫和相關資料表是否存在
             string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
             if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
@@ -18,7 +17,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return -1;
             }
-
             string sql = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             long threeHourAgoTimeStamp = nowTimeStamp - 86400 * day;  // 24小時=86400秒
@@ -72,7 +70,6 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyList = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
-
             // 檢查資料庫和相關資料表是否存在
             string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
             if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
@@ -80,7 +77,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return new List<DbKeyObject>();
             }
-
             string sql = string.Empty;
             if (mode == "tester")
             {
@@ -118,7 +114,6 @@ namespace DCT_data_import
                     if (mode == "tester")
                     {
                         //dbKeyList.Add(new DbKeyObject(int.Parse(response.Data[i]["id"].ToString()), response.Data[i]["db_key"].ToString(), int.Parse(response.Data[i]["tester"].ToString()), int.Parse(response.Data[i]["test_result"].ToString()), int.Parse(response.Data[i]["fail_pin"].ToString()), int.Parse(response.Data[i]["check_status"].ToString())));
-
                         // Safe parsing for all integer fields
                         if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id) ||
                             !int.TryParse(response.Data[i]["recovery_rate"]?.ToString(), out int recoveryRate) ||
@@ -130,7 +125,6 @@ namespace DCT_data_import
                             writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
                             continue;
                         }
-
                         dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), recoveryRate, tester, testResult, failPin, checkStatus));
                     }
                     else
@@ -142,7 +136,6 @@ namespace DCT_data_import
                             writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
                             continue;
                         }
-
                         dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), checkStatus));
                     }
                 }
@@ -158,14 +151,12 @@ namespace DCT_data_import
         public string UpdateDbKeyImportStatus(DatabaseService DatabaseService, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
-
             // 檢查資料庫和 db_key 資料表是否存在
             if (!DatabaseService.CheckDatabaseAndTableExists("db_key"))
             {
                 writeToLog.WriteErrorLog("資料庫或 db_key 資料表不存在");
                 return "Fail. Database or table does not exist";
             }
-
             //int importResult = 4 * tester + 2 * testResult + failPin;
             int importResult = 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
             string id, checkStatus, importStatus = "1", mail = "0";
@@ -245,14 +236,12 @@ namespace DCT_data_import
         public string UpdateDbKeyUiStatusImportStatus(DatabaseService DatabaseService, string dbKey, int uiStatus, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
-
             // 檢查資料庫和 db_key_ui_status 資料表是否存在
             if (!DatabaseService.CheckDatabaseAndTableExists("db_key_ui_status"))
             {
                 writeToLog.WriteErrorLog("資料庫或 db_key_ui_status 資料表不存在");
                 return "Fail. Database or table does not exist";
             }
-
             int importResult = uiStatus;
             string id, checkStatus, importStatus = "1", mail = "0";
             try
@@ -329,7 +318,6 @@ namespace DCT_data_import
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
             WriteToLog writeToLog = new WriteToLog();
-
             // 檢查資料庫和相關資料表是否存在
             string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
             if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
@@ -337,7 +325,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return new List<DbKeyObject>();
             }
-
             string sql = string.Empty, remark = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             //long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒  3小時前
@@ -372,14 +359,12 @@ namespace DCT_data_import
                 {
                     //Console.WriteLine(response.data[i]["db_key"].ToString());
                     remark = (response.Data[i]["check_status"].ToString() == "0") ? "未更新check status" : response.Data[i]["remark"].ToString();
-
                     // Safe parsing for id field
                     if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id))
                     {
                         writeToLog.WriteInfoLog($"SelectFailDbKeyResult() invalid id value at row {i}: {response.Data[i]["id"]}, skipping row");
                         continue;
                     }
-
                     dbKeyObject.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), remark));
                 }
             }

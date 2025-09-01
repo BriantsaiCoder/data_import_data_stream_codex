@@ -424,8 +424,9 @@ namespace DCT_data_import
                                 if (dbKeyList[i].TestResult == 0)
                                 {
                                     importResult2 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
-                                    if (importResult2.Result != 1)
+                                    if (importResult2.Result == 0)
                                     {
+                                        // File not found
                                         importResult2 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                                     }
                                 }
