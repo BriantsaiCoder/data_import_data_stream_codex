@@ -75,7 +75,7 @@ namespace DCT_data_import
                 //Console.WriteLine("tsmcIeda importResult1.Result: " + importResult1.Result);
                 //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250712-204923").GetAwaiter().GetResult();
                 //Console.WriteLine("recoveryRate importResult1.Result: " + importResult1.Result);
-                //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250713-230625").GetAwaiter().GetResult();
+                //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250710-185417").GetAwaiter().GetResult();
                 //Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
                 //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASE03-5070-035-10.10.187.89_AAH@A311530002-0_0727_T_D_fixed_20250827-061849").GetAwaiter().GetResult();
                 //Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
