@@ -238,13 +238,16 @@ namespace DCT_data_import
         public DataTable Fail_pin_rate_list { get; set; }
         public DataTable Fail_pin_rate_list_pin_ball { get; set; }
         public DataSet Fail_pin_rate_list_test_result { get; set; }
+        public bool HasSnNum { get; set; } //用於標記是否為包含 SN Num 的新格式
         public FailPinLogContentFormat()
         {
+            HasSnNum = false;
             Fail_pin_rate_info = new DataTable();
             DataRow dr = Fail_pin_rate_info.NewRow();
             Fail_pin_rate_info.Rows.Add(dr);
             Fail_pin_rate_list = new DataTable();
             Fail_pin_rate_list.Columns.Add("dut", typeof(string));
+            Fail_pin_rate_list.Columns.Add("sn_num", typeof(string));//無論新舊格式都保留此欄位，舊格式時該欄位值為空字串
             Fail_pin_rate_list.Columns.Add("site", typeof(string));
             Fail_pin_rate_list.Columns.Add("fail_type", typeof(string));
             Fail_pin_rate_list_pin_ball = new DataTable();

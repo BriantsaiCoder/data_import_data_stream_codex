@@ -132,6 +132,7 @@ namespace DCT_data_import.ReadAndImport
                 string data_format = string.Empty;
                 int content_part = 1;
                 int fail_pin_list_id = 0;
+                bool hasSnNum = false;
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
@@ -150,6 +151,17 @@ namespace DCT_data_import.ReadAndImport
                     if (values[0] == "DUT")
                     {
                         content_part = 2;
+                        // 判斷第二欄是否為 "SN Num" 來確定格式
+                        if (values.Length > 1 && values[1] == "SN Num")
+                        {
+                            hasSnNum = true;
+                            failPinLogContentFormat.HasSnNum = true;
+                        }
+                        else
+                        {
+                            hasSnNum = false;
+                            failPinLogContentFormat.HasSnNum = false;
+                        }
                         continue;
                     }
                     // fail pin rate的上半部分
@@ -161,13 +173,30 @@ namespace DCT_data_import.ReadAndImport
                     // fail pin rate的下半部分
                     else if (content_part == 2)
                     {
-                        if (values.Length >= 3)
+                        // 舊格式至少需要 3 欄 (DUT, Site, Fail Type)
+                        // 新格式至少需要 4 欄 (DUT, SN Num, Site, Fail Type)
+                        int minColumns = hasSnNum ? 4 : 3;
+                        if (values.Length >= minColumns)
                         {
                             DataRow dr_fail_pin_rate_list = failPinLogContentFormat.Fail_pin_rate_list.NewRow();
-                            // 欄位 DUT, Site, Fail Type
-                            for (int i = 0; i < 3; i++)
+                            int dataStartIndex; // fail pin 資料開始的索引位置
+                            if (hasSnNum)
                             {
-                                dr_fail_pin_rate_list[i] = values[i];
+                                // 新格式:  DUT, SN Num, Site, Fail Type, ...
+                                dr_fail_pin_rate_list["dut"] = values[0];
+                                dr_fail_pin_rate_list["sn_num"] = values[1];
+                                dr_fail_pin_rate_list["site"] = values[2];
+                                dr_fail_pin_rate_list["fail_type"] = values[3];
+                                dataStartIndex = 4;
+                            }
+                            else
+                            {
+                                // 舊格式: DUT, Site, Fail Type, ...
+                                dr_fail_pin_rate_list["dut"] = values[0];
+                                dr_fail_pin_rate_list["sn_num"] = string.Empty; // 舊格式無 SN Num，設為空字串
+                                dr_fail_pin_rate_list["site"] = values[1];
+                                dr_fail_pin_rate_list["fail_type"] = values[2];
+                                dataStartIndex = 3;
                             }
                             failPinLogContentFormat.Fail_pin_rate_list.Rows.Add(dr_fail_pin_rate_list);
                             // 讀取 fail pin 與 log 存到 List
@@ -176,7 +205,7 @@ namespace DCT_data_import.ReadAndImport
                             List<string> fail_pin_log = new List<string>();
                             DataTable test_result_dt = InitDtFailPinTestResult();
                             int row_index = -1, column_index = 0;
-                            for (int i = 3; i < values.Length; i++)
+                            for (int i = dataStartIndex; i < values.Length; i++)
                             {
                                 // 以 ';' 分開fail pin log 與 remark  ，2024/3/1 新增以@分開test result
                                 if (values[i] == ";")

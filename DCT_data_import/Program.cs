@@ -43,9 +43,6 @@ namespace DCT_data_import
                 //RawData rawData = new RawData();
                 //Tester tester = new Tester();
                 //FailPin failPin = new FailPin();
-                //UiStatus uiStatus = new UiStatus();
-                //TsmcIeda tsmcIeda = new TsmcIeda();
-                //ImportResult importResult1;
                 //#region 寄信通報
                 //try
                 //{
@@ -81,9 +78,11 @@ namespace DCT_data_import
                 //Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
                 //importResult1 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, "ASE07-5070-032-127.0.0.1_AAH@A190640075-0_0410_N_LeakChecked_6STD_NewSpecLeak_20250625-150640").GetAwaiter().GetResult();
                 //Console.WriteLine("multiSpecRawData importResult1.Result: " + importResult1.Result);
-                //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "789").GetAwaiter().GetResult();
+                //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "123456").GetAwaiter().GetResult();
                 //Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
-                //importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_14_33");
+                //importResult1 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, "123456SN").GetAwaiter().GetResult();
+                //Console.WriteLine("failPin importResult1.Result: " + importResult1.Result);
+                ////importResult1 = uiStatus.ReadAndImportUIStatus(fileAccess, DatabaseService, "KH_K6B_OSH083_2025_08_04_13_14_33");
                 //Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);
                 //Console.ReadLine();
                 bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
