@@ -152,7 +152,7 @@ namespace DCT_data_import
             "Test_Time_Module_csv_g respond", "data_module_act_smart1_txt result", "data_module_act_smart1_txt respond",
             "data_module_ASEKH_smart1_xml result", "data_module_ASEKH_smart1_xml respond", "data_module_act_fail_log result",
             "data_module_act_fail_log respond", "VIM result", "VIM respond", "VIM_open result", "VIM_open respond", "ViCbit result", "ViCbit respond",
-            "ViCbit_open result", "ViCbit_open respond", "Pattern result", "Pattern respond" };
+            "ViCbit_open result", "ViCbit_open respond", "Pattern result", "Pattern respond","SWT result","SWT respond" };
         public string ErrMsg { get; set; }
         public DataTable Tester_device_info { get; set; }
         public DataTable Tester_status { get; set; }

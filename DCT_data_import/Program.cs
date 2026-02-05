@@ -43,6 +43,7 @@ namespace DCT_data_import
                 //RawData rawData = new RawData();
                 //Tester tester = new Tester();
                 //FailPin failPin = new FailPin();
+                //ImportResult importResult1;
                 //#region 寄信通報
                 //try
                 //{
@@ -72,8 +73,9 @@ namespace DCT_data_import
                 //Console.WriteLine("tsmcIeda importResult1.Result: " + importResult1.Result);
                 //importResult1 = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250712-204923").GetAwaiter().GetResult();
                 //Console.WriteLine("recoveryRate importResult1.Result: " + importResult1.Result);
-                //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEF3-5070-9003-172.22.181.18_MT8755V_TNZBHHB-AWOMD-H-D_20250710-185417").GetAwaiter().GetResult();
+                //importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, "ASEM2-5070-001-10.19.54.168_AAH@A322100016-0_0626_N_6STD_NewSpecLeak_20251020-103825").GetAwaiter().GetResult();
                 //Console.WriteLine("tester importResult1.Result: " + importResult1.Result);
+                //Console.WriteLine("tester importResult1.Result: " + importResult1.Message);
                 //importResult1 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, "ASE03-5070-035-10.10.187.89_AAH@A311530002-0_0727_T_D_fixed_20250827-061849").GetAwaiter().GetResult();
                 //Console.WriteLine("rawData importResult1.Result: " + importResult1.Result);
                 //importResult1 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, "ASE07-5070-032-127.0.0.1_AAH@A190640075-0_0410_N_LeakChecked_6STD_NewSpecLeak_20250625-150640").GetAwaiter().GetResult();
