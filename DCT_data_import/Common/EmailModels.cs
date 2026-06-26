@@ -18,6 +18,13 @@ namespace DCT_data_import
         public string SendResult { get; set; }
         public bool SendEmail()
         {
+            // DryRun(影子驗證):在 Ping 郵件伺服器前就回 true(視為寄信成功),不連網、不送信。
+            // 回 true 讓上層 SendMailModelInternal(NotificationService.cs:191)視為成功,不會走失敗分支。
+            if (RuntimeMode.IsDryRun)
+            {
+                SendResult = "DryRun: email send skipped";
+                return true;
+            }
             const string ipString = "10.12.10.31";
             IPAddress tIP = IPAddress.Parse(ipString);
             using (Ping tPingControl = new Ping())

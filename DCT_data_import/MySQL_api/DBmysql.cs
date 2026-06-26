@@ -58,6 +58,14 @@ namespace DCT_data_import
                 response.Error = "SQL 指令不能為空";
                 return response;
             }
+            // DryRun(影子驗證):非 select(insert/update/delete)一律不寫入,回 no-op 成功(Error 空、Data 空)。
+            // gate 放在開連線前 → 影子模式零寫入連線負擔;涵蓋所有 INSERT/UPDATE/DELETE(含破壞性多表 cascade delete)。
+            // 回假成功避免上層誤判寫入失敗 → 誤觸 import_status/mail 旗標污染佇列。SELECT 不受影響、照常讀取。
+            if (RuntimeMode.IsDryRun && mode.ToLower() != "select")
+            {
+                response.Error = "";
+                return response;
+            }
             if (string.IsNullOrEmpty(MySqlConnectionManager.ConnectionString))
             {
                 response.Error = "資料庫連線尚未初始化，請先呼叫 Connect 方法";

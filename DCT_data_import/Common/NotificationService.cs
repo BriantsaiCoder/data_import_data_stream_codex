@@ -220,6 +220,11 @@ namespace DCT_data_import.Common
         /// </summary>
         public void CleanupMailTempFiles()
         {
+            // DryRun(影子驗證):不刪除 mail_temp.txt(影子試跑保留待寄信暫存,供事後比對)。
+            if (RuntimeMode.IsDryRun)
+            {
+                return;
+            }
             try
             {
                 string logPath = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");

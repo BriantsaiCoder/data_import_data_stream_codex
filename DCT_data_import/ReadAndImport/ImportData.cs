@@ -123,6 +123,10 @@ namespace DCT_data_import.ReadAndImport
         #region Comman tool
         public string DeleteFile(string fileName, string user, string password)
         {
+            if (RuntimeMode.IsDryRun)
+            {
+                return "DryRun: FTP DeleteFile skipped";
+            }
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
             request.Method = WebRequestMethods.Ftp.DeleteFile;
             request.Credentials = new NetworkCredential(user, password);
@@ -133,6 +137,10 @@ namespace DCT_data_import.ReadAndImport
         }
         public string RenameFile(string filePath, string newFilePath, string user, string password)
         {
+            if (RuntimeMode.IsDryRun)
+            {
+                return "DryRun: FTP RenameFile skipped";
+            }
             var writeToLog = new WriteToLog();
             if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(newFilePath))
                 return $"RenameFile() Fail: path is empty. [filePath={filePath}, newFilePath={newFilePath}]";
