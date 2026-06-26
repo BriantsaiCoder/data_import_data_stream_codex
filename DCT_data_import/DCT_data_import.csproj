@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net462</TargetFramework>
+    <!-- 雙 TFM 過渡(Q3):net462 半當 L1 fallback + golden-master 雙 runtime capture;P1-8 收尾砍 net462。
+         必為 net8.0-windows(非純 net8.0):本服務用 kernel32 P/Invoke、FtpWebRequest 等 Windows-only API。 -->
+    <TargetFrameworks>net462;net8.0-windows</TargetFrameworks>
     <RootNamespace>DCT_data_import</RootNamespace>
     <AssemblyName>DCT_data_import</AssemblyName>
     <!-- 保留手寫 Properties/AssemblyInfo.cs(含 InternalsVisibleTo 給測試專案),關閉自動產生以免 CS0579 撞名 -->
@@ -10,17 +12,29 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
+  <!-- 兩框架共用的執行期相依 -->
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
+    <!-- MySql.Data 顯式 pin 9.4.0(Q5):升版會改 Convert Zero Datetime/微秒/DateTimeKind 行為 -->
     <PackageReference Include="MySql.Data" Version="9.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- net462 半:過渡期保留的套件(net8 shared framework 已內建 Unsafe/Tasks.Extensions)
+       + build-only 參考組件(讓非 Windows 機器與 CI 不依賴 net462 targeting pack) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.7" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
-    <!-- build-only:提供 net462 參考組件,讓 dotnet build 不依賴機器是否裝 targeting pack(CI/本地皆可建)。不進輸出。 -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <!-- net8 半:ConfigurationManager 對齊 net8 servicing line(8.0.1;9.0.x 屬 .NET 9 會拉 NU1605)。
+       Unsafe / Tasks.Extensions 已內建,移除以免重複引用衝突 → net8 半最終剩 4 條 PackageReference。 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
   </ItemGroup>
 
 </Project>
