@@ -41,7 +41,7 @@ namespace DCT_data_import.Tests
         /// 鏡像 <c>FileProcess.ValidateAndConvertStatisticValue</c> 的兩條 live 分支
         /// (FileProcess.cs:1520-1533):空白/null → 0、Trim 後 2-arg <c>TryParse</c> 成功回值、否則 0。
         /// 用與生產**同款 2-arg overload**(吃 CurrentCulture),維持 B 腿的 culture 敏感性。
-        /// (try/catch 僅包住不會擲例外的 string 路徑,對 string 輸入為 dead,不影響觀察值。)
+        /// 純算術 + `TryParse` 路徑,對 string 輸入不擲例外,故無 try/catch。
         /// </summary>
         private static double Mirror(string value)
         {

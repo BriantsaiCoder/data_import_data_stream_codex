@@ -14,7 +14,7 @@ Phase 0 安全網全綠 + net462 基準已 capture  ──gate──►  Phase 1
 
 | 檔 | 內容 |
 |---|---|
-| [phase-0-safety-net.md](phase-0-safety-net.md) | 升級前安全網補完：P0-1~P0-5（合成 capture、DateTime round-trip、big5 閘門確認、例外登記） |
+| [phase-0-safety-net.md](phase-0-safety-net.md) | 升級前安全網補完：P0-1/P0-2（合成 capture、DateTime round-trip）、P0-4（big5 閘門確認）、P0-5（例外登記）。**P0-3 依 YAGNI 裁掉、非 gate**（DateTime materialization 移交 P0-5 manual smoke） |
 | [phase-1-migration.md](phase-1-migration.md) | 遷移本體：P1-1~P1-8 + CI（P1-1b）+ dry-run 影子開關（P1-7b，6 chokepoint gate）+ 5 項決策待確認 + **分層 rollback（L0~L3）+ cutover runbook** |
 | [../codebase/NET8_UPGRADE_TEST_STRATEGY.md](../codebase/NET8_UPGRADE_TEST_STRATEGY.md) | 上游策略（root cause / capture-don't-assert / seam）——權威來源 |
 

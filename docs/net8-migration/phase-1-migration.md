@@ -13,7 +13,7 @@
 3. hardcoded `C:\temp` log 路徑（`WriteToLog.cs:29/154`）。
 4. MySQL 連線。
 
-Console exe **不需** WindowsDesktop SDK / `UseWindowsForms`，普通 `Microsoft.NET.Sdk` + `<TargetFramework>net8.0-windows</TargetFramework>` 即可。測試專案因 `ProjectReference` 主專案，net8 端同須 `net8.0-windows` 才能引用 kernel32 程式碼路徑。**不選 net10**：鎖 net8 LTS（見 MEMORY `net8-upgrade-constraints`）。
+Console exe **不需** WindowsDesktop SDK / `UseWindowsForms`，普通 `Microsoft.NET.Sdk` + `<TargetFramework>net8.0-windows</TargetFramework>` 即可。測試專案因 `ProjectReference` 主專案，net8 端同須 `net8.0-windows` 才能引用 kernel32 程式碼路徑。**不選 net10**：本升級鎖定 .NET 8（LTS），先求「跨大版本一次到位且可長期維運」，避免在升級當下又追逐更新版 runtime 的相依風險；net10 待 net8 落穩後另議。此為專案既定升級約束，非臨時偏好。
 
 ## 關鍵路徑
 

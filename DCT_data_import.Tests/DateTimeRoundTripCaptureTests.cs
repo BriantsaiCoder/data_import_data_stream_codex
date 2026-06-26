@@ -94,7 +94,7 @@ namespace DCT_data_import.Tests
         /// </summary>
         [Fact]
         [Trait("Category", "CaptureBaseline")]
-        public void HourFormat_HHvsLowercaseHH_CaptureTruncationBaseline()
+        public void HourFormat_HH_vs_hh_CaptureTruncationBaseline()
         {
             DateTime pm = new DateTime(2022, 6, 6, 13, 8, 22);
 
