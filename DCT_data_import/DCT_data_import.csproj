@@ -9,7 +9,9 @@
     <AssemblyName>DCT_data_import</AssemblyName>
     <!-- 保留手寫 Properties/AssemblyInfo.cs(含 InternalsVisibleTo 給測試專案),關閉自動產生以免 CS0579 撞名 -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <!-- binding redirect 僅 net462 需要;net8 以 deps.json 解析、執行期忽略 assemblyBinding,
+         若無條件開啟會在 net8 輸出 config 混入大量無效 redirect。P1-8 砍 net462 後整段消失。 -->
+    <AutoGenerateBindingRedirects Condition="'$(TargetFramework)' == 'net462'">true</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
   <!-- 兩框架共用的執行期相依 -->
