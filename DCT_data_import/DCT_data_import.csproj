@@ -1,104 +1,50 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{28250590-3063-446F-83CC-CDBF93525015}</ProjectGuid>
     <OutputType>Exe</OutputType>
+    <!-- 雙 TFM 過渡(Q3):net462 半當 L1 fallback + golden-master 雙 runtime capture;P1-8 收尾砍 net462。
+         必為 net8.0-windows(非純 net8.0):本服務用 kernel32 P/Invoke、FtpWebRequest 等 Windows-only API。 -->
+    <TargetFrameworks>net462;net8.0-windows</TargetFrameworks>
     <RootNamespace>DCT_data_import</RootNamespace>
     <AssemblyName>DCT_data_import</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
-    <ShouldCreateLogs>True</ShouldCreateLogs>
-    <AdvancedSettingsExpanded>False</AdvancedSettingsExpanded>
-    <UpdateAssemblyVersion>True</UpdateAssemblyVersion>
-    <UpdateAssemblyFileVersion>False</UpdateAssemblyFileVersion>
-    <UpdateAssemblyInfoVersion>False</UpdateAssemblyInfoVersion>
-    <AssemblyVersionSettings>YearStamp.MonthStamp.DayStamp.IncrementOnDemand</AssemblyVersionSettings>
-    <UpdatePackageVersion>False</UpdatePackageVersion>
-    <AssemblyInfoVersionType>SettingsVersion</AssemblyInfoVersionType>
-    <InheritWinAppVersionFrom>None</InheritWinAppVersionFrom>
+    <!-- 保留手寫 Properties/AssemblyInfo.cs(含 InternalsVisibleTo 給測試專案),關閉自動產生以免 CS0579 撞名 -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- binding redirect 僅 net462 需要;net8 以 deps.json 解析、執行期忽略 assemblyBinding,
+         若無條件開啟會在 net8 輸出 config 混入大量無效 redirect。P1-8 砍 net462 後整段消失。 -->
+    <AutoGenerateBindingRedirects Condition="'$(TargetFramework)' == 'net462'">true</AutoGenerateBindingRedirects>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
+  <!-- 兩框架共用的執行期相依 -->
   <ItemGroup>
-    <Reference Include="Dapper, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Dapper.2.1.66\lib\net461\Dapper.dll</HintPath>
-    </Reference>
-    <Reference Include="MySql.Data, Version=9.4.0.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <HintPath>..\packages\MySql.Data.9.4.0\lib\net462\MySql.Data.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Configuration.ConfigurationManager, Version=9.0.0.7, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Configuration.ConfigurationManager.9.0.7\lib\net462\System.Configuration.ConfigurationManager.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.4.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.6.3\lib\net462\System.Threading.Tasks.Extensions.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <!-- MySql.Data 顯式 pin 9.4.0(Q5):升版會改 Convert Zero Datetime/微秒/DateTimeKind 行為 -->
+    <PackageReference Include="MySql.Data" Version="9.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- transitive-pin:還原閉包把 System.Private.Uri 帶到 4.3.0,命中 3 條 CVE
+         (GHSA-5f2m-466j-3848 / x5qj-9vmx-7g6g / xhfc-gr8f-ffwc,弱點範圍 <4.3.2)。
+         兩 TFM 都需:net8 雖由 runtime 提供 Uri,但 SDK 8.0.x 不自動 prune 此 transitive
+         (自動 pruning 為 .NET 9+),仍留在還原圖被 audit 標記。直接 pin 4.3.2(first-patched)蓋過關閉。 -->
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
   </ItemGroup>
-  <ItemGroup>
-    <!-- Removed unused Common\ConfigurationService.cs -->
-    <!-- Removed unused Common\DataImportTemplate.cs -->
-    <Compile Include="Common\NotificationService.cs" />
-    <!-- Removed unused Common\ThreadManager.cs -->
-    <Compile Include="DbApi\DbAccess.cs" />
-    <Compile Include="ImportDecision.cs" />
-    <Compile Include="MySQL_api\DBmysql.cs" />
-    <Compile Include="ReadAndImport\MultiSpecRawData.cs" />
-    <Compile Include="ReadAndImport\RecoveryRate.cs" />
-    <Compile Include="ReadAndImport\TsmcIeda.cs" />
-    <Compile Include="DbApi\DbObject.cs" />
-    <Compile Include="Common\CalculateSPC.cs" />
-    <Compile Include="Common\EmailModels.cs" />
-    <Compile Include="FileAccess\FileContentFormat.cs" />
-    <Compile Include="FileAccess\FileProcess.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReadAndImport\FailPin.cs" />
-    <Compile Include="ReadAndImport\ImportData.cs" />
-    <Compile Include="ReadAndImport\RawData.cs" />
-    <Compile Include="ReadAndImport\Tester.cs" />
-    <Compile Include="ReadAndImport\UiStatus.cs" />
-    <Compile Include="FileAccess\ReadWriteINIfile.cs" />
-    <Compile Include="DbApi\DatabaseService.cs" />
-    <Compile Include="Common\WriteToLog.cs" />
+
+  <!-- net462 半:過渡期保留的套件(net8 shared framework 已內建 Unsafe/Tasks.Extensions)
+       + build-only 參考組件(讓非 Windows 機器與 CI 不依賴 net462 targeting pack) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.7" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="packages.config" />
+
+  <!-- net8 半:ConfigurationManager 對齊 net8 servicing line(8.0.1;9.0.x 屬 .NET 9 會拉 NU1605)。
+       Unsafe / Tasks.Extensions 已內建,移除以免重複引用衝突。
+       System.Text.Encoding.CodePages:net8 預設 provider 不含 codepage 950(big5),需此套件 + 啟動處註冊
+       (見 Program.Main);net462 內建 950 不需。 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
 </Project>

@@ -109,7 +109,7 @@ namespace DCT_data_import
         }
         public string WriteToMailTemp(string message)
         {
-            string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\mail_temp.txt").LocalPath;
+            string log_path = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");
             string mutexName = "DCT_MailTemp_" + log_path.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
             using (var mutex = new Mutex(false, mutexName))
             {

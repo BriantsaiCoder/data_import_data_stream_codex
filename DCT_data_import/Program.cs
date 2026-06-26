@@ -26,12 +26,19 @@ namespace DCT_data_import
         public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"].ConnectionString;
         static void Main(string[] args)
         {
+#if NET8_0_OR_GREATER
+            // net8 預設編碼 provider 不含 codepage 950(big5);全 importer 的 FTP CSV 都以 big5 解碼。
+            // 須在任何 Encoding.GetEncoding("big5") 與 worker thread 啟動前(Main 第一行)註冊一次,否則首次解碼擲例外。
+            // net462 內建 950 不需,整段以 #if 隔離(雙 TFM 腳手架,P1-8 砍 net462 後收為無條件)。
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+#endif
             WriteToLog writeToLog = new WriteToLog();
             try
             {
                 Console.WriteLine("HOST: " + HOST);
                 Console.WriteLine("USER: " + USER);
-                Console.WriteLine("PASSWORD: " + PASSWORD);
+                // 不印明文密碼(S3 已知債):只標示是否已設定,避免帳密外洩到 console / log。
+                Console.WriteLine("PASSWORD: " + (string.IsNullOrEmpty(PASSWORD) ? "(unset)" : "********"));
                 Console.WriteLine("Environment: " + Environment);
                 FileProcess fileAccess = new FileProcess();
                 DatabaseService DatabaseService = new DatabaseService();
@@ -100,78 +107,18 @@ namespace DCT_data_import
                         Console.WriteLine("threadTsmcAlive.IsAlive: " + threadTsmcAlive);
                         if (!threadTesterAlive)
                         {
-                            try
-                            {
-                                threadTesterMode.Interrupt();
-                                threadTesterMode.Abort();
-                                threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
-                                threadTesterMode.Start();
-                            }
-                            catch (ThreadStateException threadEx)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] TesterMode執行緒狀態錯誤: {threadEx.Message}");
-                                Console.WriteLine($"TesterMode執行緒狀態錯誤: {threadEx.Message}");
-                            }
-                            catch (ThreadAbortException abortEx)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] TesterMode執行緒被強制中止: {abortEx.Message}");
-                                Console.WriteLine($"TesterMode執行緒被強制中止: {abortEx.Message}");
-                            }
-                            catch (Exception ex)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] TesterMode執行緒操作失敗: {ex.Message}");
-                                Console.WriteLine($"TesterMode執行緒操作失敗: {ex.Message}");
-                            }
+                            threadTesterMode = RestartWorker(threadTesterMode,
+                                () => ImportTesterMode(fileAccess, dbAccess, DatabaseService), writeToLog, "TesterMode");
                         }
                         if (!threadUiStatusAlive)
                         {
-                            try
-                            {
-                                threadUiStatusMode.Interrupt();
-                                threadUiStatusMode.Abort();
-                                threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
-                                threadUiStatusMode.Start();
-                            }
-                            catch (ThreadStateException threadEx)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] UiStatusMode執行緒狀態錯誤: {threadEx.Message}");
-                                Console.WriteLine($"UiStatusMode執行緒狀態錯誤: {threadEx.Message}");
-                            }
-                            catch (ThreadAbortException abortEx)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] UiStatusMode執行緒被強制中止: {abortEx.Message}");
-                                Console.WriteLine($"UiStatusMode執行緒被強制中止: {abortEx.Message}");
-                            }
-                            catch (Exception ex)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] UiStatusMode執行緒操作失敗: {ex.Message}");
-                                Console.WriteLine($"UiStatusMode執行緒操作失敗: {ex.Message}");
-                            }
+                            threadUiStatusMode = RestartWorker(threadUiStatusMode,
+                                () => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService), writeToLog, "UiStatusMode");
                         }
                         if (!threadTsmcAlive)
                         {
-                            try
-                            {
-                                threadTsmcMode.Interrupt();
-                                threadTsmcMode.Abort();
-                                threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService));
-                                threadTsmcMode.Start();
-                            }
-                            catch (ThreadStateException threadEx)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] TsmcMode執行緒狀態錯誤: {threadEx.Message}");
-                                Console.WriteLine($"TsmcMode執行緒狀態錯誤: {threadEx.Message}");
-                            }
-                            catch (ThreadAbortException abortEx)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] TsmcMode執行緒被強制中止: {abortEx.Message}");
-                                Console.WriteLine($"TsmcMode執行緒被強制中止: {abortEx.Message}");
-                            }
-                            catch (Exception ex)
-                            {
-                                writeToLog.WriteErrorLog($"[Main] TsmcMode執行緒操作失敗: {ex.Message}");
-                                Console.WriteLine($"TsmcMode執行緒操作失敗: {ex.Message}");
-                            }
+                            threadTsmcMode = RestartWorker(threadTsmcMode,
+                                () => ImportTsmcMode(fileAccess, dbAccess, DatabaseService), writeToLog, "TsmcMode");
                         }
                         #region 固定時間通報程式還活著
                         try
@@ -237,6 +184,41 @@ namespace DCT_data_import
                 Console.WriteLine($"程式執行時發生嚴重錯誤: {ex.Message}");
                 Console.WriteLine("程式即將退出，按任意鍵繼續...");
                 Console.ReadKey();
+            }
+        }
+        /// <summary>
+        /// supervisor 偵測到某 worker thread 已死(IsAlive=false)時,重建並啟動一條新 thread 接手。
+        /// 先 Interrupt 舊 thread(喚醒其可能的 Sleep/Wait 阻塞、釋出),再建新 thread 並 Start。
+        /// 原為 Main 內三段重複碼,抽為共用方法以利 regression test 釘住「死亡 → 重建」語意。
+        /// </summary>
+        /// <param name="current">已判定死亡的舊 thread</param>
+        /// <param name="work">新 thread 要執行的工作(對應各 ImportXxxMode)</param>
+        /// <param name="writeToLog">錯誤記錄器</param>
+        /// <param name="label">log 用的模式名稱(TesterMode / UiStatusMode / TsmcMode)</param>
+        /// <returns>成功則回新建並已 Start 的 thread;失敗則回原 thread(維持原行為,下一輪重試)</returns>
+        internal static Thread RestartWorker(Thread current, ThreadStart work, WriteToLog writeToLog, string label)
+        {
+            try
+            {
+                // net8 移除 Abort():Thread.Abort() 在 net5+ 無條件擲 PlatformNotSupportedException,
+                // 對「已判定死亡」的 thread 呼叫無實益,反而會中斷後續重建。Interrupt() 仍保留以喚醒
+                // 舊 thread 可能的 Sleep/Wait 阻塞,讓其儘速結束。
+                current.Interrupt();
+                Thread fresh = new Thread(work);
+                fresh.Start();
+                return fresh;
+            }
+            catch (ThreadStateException threadEx)
+            {
+                writeToLog.WriteErrorLog($"[Main] {label}執行緒狀態錯誤: {threadEx.Message}");
+                Console.WriteLine($"{label}執行緒狀態錯誤: {threadEx.Message}");
+                return current;
+            }
+            catch (Exception ex)
+            {
+                writeToLog.WriteErrorLog($"[Main] {label}執行緒操作失敗: {ex.Message}");
+                Console.WriteLine($"{label}執行緒操作失敗: {ex.Message}");
+                return current;
             }
         }
         // 方法：取得本機 IPv4 地址
