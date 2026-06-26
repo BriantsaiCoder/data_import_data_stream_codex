@@ -3,6 +3,8 @@ name: CI
 # .NET Framework 4.6.2 + packages.config(主專案) + SDK-style net462 xUnit(測試專案)。
 # 需 Windows MSBuild;packages.config 不被 dotnet restore 還原,故用 nuget restore。
 # R5 的 2 條測試是 by-design RED(釘住未修的加權和 bug),以 Category!=ByDesignRed 排除,避免 CI 假紅。
+# CaptureBaseline 為 net8 升級前的「遷移敏感」特性化測試(big5/特殊浮點/double→string/DateTime 漂移):
+#   只印 net462 實跑值當基準、不硬斷言,亦從綠燈門檻排除,改由專屬 capture step 以 detailed logger 收集。
 # 本 workflow 由無 Windows 環境的開發機撰寫,已於 GitHub Actions(windows-latest)實跑驗證:build + test 綠燈。
 
 on:
@@ -34,5 +36,8 @@ jobs:
       - name: Build (Release)
         run: msbuild DCT_data_import.sln /p:Configuration=Release /m
 
-      - name: Test (排除 by-design RED 的 R5 釘樁)
-        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category!=ByDesignRed" --logger "console;verbosity=normal"
+      - name: Test (綠燈門檻:排除 by-design RED 與 CaptureBaseline)
+        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category!=ByDesignRed&Category!=CaptureBaseline" --logger "console;verbosity=normal"
+
+      - name: Capture net462 baseline (遷移敏感特性化,emit-only 不影響綠燈)
+        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category=CaptureBaseline" --logger "console;verbosity=detailed"
