@@ -222,7 +222,7 @@ namespace DCT_data_import.Common
         {
             try
             {
-                string logPath = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\mail_temp.txt").LocalPath;
+                string logPath = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");
                 if (File.Exists(logPath))
                 {
                     File.Delete(logPath);

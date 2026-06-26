@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
@@ -391,7 +390,7 @@ namespace DCT_data_import
         public List<DbKeyObject> SelectFailDbKeyFromFile()
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
-            string log_path = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + @"\mail_temp.txt").LocalPath;
+            string log_path = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");
             if (File.Exists(log_path))
             {
                 using (StreamReader reader = new StreamReader(log_path))
