@@ -1,13 +1,13 @@
 # Testing
 
-> 結論先講：**本專案沒有任何自動化測試**。以下記錄現況與可驗證的「測試替代物」。
+> 結論先講：本專案**原本沒有任何自動化測試**；後續新增了**唯一一個** `DCT_data_import.Tests` 專案，僅為釘住 CONCERNS R5 加權和 bug（非完整測試套件）。以下記錄現況與可驗證的「測試替代物」。
 
 ## Core Sections (Required)
 
 ### 1) Test Frameworks
 
-- 單元/整合測試框架：[TODO] **無**。`packages.config` 無 xUnit / NUnit / MSTest；`.sln` 無測試專案；全庫無 `*Test*.cs` / `*Tests.cs`。
-- Evidence：`docs/codebase/.codebase-scan.txt`（21 個 `.cs`，全為產品碼）、`DCT_data_import.sln`（單一專案）、`packages.config`（6 套件皆非測試框架）。
+- 單元/整合測試框架：產品碼端**無**內建測試；後續新增 `DCT_data_import.Tests`（SDK-style、net462、**xUnit**）作為唯一測試專案，僅針對 R5 純函式 `DbAccess.ComputeImportResult`（1 條 happy-path 綠 + 2 條 by-design RED 釘 R5）。主專案本身仍無測試。
+- Evidence：`docs/codebase/.codebase-scan.txt`（審計當時 21 個 `.cs`，全為產品碼）、`DCT_data_import.sln`（含主專案 + Tests 專案）、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs`、`DCT_data_import.Tests/README.md`。
 
 ### 2) Test Organization
 
