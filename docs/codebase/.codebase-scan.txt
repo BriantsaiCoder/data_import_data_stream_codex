@@ -1,0 +1,286 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.DS_Store
+.claude
+.claude/settings.local.json
+.gitattributes
+.gitignore
+.idea
+.idea/.idea.DCT_data_import
+.idea/.idea.DCT_data_import/.idea
+.idea/.idea.DCT_data_import/.idea/.gitignore
+.idea/.idea.DCT_data_import/.idea/.name
+.idea/.idea.DCT_data_import/.idea/dataSources
+.idea/.idea.DCT_data_import/.idea/dataSources.local.xml
+.idea/.idea.DCT_data_import/.idea/dataSources.xml
+.idea/.idea.DCT_data_import/.idea/encodings.xml
+.idea/.idea.DCT_data_import/.idea/indexLayout.xml
+.idea/.idea.DCT_data_import/.idea/inspectionProfiles
+.idea/.idea.DCT_data_import/.idea/misc.xml
+.idea/.idea.DCT_data_import/.idea/projectSettingsUpdater.xml
+.idea/.idea.DCT_data_import/.idea/vcs.xml
+.idea/.idea.DCT_data_import/.idea/workspace.xml
+.remember
+.remember/.gitignore
+.remember/logs
+.remember/logs/autonomous
+.remember/logs/autonomous/save-081906.log
+.remember/logs/autonomous/save-081912.log
+.remember/logs/autonomous/save-081921.log
+.remember/logs/autonomous/save-081922.log
+.remember/logs/autonomous/save-082158.log
+.remember/logs/autonomous/save-082159.log
+.remember/logs/autonomous/save-082200.log
+.remember/logs/hook-errors.log
+.remember/logs/memory-2026-06-26.log
+.remember/tmp
+.remember/tmp/last-save-ts
+.remember/tmp/save-session.pid
+.vscode
+.vscode/settings.json
+DCT_data_import
+DCT_data_import/.DS_Store
+DCT_data_import/App.config
+DCT_data_import/Common
+DCT_data_import/Common/CalculateSPC.cs
+DCT_data_import/Common/EmailModels.cs
+DCT_data_import/Common/NotificationService.cs
+DCT_data_import/Common/WriteToLog.cs
+DCT_data_import/DCT_data_import.csproj
+DCT_data_import/DbApi
+DCT_data_import/DbApi/DatabaseService.cs
+DCT_data_import/DbApi/DbAccess.cs
+DCT_data_import/DbApi/DbObject.cs
+DCT_data_import/FileAccess
+DCT_data_import/FileAccess/FileContentFormat.cs
+DCT_data_import/FileAccess/FileProcess.cs
+DCT_data_import/FileAccess/ReadWriteINIfile.cs
+DCT_data_import/MySQL_api
+DCT_data_import/MySQL_api/DBmysql.cs
+DCT_data_import/Program.cs
+DCT_data_import/Properties
+DCT_data_import/Properties/AssemblyInfo.cs
+DCT_data_import/ReadAndImport
+DCT_data_import/ReadAndImport/FailPin.cs
+DCT_data_import/ReadAndImport/ImportData.cs
+DCT_data_import/ReadAndImport/MultiSpecRawData.cs
+DCT_data_import/ReadAndImport/RawData.cs
+DCT_data_import/ReadAndImport/RecoveryRate.cs
+DCT_data_import/ReadAndImport/Tester.cs
+DCT_data_import/ReadAndImport/TsmcIeda.cs
+DCT_data_import/ReadAndImport/UiStatus.cs
+DCT_data_import/packages.config
+DCT_data_import.sln
+docs
+docs/codebase
+docs/codebase/.codebase-scan.txt
+packages
+packages/Dapper.2.1.66
+packages/Dapper.2.1.66/.nupkg.metadata
+packages/Dapper.2.1.66/.signature.p7s
+packages/Dapper.2.1.66/Dapper.png
+packages/Dapper.2.1.66/dapper.2.1.66.nupkg
+packages/Dapper.2.1.66/dapper.2.1.66.nupkg.sha512
+packages/Dapper.2.1.66/dapper.nuspec
+packages/Dapper.2.1.66/lib
+packages/Dapper.2.1.66/lib/net461
+packages/Dapper.2.1.66/lib/net8.0
+packages/Dapper.2.1.66/lib/netstandard2.0
+packages/Dapper.2.1.66/readme.md
+packages/MySql.Data.9.4.0
+packages/MySql.Data.9.4.0/.nupkg.metadata
+packages/MySql.Data.9.4.0/.signature.p7s
+packages/MySql.Data.9.4.0/LICENSE
+packages/MySql.Data.9.4.0/README
+packages/MySql.Data.9.4.0/README.md
+packages/MySql.Data.9.4.0/lib
+packages/MySql.Data.9.4.0/lib/net462
+packages/MySql.Data.9.4.0/lib/net48
+packages/MySql.Data.9.4.0/lib/net8.0
+packages/MySql.Data.9.4.0/lib/net9.0
+packages/MySql.Data.9.4.0/lib/netstandard2.0
+packages/MySql.Data.9.4.0/lib/netstandard2.1
+packages/MySql.Data.9.4.0/logo-mysql-170x115.png
+packages/MySql.Data.9.4.0/mysql.data.9.4.0.nupkg
+packages/MySql.Data.9.4.0/mysql.data.9.4.0.nupkg.sha512
+packages/MySql.Data.9.4.0/mysql.data.nuspec
+packages/MySql.Data.9.4.0/runtimes
+packages/MySql.Data.9.4.0/runtimes/win-x64
+packages/Newtonsoft.Json.13.0.3
+packages/Newtonsoft.Json.13.0.3/.nupkg.metadata
+packages/Newtonsoft.Json.13.0.3/.signature.p7s
+packages/Newtonsoft.Json.13.0.3/LICENSE.md
+packages/Newtonsoft.Json.13.0.3/README.md
+packages/Newtonsoft.Json.13.0.3/lib
+packages/Newtonsoft.Json.13.0.3/lib/net20
+packages/Newtonsoft.Json.13.0.3/lib/net35
+packages/Newtonsoft.Json.13.0.3/lib/net40
+packages/Newtonsoft.Json.13.0.3/lib/net45
+packages/Newtonsoft.Json.13.0.3/lib/net6.0
+packages/Newtonsoft.Json.13.0.3/lib/netstandard1.0
+packages/Newtonsoft.Json.13.0.3/lib/netstandard1.3
+packages/Newtonsoft.Json.13.0.3/lib/netstandard2.0
+packages/Newtonsoft.Json.13.0.3/newtonsoft.json.13.0.3.nupkg
+packages/Newtonsoft.Json.13.0.3/newtonsoft.json.13.0.3.nupkg.sha512
+packages/Newtonsoft.Json.13.0.3/newtonsoft.json.nuspec
+packages/Newtonsoft.Json.13.0.3/packageIcon.png
+packages/System.Configuration.ConfigurationManager.9.0.7
+packages/System.Configuration.ConfigurationManager.9.0.7/.nupkg.metadata
+packages/System.Configuration.ConfigurationManager.9.0.7/.signature.p7s
+packages/System.Configuration.ConfigurationManager.9.0.7/Icon.png
+packages/System.Configuration.ConfigurationManager.9.0.7/LICENSE.TXT
+packages/System.Configuration.ConfigurationManager.9.0.7/PACKAGE.md
+packages/System.Configuration.ConfigurationManager.9.0.7/THIRD-PARTY-NOTICES.TXT
+packages/System.Configuration.ConfigurationManager.9.0.7/buildTransitive
+packages/System.Configuration.ConfigurationManager.9.0.7/buildTransitive/net461
+packages/System.Configuration.ConfigurationManager.9.0.7/buildTransitive/net462
+packages/System.Configuration.ConfigurationManager.9.0.7/buildTransitive/net8.0
+packages/System.Configuration.ConfigurationManager.9.0.7/buildTransitive/netcoreapp2.0
+packages/System.Configuration.ConfigurationManager.9.0.7/lib
+packages/System.Configuration.ConfigurationManager.9.0.7/lib/net462
+packages/System.Configuration.ConfigurationManager.9.0.7/lib/net8.0
+packages/System.Configuration.ConfigurationManager.9.0.7/lib/net9.0
+packages/System.Configuration.ConfigurationManager.9.0.7/lib/netstandard2.0
+packages/System.Configuration.ConfigurationManager.9.0.7/system.configuration.configurationmanager.9.0.7.nupkg
+packages/System.Configuration.ConfigurationManager.9.0.7/system.configuration.configurationmanager.9.0.7.nupkg.sha512
+packages/System.Configuration.ConfigurationManager.9.0.7/system.configuration.configurationmanager.nuspec
+packages/System.Configuration.ConfigurationManager.9.0.7/useSharedDesignerContext.txt
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/.nupkg.metadata
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/.signature.p7s
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/Icon.png
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/PACKAGE.md
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/buildTransitive
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/buildTransitive/net461
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/buildTransitive/net462
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/buildTransitive/net6.0
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/buildTransitive/netcoreapp2.0
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/lib
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/lib/net462
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/lib/net6.0
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/lib/net7.0
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/lib/netstandard2.0
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/system.runtime.compilerservices.unsafe.6.1.2.nupkg
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/system.runtime.compilerservices.unsafe.6.1.2.nupkg.sha512
+packages/System.Runtime.CompilerServices.Unsafe.6.1.2/system.runtime.compilerservices.unsafe.nuspec
+packages/System.Threading.Tasks.Extensions.4.6.3
+packages/System.Threading.Tasks.Extensions.4.6.3/.nupkg.metadata
+packages/System.Threading.Tasks.Extensions.4.6.3/.signature.p7s
+packages/System.Threading.Tasks.Extensions.4.6.3/Icon.png
+packages/System.Threading.Tasks.Extensions.4.6.3/PACKAGE.md
+packages/System.Threading.Tasks.Extensions.4.6.3/buildTransitive
+packages/System.Threading.Tasks.Extensions.4.6.3/buildTransitive/net461
+packages/System.Threading.Tasks.Extensions.4.6.3/buildTransitive/net462
+packages/System.Threading.Tasks.Extensions.4.6.3/lib
+packages/System.Threading.Tasks.Extensions.4.6.3/lib/net462
+packages/System.Threading.Tasks.Extensions.4.6.3/lib/netcoreapp2.1
+packages/System.Threading.Tasks.Extensions.4.6.3/lib/netstandard2.0
+packages/System.Threading.Tasks.Extensions.4.6.3/lib/netstandard2.1
+packages/System.Threading.Tasks.Extensions.4.6.3/system.threading.tasks.extensions.4.6.3.nupkg
+packages/System.Threading.Tasks.Extensions.4.6.3/system.threading.tasks.extensions.4.6.3.nupkg.sha512
+packages/System.Threading.Tasks.Extensions.4.6.3/system.threading.tasks.extensions.nuspec
+專案架構報告.md
+
+=== STACK DETECTION (manifest files) ===
+
+--- DCT_data_import.sln ---
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.902
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DCT_data_import", "DCT_data_import\DCT_data_import.csproj", "{28250590-3063-446F-83CC-CDBF93525015}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{28250590-3063-446F-83CC-CDBF93525015}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28250590-3063-446F-83CC-CDBF93525015}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28250590-3063-446F-83CC-CDBF93525015}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28250590-3063-446F-83CC-CDBF93525015}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2A575C14-0D27-4069-A966-23E99AB4F056}
+	EndGlobalSection
+EndGlobal
+
+
+=== ENTRY POINTS ===
+No common entry points found. Check 'main' or 'scripts.start' in manifest files above.
+
+=== LINTING AND FORMATTING CONFIG ===
+No linting or formatting config files found in project root.
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+None found.
+
+=== GIT RECENT COMMITS (last 20) ===
+15621ef feat(tester-status): 新增SWT_result, SWT_response欄位並兼容新舊CSV格式
+e195008 feat(fail-pin): 新增 SN Num 欄位支援並兼容新舊 CSV 格式
+0a9c2ae feat(db): add SQL command filter to handle double-quote patterns
+e30b06c fix(importer): 僅在 RawData 失敗(result==0,file not found)時改走 MultiSpec，避免誤觸 fallback
+479f29e feat: 新增統計數據驗證與轉換功能，確保數據完整性，處理-1.#IND,1.#QNAN等stdev,cp,cpk,avg數據異常
+bbe7e3c fix: 調整TSMC IEDA errorDir 為基於 ftpserver 的完整路徑
+56ba5ba fix : 加入email主機IP
+fdf5727 feat(ftp): 強化 RenameFile 方法的安全性與例外處理
+d016f10 feat(import): 支援 MultiSpec Raw Data 匯入 + FTP 目錄搜尋 + 日誌與匯入流程強化
+19c67a5 fix: 移除檔案不存在時的 RenameFile 呼叫
+6714a9d feat : RawData 新增nVTEP fail for CAP Tester fail
+ff028df fix: 修正日誌寫入編碼問題，避免繁體中文亂碼
+eaa8fd6 feat : FailPin 新增nVTEP fail for CAP Tester fail
+9470376 refactor: 統一路徑處理邏輯並移除 CodeBase Substring 風險
+9fc504d feat: 提升跨模組錯誤日誌可見性並新增即時主控台輸出 - 在多個模組的例外處理中新增 Console.WriteLine 與既有日誌並行輸出，提升執行時錯誤可見性 - DatabaseService.cs：在 ExecuteSqlAsync、TestConnection、CheckDatabaseAndTableExists 方法中新增即時主控台錯誤輸出 - FileContentFormat.cs：為 CompareInfo 與 CompareRecoveryRate 加入 try-catch，將錯誤同時記錄到日誌與主控台 - FileProcess.cs：匯入流程發生例外時立即輸出至主控台 - EmailModels.cs：SendEmail 方法所有例外類型新增 Console.WriteLine 錯誤輸出 - ImportData.cs：FTP 檔案檢查時新增主控台錯誤輸出 - RawData.cs、RecoveryRate.cs：匯入過程例外立即顯示至主控台 - 提升開發與生產環境的即時除錯與監控效率
+55ac4b3 feat: 新增錯誤日誌記錄功能並重構 FTP 路徑生成邏輯
+7a2b61b refactor: 重構 DCT_data_import 專案結構，移除過時文件與未使用程式碼，並調整核心功能位置
+6361ea1 重構多個服務與數據處理邏輯
+b6ecb6e 新增數據導入相關功能模組及測試用例
+e68e487 新增重構計畫文件及其引用
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+None found.
+
+=== MONOREPO SIGNALS ===
+Sub-package directory found: packages/
+
+=== CODE METRICS ===
+Total files scanned: 170
+Total lines of code: 129536
+
+Files by language:
+  Other: 149
+  C#: 21
+
+Top 10 largest files:
+packages/MySql.Data.9.4.0/mysql.data.9.4.0.nupkg: 3927.8KB
+packages/Newtonsoft.Json.13.0.3/newtonsoft.json.13.0.3.nupkg: 2384.7KB
+packages/MySql.Data.9.4.0/runtimes/win-x64/native/krb5_64.dll: 1195.6KB
+packages/MySql.Data.9.4.0/lib/net9.0/MySql.Data.dll: 1175.1KB
+packages/MySql.Data.9.4.0/lib/net8.0/MySql.Data.dll: 1170.1KB
+packages/MySql.Data.9.4.0/lib/netstandard2.1/MySql.Data.dll: 1162.1KB
+packages/MySql.Data.9.4.0/lib/netstandard2.0/MySql.Data.dll: 1161.1KB
+packages/MySql.Data.9.4.0/lib/net462/MySql.Data.dll: 1161.1KB
+packages/MySql.Data.9.4.0/lib/net48/MySql.Data.dll: 1161.1KB
+packages/MySql.Data.9.4.0/lib/net8.0/MySql.Data.xml: 981.6KB
+
+=== CI/CD PIPELINES ===
+No CI/CD pipelines detected.
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===
