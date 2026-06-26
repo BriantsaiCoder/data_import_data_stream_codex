@@ -402,7 +402,7 @@ namespace DCT_data_import
                         // Recovery Rate processing with exception handling
                         try
                         {
-                            if (dbKeyList[i].CheckStatus >= 8 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].RecoveryRate == 0)
+                            if (ImportDecision.IsRecoveryRateCheckStatus(dbKeyList[i].CheckStatus) && dbKeyList[i].RecoveryRate == 0)
                             {
                                 importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                             }
@@ -420,12 +420,12 @@ namespace DCT_data_import
                         // Raw Data processing with exception handling
                         try
                         {
-                            if (dbKeyList[i].CheckStatus == 2 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 6 || dbKeyList[i].CheckStatus == 7 || dbKeyList[i].CheckStatus == 10 || dbKeyList[i].CheckStatus == 11 || dbKeyList[i].CheckStatus == 14 || dbKeyList[i].CheckStatus == 15)
+                            if (ImportDecision.IsRawDataCheckStatus(dbKeyList[i].CheckStatus))
                             {
                                 if (dbKeyList[i].TestResult == 0)
                                 {
                                     importResult2 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
-                                    if (importResult2.Result == 0)
+                                    if (ImportDecision.ShouldFallbackToMultiSpec(importResult2.Result))
                                     {
                                         // File not found
                                         importResult2 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
@@ -450,7 +450,7 @@ namespace DCT_data_import
                         // Tester Status processing with exception handling
                         try
                         {
-                            if (dbKeyList[i].CheckStatus >= 4 && dbKeyList[i].CheckStatus <= 7 && dbKeyList[i].Tester == 0 || dbKeyList[i].CheckStatus >= 12 && dbKeyList[i].CheckStatus <= 15 && dbKeyList[i].Tester == 0)
+                            if (ImportDecision.IsTesterCheckStatus(dbKeyList[i].CheckStatus) && dbKeyList[i].Tester == 0)
                             {
                                 importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
                             }
@@ -468,7 +468,7 @@ namespace DCT_data_import
                         // Fail Pin processing with exception handling
                         try
                         {
-                            if (dbKeyList[i].CheckStatus == 1 || dbKeyList[i].CheckStatus == 3 || dbKeyList[i].CheckStatus == 5 || dbKeyList[i].CheckStatus == 7 || dbKeyList[i].CheckStatus == 9 || dbKeyList[i].CheckStatus == 11 || dbKeyList[i].CheckStatus == 13 || dbKeyList[i].CheckStatus == 15)
+                            if (ImportDecision.IsFailPinCheckStatus(dbKeyList[i].CheckStatus))
                             {
                                 if (dbKeyList[i].FailPin == 0)
                                 {
