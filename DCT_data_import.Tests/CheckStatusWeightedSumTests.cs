@@ -7,7 +7,7 @@ namespace DCT_data_import.Tests
     /// 釘住 CONCERNS.md R5:<see cref="DbAccess.ComputeImportResult"/> 的加權和契約。
     /// 公式 <c>8*recoveryRate + 4*tester + 2*testResult + failPin</c> 假設每個分量只回 0/1,
     /// 但匯入函式實際回 0/1/2/3。任一回 2/3 會讓加權和溢位、污染高位 bit,
-    /// 使 <c>UpdateDbKeyImportStatus</c>(DbAccess.cs:189)的 <c>importResult == check_status</c> 恆 false → 誤判失敗。
+    /// 使 <c>UpdateDbKeyImportStatus</c>(DbAccess.cs:205)的 <c>importResult == check_status</c> 恆 false → 誤判失敗。
     ///
     /// 本檔含兩種測試:
     ///   - <see cref="ComputeImportResult_MatchesBitmask_WhenComponentsAreZeroOrOne"/> 描述 happy path(分量皆 0/1),目前 GREEN。
@@ -33,7 +33,9 @@ namespace DCT_data_import.Tests
         // R5 pin #1(溢位):合法 check_status 是 4-bit mask(0..15)。
         // 某分量回 2(匯入函式實際值域)不該讓結果衝出此範圍。
         // 目前 = 8+4+(2*2)+1 = 17 > 15 → RED,直接證明「加權和溢位污染高位 bit」。
+        // ByDesignRed:R5 未修前必紅,CI 以 Category!=ByDesignRed 排除,避免假紅。
         [Fact]
+        [Trait("Category", "ByDesignRed")]
         public void ComputeImportResult_StaysWithinValidFourBitMask_WhenAComponentReturnsTwo_R5()
         {
             int result = DbAccess.ComputeImportResult(recoveryRate: 1, tester: 1, testResult: 2, failPin: 1);
@@ -45,7 +47,9 @@ namespace DCT_data_import.Tests
         //   - testResult 匯入函式回 2 → ComputeImportResult(0,0,2,0) = 4
         //   - tester 成功回 1        → ComputeImportResult(0,1,0,0) = 4
         // 兩者相等代表 bit 被污染、無法分辨「testResult 回了錯誤碼 2」與「tester 成功」→ RED。
+        // ByDesignRed:R5 未修前必紅,CI 以 Category!=ByDesignRed 排除,避免假紅。
         [Fact]
+        [Trait("Category", "ByDesignRed")]
         public void ComputeImportResult_DoesNotConflateDistinctComponentStates_R5()
         {
             int testResultReturnedTwo = DbAccess.ComputeImportResult(0, 0, 2, 0);

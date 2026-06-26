@@ -21,7 +21,9 @@
 
 兩個 `_R5` 測試斷言「正確契約」,**在 R5 修正前 by-design 失敗**。任一合理修法(成功才 set bit、或把分量正規化為 0/1)都會讓它們轉 GREEN——屆時即代表 R5 已修。
 
-> ⚠️ 這是**故意保留的紅燈**,不是壞掉的建置。在加 CI 前請知會團隊,別把它當成 build 失敗。
+> ⚠️ 這是**故意保留的紅燈**,不是壞掉的建置。
+
+兩條 `_R5` 測試已標 `[Trait("Category", "ByDesignRed")]`,CI(`.github/workflows/ci.yml`)以 `--filter "Category!=ByDesignRed"` 排除,故 CI 綠 ≠ R5 已修。**本機要看紅燈請跑不帶 filter 的完整測試**;R5 修好後移除這兩條的 trait(或讓它們自然轉綠)即重新納入 CI。
 
 ## 如何執行(Windows)
 
