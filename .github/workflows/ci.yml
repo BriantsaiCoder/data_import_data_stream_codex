@@ -25,8 +25,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore
-        run: dotnet restore DCT_data_import.sln
+      # 依賴 CVE 阻擋 gate:SDK 內建 NuGetAudit(零新依賴)。Mode=all 連 transitive 一起查
+      # (net8/net462 預設僅 direct);只 moderate+(NU1902/1903/1904)視為 error 阻擋、low(NU1901)留警示、
+      # NU1900/1905(來源/DB 不可達)不阻擋免暫時性誤紅;不適用的 advisory 以 csproj <NuGetAuditSuppress Include="url"/>+理由放行。
+      - name: Restore (含 NuGetAudit 依賴 CVE 阻擋 gate)
+        run: dotnet restore DCT_data_import.sln -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=low "-warnaserror:NU1902;NU1903;NU1904"
 
       - name: Build (Release)
         run: dotnet build DCT_data_import.sln --configuration Release --no-restore
