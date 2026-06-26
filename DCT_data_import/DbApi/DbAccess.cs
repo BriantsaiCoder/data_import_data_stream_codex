@@ -31,12 +31,10 @@ namespace DCT_data_import
             }
             try
             {
-                // 宣告 Web API body
                 Execute_query execute_query = new Execute_query
                 {
                     Query = sql
                 };
-                // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -89,12 +87,10 @@ namespace DCT_data_import
             }
             try
             {
-                // 宣告 Web API body
                 Execute_query execute_query = new Execute_query
                 {
                     Query = sql
                 };
-                // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -148,6 +144,22 @@ namespace DCT_data_import
             }
             return dbKeyList;
         }
+        /// <summary>
+        /// 由各匯入分量回傳碼組出與 <c>db_key.check_status</c> 比對用的 bitmask。
+        /// </summary>
+        /// <param name="recoveryRate">RecoveryRate 分量結果,佔 bit3(8)。</param>
+        /// <param name="tester">Tester 分量結果,佔 bit2(4)。</param>
+        /// <param name="testResult">RawData/TestResult 分量結果,佔 bit1(2)。</param>
+        /// <param name="failPin">FailPin 分量結果,佔 bit0(1)。</param>
+        /// <returns>加權和 <c>8*recoveryRate + 4*tester + 2*testResult + failPin</c>。</returns>
+        /// <remarks>
+        /// 公式假設每個分量只回 0/1。任一分量回 2/3(匯入函式實際值域)會使加權和溢位、污染高位 bit,
+        /// 使 <c>importResult == check_status</c> 恆 false 而誤判失敗(見 docs/codebase/CONCERNS.md R5)。
+        /// </remarks>
+        public static int ComputeImportResult(int recoveryRate, int tester, int testResult, int failPin)
+        {
+            return 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
+        }
         public string UpdateDbKeyImportStatus(DatabaseService DatabaseService, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
             WriteToLog writeToLog = new WriteToLog();
@@ -158,7 +170,7 @@ namespace DCT_data_import
                 return "Fail. Database or table does not exist";
             }
             //int importResult = 4 * tester + 2 * testResult + failPin;
-            int importResult = 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
+            int importResult = ComputeImportResult(recoveryRate, tester, testResult, failPin);
             string id, checkStatus, importStatus = "1", mail = "0";
             try
             {
