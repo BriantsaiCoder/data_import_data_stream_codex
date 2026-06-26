@@ -39,17 +39,16 @@ namespace DCT_data_import.Tests
 
             XDocument doc = XDocument.Load(configPath);
 
-            HashSet<string> appKeys = doc
+            // net462(.NET Standard 2.0)無 Enumerable.ToHashSet();HashSet<T>(IEnumerable<T>) 建構式雙 TFM 皆有。
+            HashSet<string> appKeys = new HashSet<string>(doc
                 .Descendants("appSettings").Elements("add")
                 .Select(e => (string)e.Attribute("key"))
-                .Where(k => k != null)
-                .ToHashSet();
+                .Where(k => k != null));
 
-            HashSet<string> connNames = doc
+            HashSet<string> connNames = new HashSet<string>(doc
                 .Descendants("connectionStrings").Elements("add")
                 .Select(e => (string)e.Attribute("name"))
-                .Where(n => n != null)
-                .ToHashSet();
+                .Where(n => n != null));
 
             var missing = new List<string>();
             foreach (string prefix in EnvPrefixes)
