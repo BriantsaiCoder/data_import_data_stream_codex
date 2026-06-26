@@ -108,7 +108,7 @@ P0（升級閘門 / 會悄悄改資料）
   A  ★ big5 解碼 smoke + 啟動註冊 CodePagesEncodingProvider（覆蓋全 importer 解碼路徑，非單一 GetEncoding）
   C  ★ double.ToString() golden-master（直接特性化 BCL，等價於 FileProcess 賦值點/讀取點，免抽 seam，net462 基準先跑，capture）
   D  ★ CustomizeDateTimeParser 在固定 + 非invariant culture 下 capture（逼出漂移）
-  B  ★ double.TryParse 特殊浮點 token characterization（已 capture:net462 對 `1.#xxx`/`1E400` 回 false/out=0,見 §9）+ AverageOfSumSquare 下游（待補 capture;原「net462 NaN→OverflowException→空 list」推測前提已證偽,下游實際行為取決於呼叫端如何處理 TryParse=false/out=0,須讀呼叫端 + capture。fail_n≠0 的 SeperatePassValue spec 汙染鏈見下,留待 Tier 3 廣度擴張）
+  B  ★ double.TryParse 特殊浮點 token characterization（已 capture:net462 對 `1.#xxx`/`1E400` 回 false/out=0,見 §9）+ AverageOfSumSquare 下游（**已 capture** 於 `SpecialFloatParseTests.cs:62`,以 `-1.#IND` 餵入,釘住「TryParse=false/out=0 → 不產 NaN」的下游後果;原「net462 NaN→OverflowException→空 list」推測前提已於 §9 證偽。fail_n≠0 的 SeperatePassValue spec 汙染鏈,留待 Tier 3 廣度擴張）+ B+C 合成點（**已 capture** 於 `ValidateAndConvertStatisticValueTests.cs`,鏡像 `ValidateAndConvertStatisticValue` 兩條 live 分支 + 生產同款 2-arg overload）
   -    ImportDecision：check_status × importer 狀態「雙維」dispatch
 
 P1（遷移敏感但影響較小 / 需驅動）
