@@ -24,6 +24,12 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- net8 半:Big5DecodeTests 在測試行程直接 GetEncoding("big5"),不經 Program.Main,故測試行程需自行
+       註冊 CodePagesEncodingProvider(見 EncodingTestBootstrap),需此套件;net462 內建 950 不需。 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\DCT_data_import\DCT_data_import.csproj" />
   </ItemGroup>

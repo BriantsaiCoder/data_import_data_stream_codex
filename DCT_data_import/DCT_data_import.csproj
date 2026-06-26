@@ -32,9 +32,12 @@
   </ItemGroup>
 
   <!-- net8 半:ConfigurationManager 對齊 net8 servicing line(8.0.1;9.0.x 屬 .NET 9 會拉 NU1605)。
-       Unsafe / Tasks.Extensions 已內建,移除以免重複引用衝突 → net8 半最終剩 4 條 PackageReference。 -->
+       Unsafe / Tasks.Extensions 已內建,移除以免重複引用衝突。
+       System.Text.Encoding.CodePages:net8 預設 provider 不含 codepage 950(big5),需此套件 + 啟動處註冊
+       (見 Program.Main);net462 內建 950 不需。 -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
