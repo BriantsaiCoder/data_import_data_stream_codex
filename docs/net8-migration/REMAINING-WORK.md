@@ -1,0 +1,115 @@
+# .NET 8 遷移 — 剩餘開發 backlog
+
+> 產生於 PR #4（commit `4c83125`）squash-merge 進 master 後。本檔是「Phase 1 升級本體結案、但尚未做的事」的權威清單，給後續每一個新 session 接手用。
+> 治理約束見 [memory/net8-upgrade-constraints]、[phase-1-migration.md](phase-1-migration.md)、根目錄 `CLAUDE.md`。
+
+## 已完成（commit #4，**不要重做**）
+
+| 項 | 證據 |
+|---|---|
+| 雙 TFM `net462;net8.0-windows`（SDK-style、PackageReference） | `DCT_data_import.csproj` |
+| Thread.Abort 最小修（P1-4）、Assembly.CodeBase（P1-5） | source |
+| big5 CodePages provider 註冊（P1-6） | `Program.cs:33` |
+| DryRun/shadow 開關 + 6 個 chokepoint gate（P1-7b） | `Common/RuntimeMode.cs` + DBmysql/ImportData/EmailModels/NotificationService |
+| S3 帳密遮罩（不再印明文 PASSWORD） | `Program.cs:35-37`（只印 set/unset） |
+| MySql.Data 9.4.0 pin（Q5）、System.Private.Uri 4.3.2 transitive-pin（3 CVE） | csproj |
+| NuGetAudit SCA CI gate（moderate+ 阻擋） | `ci.yml:31-32` |
+| golden-master 逐值 diff（79 match / 8 良性 divergence，gate PASS） | [golden-master-diff-P1-8.md](golden-master-diff-P1-8.md) |
+| ThreadSupervisor / ImportDecision / DryRun / AppConfigContract 回歸測試 | `DCT_data_import.Tests/` |
+| net462 CaptureBaseline CI capture step（emit-only） | `ci.yml:40-41` |
+
+---
+
+## Stream A — Cutover 收尾（受治理序列，**需 Windows runtime**）
+
+> 這是把服務真正切到 net8 上線、再砍 net462 的序列。**強治理**：A4（砍 TFM + 文件同步）刻意延後到 cutover 後穩定觀察期，在此之前 net462 是 L1 rollback。**不要提早做 A4。**
+
+### A0 — Cutover 前置（**可現在開始，不需 Windows**）
+- [ ] **self-contained publish 設定**（critic gap）：把 `RuntimeIdentifier=win-x64` / `SelfContained` / `.pubxml` 落 commit，讓 cutover step 6 有可重現的發佈產物。目前散在 runbook 文字、未進版控。
+- [ ] **CI net8 capture + fail-on-diff（P1-1b）**：`ci.yml` 目前只有 net462 capture（emit-only）。補 net8 端 capture step + 跨框架逐列比對、有差異就 fail，讓 golden-master 變成 CI 自動守護而非一次性人工判定。
+- [ ] **golden-master 期望值固化**：capture 測試現為 emit-only，把 net462 基準值寫成 committed Assert 常數（搭配 A0 的 CI 比對）。
+- [ ] **rollback runbook L2/L3 撰寫 + 演練一次**：L2＝產物資料夾切換（app_net8\ ↔ net462）、L3＝DB snapshot/binlog 還原。runbook 在 [phase-1-migration.md:333-345] 有骨架，需補可執行步驟並乾跑一次。
+- [ ] **shadow schema init 接 dct.sql**（critic gap）：`DCT_data_import/sql/dct.sql`（commit `90c05d6`，db_key/db_key_ui_status DDL）目前沒被任何 runbook 引用。把它接進影子環境 schema 初始化步驟並記錄。
+
+### A1 — Q4 dry-run 影子驗證（**需 Windows + 非 prod 環境 + 與 net462 prod 平行資料**）
+- [ ] 影子跑 **≥1 個完整營運週期**（Tester / UiStatus / TSMC 三條 thread 都至少輪一圈），全程 DryRun=true，DB 留 snapshot/binlog。
+- [ ] 觀察 **Family B（1E400 → ±∞ vs net8 解析）overflow** 是否在真實資料出現（golden-master 已 flag、列為影子期 watch 項）。
+
+### A2 — Production cutover（**需 Windows，blocked on A1 綠燈**）
+- [ ] 停 net462 → publish self-contained net8 → 啟動 → DB snapshot/binlog 留存（cutover step 6，[phase-1-migration.md:353-357]）。
+
+### A3 — Cutover 期人工 smoke（**需真 MySQL/FTP + net8 runtime**）
+- [ ] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-44] 5 個未勾選 checkbox）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
+
+### A4 — 砍 net462 + 文件同步（**強治理延後：cutover 後穩定觀察期才做**）
+- [ ] csproj 回 single `net8.0-windows`、移除 net462-only 套件（ConfigurationManager 9.x / Unsafe / Tasks.Extensions / ReferenceAssemblies）、清 App.config binding redirects（csproj 內 P1-8 註解標了清理點）。
+- [ ] 移除 source 內 `#if NET8_0_OR_GREATER` / `#if NET462` 腳手架（critic gap）：`Program.cs`、`ReadWriteINIfile.cs`、`EncodingTestBootstrap.cs`。
+- [ ] CaptureBaseline emit-only → 硬斷言（net8 確認穩定後）。
+- [ ] **文件同步**（doc rot 視同 bug）：`docs/codebase/` 七檔（STACK/TESTING 仍寫 net462+nuget+msbuild）+ `CLAUDE.md` + 根 `AGENTS.md`（critic gap：仍宣告 4.6.2/packages.config）+ `專案架構報告.md`（D1：嚴重失準，引用不存在的 *Refactored.cs、錯誤 API）。
+
+---
+
+## Stream B — R5 加權和 bug（**HIGH，blocked on 規格確認**）
+
+- [ ] `DbAccess.ComputeImportResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各分量 0/1，實際回 0/1/2/3 → 溢位污染高位 bit → 誤判失敗+寄信。
+- **blocker**：需先 [ASK USER] 確認 `check_status` bitmask 各分量語意（修法待規格）。
+- 修完：`CheckStatusWeightedSumTests.cs` 2 條 `_R5` by-design RED（:39, :53）轉綠 → 移除 `ByDesignRed` trait → 重納 CI gate。
+- 紀律：先確認規格 → 既有 RED 測試已是 failing regression test，直接讓它轉綠（test-first 已就位）。讀 [CONCERNS.md R5] + Tests README。
+
+---
+
+## Stream C — 安全債（S2/S4；S1 維持不動、S3 已完成；**可獨立並行**）
+
+- ~~**S1**：App.config 明文 DB/FTP 帳密~~ → **用戶決定（2026-06-27）：維持不動**，既有已知債明確不處理。**不得新增/擴大/搬移**該段帳密（連 env var 化也不做）。Stream C 範圍縮為 S2 + S4。
+- [ ] **S2（HIGH）**：SQL 全字串串接零參數化（`FileProcess`/`DbAccess`/`TsmcIeda`）→ 改參數化（Dapper 具名參數）。**高扇入共用檔，動前先 `deps-check`**。沿用既有風格、新寫 SQL 優先參數化。
+- [ ] **S4（MEDIUM）**：SMTP 無驗證 + hardcoded IP `10.12.10.31` / sender `CTRD5900@aseglobal.com` → 移到 config、評估 auth/TLS。（注意：SMTP 無密碼，不涉 App.config 帳密，與 S1 決定不衝突。）
+
+---
+
+## Stream D — Tier 3 測試廣度網（**可獨立開始；R1 傘下**）
+
+- [ ] 6 個 parser characterization 測試（需 `InternalsVisibleTo` 給 3 個 private `FileRead*`）。
+- [ ] `FileContentFormat.Compare*()` 測試。
+- [ ] `CalculateSPC.AverageOfSumSquare` 3 情境測試。
+- [ ] `FileProcess` helper（`ConvertEmptyToDefaultString`、`AddColumnForDataset` round-9）測試。
+- [ ] MySql.Data DATETIME driver round-trip golden master（需真 MySQL）。
+- [ ] coverage 工具（coverlet）+ 門檻。
+- [ ] mac CS0012 facade 編譯問題（測試專案）。
+
+---
+
+## Stream E — 修正/現代化（多數延後或機會性；**現代化需決策者確認後才動**）
+
+> CLAUDE.md：「不主動現代化」。E 類除 R2/R3 屬 correctness/維運外，D2-D5/P1-P3 動前須確認。
+
+- [ ] **R2（MEDIUM）**：SPC 負根號 NaN guard。
+- [ ] **R3（MEDIUM）**：hardcoded `C:\temp` log 路徑 → 可設定（net8 cutover 可能觸發）。
+- [ ] **R4（LOW）**：log rotation（optional）。
+- [ ] **D3（MEDIUM）**：dead code 清理（`Program.cs` TEST CASE 區塊、`DbAccess` 舊邏輯）。
+- [ ] **D4（MEDIUM）**：`TsmcIeda` self-contained 路徑收斂。
+- [ ] **P1（MEDIUM）**：O(n²) SQL 字串累加 → StringBuilder/batch。
+- [ ] **D2/D5/P2/P3（LOW/deferred）**：型別更名、命名不一致、fake async（非目標）、手動 GC.Collect。
+- [ ] 觀測性（metrics/tracing/APM、error tracking）、DB migration 工具（LOW，外部 owner）。
+
+---
+
+## 實作規劃 — 每項「最小改動 / 原始設計」兩案（待用戶逐項確認）
+
+> 規劃紀律：每項先用 **ponytail 階梯**（要不要存在 → 重用既有 → stdlib/native → 既裝依賴 → 一行 → 才到最小新 code）取最高可行 rung，蓄意簡化標 `ponytail:` 註記。
+> **不可偷懶區（最小改動不得鬆綁）**：修 bug 先寫 failing regression test；高風險（auth/migration/security）附 rollback；SQL 參數化（injection）；改高扇入共用檔前 `deps-check`；部署前 `*-release-verification` + `dependency-security-scan`。
+
+| 項 | 最小改動案（建議預設 ★ 多在此） | 原始設計案 | 建議 + trade-off |
+|---|---|---|---|
+| **A0 self-contained publish** | csproj 加 `<RuntimeIdentifier>win-x64</RuntimeIdentifier>` + `<SelfContained>true</SelfContained>`，或 publish 命令帶 `-r win-x64 --self-contained`。不寫 pubxml。 | 建 `Properties/PublishProfiles/win-x64.pubxml` + single-file/trimming + 版本戳記 | ★最小。pubxml 只是 VS GUI 糖，CLI 帶參即可；single-file/trim 對 net8-windows + MySql.Data 有風險，不值得。 |
+| **A0 CI net8 capture + fail-on-diff** | ci.yml 複製 net462 capture step 改 `-f net8.0-windows`，加 shell diff 比兩份輸出、非零 exit 1；容忍清單讀 golden-master-diff doc。 | 寫專屬比對工具/測試（結構化 diff + 容忍清單）整進測試專案 | ★最小。dump+diff 夠擋回歸；容忍清單已存在於 doc，腳本引用即可。 |
+| **A0 golden-master 固化** | net462 capture 值貼成測試 `const` 期望、capture 測試改 `Assert.Equal`。 | 引 Verify/ApprovalTests snapshot 框架管 received/approved | ★最小。既有測試無 snapshot 框架，引入是新依賴 + 學習成本；固定值手貼夠用。 |
+| **A0 rollback runbook L2/L3** | phase-1-migration.md 補可執行步驟 + 跑一次乾演練記錄。純文件。 | 自動化 rollback script（資料夾切換 + DB 還原）+ 演練 | ★最小（cutover 一次性，腳本化效益低）。**安全區：乾演練不可省。** |
+| **A0 dct.sql wiring** | runbook 加一行「影子環境先跑 sql/dct.sql 建 schema」+ 連結。 | 建 migration 工具管 schema 版本 | ★最小。一次性影子環境；migration 工具屬 Stream E LOW，別在此引。 |
+| **A1-A3 影子/cutover/smoke** | 用既有 DryRun 機制 + 既有 capture 跑，不新增工具。流程紀律題，非選型。 | — | 沿用既有機制；無兩案。 |
+| **A4 砍 TFM + #if + 文件** | csproj 刪 net462 分支 + 對應 `#if`；文件就地改字串。機械式。 | 加 single-file/trim/AOT 評估 + 文件重寫 | ★最小。A4 是清理非再設計；現代化評估屬 Stream E，別混入。 |
+| **B R5 加權和** | 共用 `ComputeImportResult` 一處把分量正規化為 0/1（依規格 `Math.Min(x,1)` 或 `x==1?1:0`）再加權；2 條 RED 轉綠。單點 root-cause guard。 | 重設計 check_status：enum/flags 型別取代裸 int 加權和、各分量明確語意、改所有讀寫點 | **先等規格**。若規格＝「分量該 0/1」→★最小單點正規化。若揭露加權和本身是錯抽象 → 才考慮原始設計（屬 `mp-improve-codebase-architecture`，另立項）。 |
+| **C / S1 明文帳密** | ~~（已descope）~~ | ~~（已descope）~~ | **用戶決定：維持不動，不處理。** App.config 帳密為接受的既有債；不得新增/擴大/搬移。 |
+| **C / S2 SQL 參數化** | 既裝 **Dapper 具名參數**逐一改現有 INSERT/SELECT/UPDATE，簽名不變、字串改 `@param`。 | 抽 repository 層 + 參數化 + 整合測試 | ★最小（Dapper 已在用）。抽 repository 屬現代化、非本債目標。**安全區：參數化不可省；動 DBmysql/FileProcess/TsmcIeda 前 `deps-check`。** |
+| **C / S4 SMTP** | IP/sender 移到 App.config key；評估是否需 auth（內網 relay 不需則記錄理由）。 | 認證 SMTP + TLS + 重試 | ★最小先消 hardcode；auth/TLS 視環境。 |
+| **D 測試廣度** | capture-don't-assert characterization，沿用既有 xUnit + capture 模式，`InternalsVisibleTo` 開私有方法，無新框架。 | 引 AutoFixture/Bogus/FluentAssertions/coverlet 門檻 + property-based | ★最小。既有測試零這些依賴；characterization 釘行為不需資料生成器；coverlet 可選非阻塞。 |
+| **E R2/R3/D3/D4/P1…** | 逐項最小：R2 一個 NaN guard；R3 log 路徑改讀 config；D3 刪 dead code；P1 改 StringBuilder。 | 對應子系統重構 | 多數延後；**D2/D5/P2/P3 等現代化動前須決策者確認**（CLAUDE.md「不主動現代化」）。 |
