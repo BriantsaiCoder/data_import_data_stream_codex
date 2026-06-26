@@ -43,6 +43,7 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj   # 唯一測試:
 | 檔 | 內容 |
 |----|------|
 | `docs/codebase/*.md` | 七檔工程文件（STACK/STRUCTURE/ARCHITECTURE/CONVENTIONS/INTEGRATIONS/TESTING/CONCERNS），每條附 file:line evidence — **權威來源** |
+| `docs/codebase/NET8_UPGRADE_TEST_STRATEGY.md` | .NET 8 升級前 characterization/golden-master 測試策略（10 節 + 附錄 A/B；四大 root cause、capture-don't-assert 紀律、seam 機制、優先級骨架） |
 | `專案架構報告.md` | 架構報告 v2.0.0（已對齊實際程式碼） |
 | `專案架構視覺化.html` | self-contained 互動視覺化 |
 | `DCT_data_import.Tests/README.md` | R5 回歸樁說明（含「故意紅燈」提醒） |

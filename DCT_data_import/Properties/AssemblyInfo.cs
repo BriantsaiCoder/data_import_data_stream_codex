@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 // 組件的一般資訊是由下列的屬性集控制。
 // 變更這些屬性的值即可修改組件的相關
@@ -17,6 +18,8 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 // 下列 GUID 為專案公開 (Expose) 至 COM 時所要使用的 typelib ID
 [assembly: Guid("28250590-3063-446f-83cc-cdbf93525015")]
+// 將 internal seam(ImportDecision 等)開放給回歸測試專案,供 net8 升級前的特性化測試使用。
+[assembly: InternalsVisibleTo("DCT_data_import.Tests")]
 // 組件的版本資訊由下列四個值所組成:
 //
 //      主要版本

@@ -73,6 +73,7 @@
     <Compile Include="Common\NotificationService.cs" />
     <!-- Removed unused Common\ThreadManager.cs -->
     <Compile Include="DbApi\DbAccess.cs" />
+    <Compile Include="ImportDecision.cs" />
     <Compile Include="MySQL_api\DBmysql.cs" />
     <Compile Include="ReadAndImport\MultiSpecRawData.cs" />
     <Compile Include="ReadAndImport\RecoveryRate.cs" />
