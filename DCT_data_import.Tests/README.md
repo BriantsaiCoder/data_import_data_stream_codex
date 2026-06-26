@@ -27,7 +27,7 @@
 
 ## 如何執行(Windows)
 
-> 本測試目標框架 net462,**無法在 macOS/Linux 上 build/run**;本檔由 macOS 環境撰寫,紅綠燈尚未在本機驗證,需於 Windows 上確認。
+> 本測試目標框架 net462。**R5 紅綠燈已在 macOS 驗證**:以 net8.0 + xUnit 跑同段加權和邏輯,得 **6 綠(happy-path Theory)/ 2 紅(`_R5` by-design)**,與下表一致。net462 測試專案本身在 mac 以 `FrameworkPathOverride`→Mono 編譯時尚有 `System.Runtime` facade 小坑(CS0012)未解,故**實跑 net462 測試專案仍以 Windows / Mono 為準**;主專案(非測試)已實測可在 macOS 零錯誤編譯。
 
 主專案用 `packages.config`、本測試專案用 PackageReference。先確保主專案的 NuGet 套件已還原(Visual Studio 會自動還原;或 `nuget restore DCT_data_import.sln`),再:
 

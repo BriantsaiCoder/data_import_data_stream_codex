@@ -28,14 +28,14 @@
 
 | Tool | Purpose | Evidence |
 |------|---------|----------|
-| MSBuild / Visual Studio 2017 | 建置（Windows-only） | `DCT_data_import.sln`、`.csproj` 非 SDK-style |
+| MSBuild / Visual Studio 2017 | 建置（Windows 標準路徑；mac 亦可編譯，見 §4 註） | `DCT_data_import.sln`、`.csproj` 非 SDK-style |
 | 無 linter / formatter 設定 | [TODO] 未發現 `.editorconfig`、`StyleCop`、`.globalconfig` | `docs/codebase/.codebase-scan.txt`（no lint/format config detected） |
-| 無 CI/CD | [TODO] 無 `.github/workflows/`、`azure-pipelines.yml` 等 | `.codebase-scan.txt`（no CI/CD detected） |
+| GitHub Actions CI | `.github/workflows/ci.yml`：windows-latest build + test，push/PR to master 觸發 | `.github/workflows/ci.yml` |
 
 ### 4) Key Commands
 
 ```bash
-# 本機為 macOS，無 Windows MSBuild。下列指令須在 Windows / Visual Studio 環境執行。
+# 下列為 Windows / Visual Studio 標準全流程（含實跑 exe）。mac 可改用 dotnet build + FrameworkPathOverride→Mono 4.6.2-api 僅做編譯驗證（見下方註）。
 # 還原 NuGet 套件（packages.config 模式）
 nuget restore DCT_data_import.sln
 
@@ -45,11 +45,11 @@ msbuild DCT_data_import.sln /p:Configuration=Release
 # 執行（產物為 console exe）
 DCT_data_import\bin\Release\DCT_data_import.exe
 
-# 測試： [TODO] 專案內無任何測試專案或測試框架
+# 測試：dotnet test DCT_data_import.Tests（SDK-style net462 xUnit；R5 回歸樁）
 # Lint：  [TODO] 無 linter 設定
 ```
 
-> ⚠ 本知識萃取在 macOS 上進行，**未能實際建置驗證**（net462 + packages.config 需 Windows MSBuild）。建置成功與否屬 [TODO]，須於 Windows 環境確認。
+> ⚠ 本知識萃取在 macOS 上進行。後續已實測:主專案（net462）在 macOS 以 `dotnet build` + `FrameworkPathOverride`→Mono `4.6.2-api` 參考組件**零錯誤編譯**（`./packages` 經 NuGet 還原）；genuinely Windows-only 的是**執行期**（P/Invoke / `C:\temp` / FTP / MySQL）。測試專案在該 override 下尚有 `System.Runtime` facade 小坑（CS0012）未解；R5 紅綠燈另以 net8.0 + xUnit 重現（6 綠 / 2 紅）。
 
 ### 5) Environment and Config
 

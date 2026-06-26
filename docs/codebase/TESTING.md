@@ -17,7 +17,7 @@
 
 ### 3) Mocking and Fixtures
 
-- Mocking framework：N/A（無測試）。
+- Mocking framework：N/A（現有測試為純函式 `ComputeImportResult`，無 mocking 需求）。
 - 可測試性障礙（影響未來導入測試）：
   - 直接 `new DBmysql()` + 靜態 `Program.HOST/USER/...`，無 DI、無介面抽象（`DatabaseService.cs:45-`）。
   - importer 直接觸發 FTP / 檔案系統 / `GC.Collect()`，副作用未隔離。
@@ -27,8 +27,8 @@
 ### 4) Coverage and CI
 
 - Coverage 工具/門檻：[TODO] 無。
-- CI/CD：[TODO] 無 `.github/workflows/`、無 pipeline 設定（見 STACK.md §3）。
-- 建置驗證：本機為 macOS，**未能實際建置**（net462 + packages.config 需 Windows MSBuild）。建置是否成功屬 [TODO]。
+- CI/CD：GitHub Actions（`.github/workflows/ci.yml`）— windows-latest 上 `nuget restore` → `msbuild` build → `dotnet test`（以 `Category!=ByDesignRed` 排除 R5 by-design 紅樁），push / PR to master 觸發（見 STACK.md §3）。
+- 建置驗證：主專案（net462）已實測可在 macOS 以 `dotnet build` + `FrameworkPathOverride`→Mono `4.6.2-api` 參考組件**零錯誤編譯**（`./packages` 經 NuGet 還原）；genuinely Windows-only 的是**執行期**（P/Invoke / `C:\temp` / FTP / MySQL）。測試專案在該 override 下尚有 `System.Runtime` facade 小坑（CS0012）未解，實跑 net462 測試以 Windows / Mono 為準；R5 紅綠燈另以 net8.0 + xUnit 重現（6 綠 / 2 紅）。
 
 ### 5) Evidence
 

@@ -35,7 +35,7 @@
 
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
-| R1 | **High** | **零自動化測試**：無單元/整合測試、無 CI，重構無安全網 | TESTING.md | 先為純函式（`CalculateSPC`、`FileContentFormat.Compare*`）補 characterization test |
+| R1 | **High** | **測試覆蓋率近乎零**：僅 R5 seam（`ComputeImportResult`）有 xUnit 釘樁，importer / `FileProcess` / `CalculateSPC` / FTP / DB 寫入全無測試；CI（`.github/workflows/ci.yml`）只驗 build + 該單一 seam，大面積重構仍無安全網 | TESTING.md、`DCT_data_import.Tests/` | 續為純函式（`CalculateSPC`、`FileContentFormat.Compare*`）補 characterization test 擴大覆蓋 |
 | R2 | Medium | **SPC 負號根值無 NaN 防護**：遇 `sum_sq/N - avg² < 0` 只 `Console` 警告「發現根號負值!」，未阻斷 | `Common/CalculateSPC.cs:90` | 加防護/釐清業務預期 |
 | R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、hardcoded `C:\temp` log 路徑 | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:29` | 路徑改設定；跨平台需求才重構 INI |
 | R4 | Low | **log 無 rotation/上限**：每日分檔但無大小限制與清理 | `WriteToLog.cs` | 視磁碟壓力決定是否加 |

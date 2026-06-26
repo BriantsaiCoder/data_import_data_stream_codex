@@ -39,7 +39,7 @@
 
 ### 5) Testing Conventions
 
-- [TODO] 無測試：專案無測試專案、無測試框架、無 `*Test*.cs`（見 TESTING.md）。
+- 測試專案：`DCT_data_import.Tests`（SDK-style net462 xUnit），唯一測試專案，僅釘 R5 純函式 `ComputeImportResult`（1 綠 + 2 by-design RED）；產品碼端主專案仍無測試（見 TESTING.md）。
 - Mocking：N/A。
 - Coverage 期望：N/A。
 
