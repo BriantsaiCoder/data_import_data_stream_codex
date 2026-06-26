@@ -20,6 +20,11 @@
     <!-- MySql.Data 顯式 pin 9.4.0(Q5):升版會改 Convert Zero Datetime/微秒/DateTimeKind 行為 -->
     <PackageReference Include="MySql.Data" Version="9.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- transitive-pin:還原閉包把 System.Private.Uri 帶到 4.3.0,命中 3 條 CVE
+         (GHSA-5f2m-466j-3848 / x5qj-9vmx-7g6g / xhfc-gr8f-ffwc,弱點範圍 <4.3.2)。
+         兩 TFM 都需:net8 雖由 runtime 提供 Uri,但 SDK 8.0.x 不自動 prune 此 transitive
+         (自動 pruning 為 .NET 9+),仍留在還原圖被 audit 標記。直接 pin 4.3.2(first-patched)蓋過關閉。 -->
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
   </ItemGroup>
 
   <!-- net462 半:過渡期保留的套件(net8 shared framework 已內建 Unsafe/Tasks.Extensions)
