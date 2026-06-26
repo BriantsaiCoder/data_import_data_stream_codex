@@ -12,9 +12,11 @@ namespace DCT_data_import.Tests
     /// 唯一合成處:先以**無 culture 參數**的 <c>double.TryParse(trimmed, out result)</c>(:1527,2-arg
     /// overload → 吃 <see cref="CultureInfo.CurrentCulture"/> 的 <see cref="NumberStyles.Float"/>|
     /// <c>AllowThousands</c>)把字串轉 double(B 腿),回傳值經呼叫端 :260 的 <c>validatedValue.ToString()</c>
-    /// (CurrentCulture)序列化進 SQL literal(C 腿)。net462 的 B 腿接受 Windows-CRT token
-    /// <c>-1.#IND</c>/<c>1.#QNAN</c>/<c>1.#INF</c> 並受 NLS culture 影響、C 腿用 G15;net8 的 B 腿拒收舊 token
-    /// (回 0)、走 ICU、C 腿改最短往返——兩腿差異在此函式合成後一起改變寫進 MySQL 的字面值。
+    /// (CurrentCulture)序列化進 SQL literal(C 腿)。原假設 B 腿在 net462 接受 Windows-CRT token
+    /// <c>-1.#IND</c>/<c>1.#QNAN</c>/<c>1.#INF</c>、net8 拒收——**CI golden-master 推翻**:兩框架 B 腿
+    /// 皆拒收這些 token(回 0);B 腿唯一真正翻轉是 <c>1E400</c>(net462 溢位成 +∞ → literal「Infinity」/
+    /// culture「∞」,net8 回 0)。C 腿差異則如預期落地:net462 用 G15、net8 改最短往返(見 capture 的位數
+    /// 漂移)。兩腿差異在此函式合成後一起改變寫進 MySQL 的字面值。
     ///
     /// 既有 <see cref="SpecialFloatParseTests"/>(B 孤立腿、Invariant 釘 float-token 維)與
     /// <see cref="DoubleToStringFormatTests"/>(C 孤立腿)各測**單腿**;本檔補的是「合成後的分支」:
@@ -62,8 +64,8 @@ namespace DCT_data_import.Tests
             // B 腿翻轉 token + locale 數字 + trim/空/null/非數字,涵蓋合成函式的每條分支。
             string[] inputs =
             {
-                "-1.#IND", "1.#QNAN", "1.#INF", "-1.#INF", // Windows-CRT 舊 token(net462 收、net8 拒)
-                "NaN", "Infinity", "1E400",                 // 兩框架皆收(1E400 溢位成 +∞)
+                "-1.#IND", "1.#QNAN", "1.#INF", "-1.#INF", // Windows-CRT 舊 token(capture:兩框架皆拒→0)
+                "NaN", "Infinity", "1E400",                 // NaN/Infinity 兩框架皆收;1E400 僅 net462 溢位成 +∞、net8 拒
                 "1,5", "1.5",                               // locale 小數 / 千分位歧義(culture 敏感)
                 "  3.14  ",                                 // 前後空白(Trim 分支)
                 "", null, "abc",                            // 空 → 0 / null → 0 / 非數字 → 0

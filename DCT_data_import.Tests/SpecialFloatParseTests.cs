@@ -7,12 +7,14 @@ using Xunit.Abstractions;
 namespace DCT_data_import.Tests
 {
     /// <summary>
-    /// Root cause B(double.TryParse 特殊浮點語意翻轉)的特性化 capture。
+    /// Root cause B(double.TryParse 特殊浮點語意)的特性化 capture。
     ///
-    /// net462 的 <c>double.TryParse</c> 接受 Windows CRT 舊式 token:<c>-1.#IND</c>(→NaN)、
-    /// <c>1.#QNAN</c>(→NaN)、<c>1.#INF</c>(→+∞)、<c>-1.#INF</c>(→-∞);net8(及 netcoreapp)
-    /// 一律解析失敗(回 false → out 0)。`NaN`/`Infinity`/`-Infinity` 兩框架皆接受;`1E400` 兩框架
-    /// 皆溢位成 +∞。這層翻轉會悄悄改變下游數值:解析成功的 NaN 會一路流進 <see cref="CalculateSPC"/>。
+    /// 原假設:net462 的 <c>double.TryParse</c> 會接受 Windows CRT 舊式 token(<c>-1.#IND</c>/
+    /// <c>1.#QNAN</c>/<c>1.#INF</c>/<c>-1.#INF</c>)、net8 一律拒收。**CI golden-master capture
+    /// 推翻此假設**:兩框架皆拒收這些 CRT token(parsed=false → out 0);<c>NaN</c>/<c>Infinity</c>/
+    /// <c>-Infinity</c> 兩框架皆接受。唯一真正翻轉的是 <c>1E400</c>——net462 溢位成 +∞
+    /// (parsed=true、bits=0x7FF0000000000000),net8 解析失敗(回 false → out 0)。此差異會悄悄改變
+    /// 下游數值:net462 把 1E400 當 +∞ 一路流進 <see cref="CalculateSPC"/>。
     ///
     /// 本檔全屬 capture-don't-assert(<c>[Trait("Category","CaptureBaseline")]</c>):只把 net462 實跑值
     /// 經 <see cref="ITestOutputHelper"/> 印出當基準,**不硬斷言**。net462 真實值要等 CI(windows-latest)
@@ -52,9 +54,10 @@ namespace DCT_data_import.Tests
 
         /// <summary>
         /// B 的下游後果特性化:把 <c>-1.#IND</c> 餵進 <see cref="CalculateSPC.AverageOfSumSquare"/>。
-        /// net462 路徑:token 解析成 NaN → <c>Convert.ToDecimal(NaN*NaN)</c> 擲 OverflowException →
-        /// catch 後回「該表之前累積的項」(單表故為空 list)。net8 路徑:token 解析失敗被跳過 →
-        /// 正常算出 1 筆(pass_n=3, avg=2)。故本 capture 在 net462 應印出 count=0,net8 印出 count=1。
+        /// 原假設:net462 把 token 解析成 NaN → <c>Convert.ToDecimal(NaN*NaN)</c> 擲 OverflowException
+        /// → catch 後回空 list(count=0);net8 解析失敗跳過 → count=1。**CI golden-master 推翻**:
+        /// 兩框架皆拒收 <c>-1.#IND</c>(見類別註解),故該 token 一律被跳過、兩框架皆算出 1 筆
+        /// (count=1, pass_n=3, avg=2, avg2≈4.667)——此案無 TFM 差異。
         /// fixture 純為數值樣本、不含真實 lot / 憑證(對齊策略 §1)。
         /// </summary>
         [Fact]
