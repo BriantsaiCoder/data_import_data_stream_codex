@@ -347,7 +347,7 @@ namespace DCT_data_import.ReadAndImport
                         values += ",";
                     }
                 }
-                response2 = fileProcess.ExecuteInsertWithAPI(DatabaseService, "ieda_title", columns, values);
+                response2 = fileProcess.ExecuteInsert(DatabaseService, "ieda_title", columns, values);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO ieda_title' error:" + response2.Error);
@@ -404,7 +404,7 @@ namespace DCT_data_import.ReadAndImport
                     }
                 }
                 values = values.Substring(1, values.Length - 1);
-                response2 = fileProcess.ExecuteInsertWithAPI(DatabaseService, "ieda_content", columns, values);
+                response2 = fileProcess.ExecuteInsert(DatabaseService, "ieda_content", columns, values);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO ieda_content' error:" + response2.Error);

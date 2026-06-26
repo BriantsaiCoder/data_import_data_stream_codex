@@ -128,7 +128,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(DatabaseService, "recovery_rate", columns, values);
+                        response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' error:" + response2.Error);
@@ -154,7 +154,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(DatabaseService, "recovery_rate", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
@@ -208,7 +208,7 @@ namespace DCT_data_import
             }
             try
             {
-                response2 = ExecuteInsertWithAPI(DatabaseService, "lots_info", columns, values);
+                response2 = ExecuteInsert(DatabaseService, "lots_info", columns, values);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + response2.Error);
@@ -317,7 +317,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                        response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -338,7 +338,7 @@ namespace DCT_data_import
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -423,7 +423,7 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
+                            response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
@@ -450,7 +450,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_result' response error:" + response2.Error);
@@ -506,7 +506,7 @@ namespace DCT_data_import
                 }
                 try
                 {
-                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_info", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_info", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + response2.Error);
@@ -620,7 +620,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                        response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -641,7 +641,7 @@ namespace DCT_data_import
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_statistic", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -726,7 +726,7 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
+                            response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
@@ -753,7 +753,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsertWithAPI(DatabaseService, "lots_result", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_result' response error:" + response2.Error);
@@ -824,7 +824,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsertWithAPI(DatabaseService, "tester_device_info", columns, values);
+                response = ExecuteInsert(DatabaseService, "tester_device_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO tester_device_info' error:" + response.Error);
@@ -891,7 +891,7 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService, "tester_status", columns, values);
+                    response = ExecuteInsert(DatabaseService, "tester_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_status' error:" + response.Error);
@@ -939,7 +939,7 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService, "tester_sw_version", columns, values);
+                    response = ExecuteInsert(DatabaseService, "tester_sw_version", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_sw_version' error:" + response.Error);
@@ -989,7 +989,7 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService, "tester_production_analysis", columns, values);
+                    response = ExecuteInsert(DatabaseService, "tester_production_analysis", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_production_analysis' error:" + response.Error);
@@ -1057,7 +1057,7 @@ namespace DCT_data_import
                 }
                 try
                 {
-                    response = ExecuteInsertWithAPI(DatabaseService, "ui_status", columns, values);
+                    response = ExecuteInsert(DatabaseService, "ui_status", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO ui_status' error:" + response.Error);
@@ -1106,7 +1106,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_info", columns, values);
+                response = ExecuteInsert(DatabaseService, "fail_pin_rate_info", columns, values);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_info' error:" + response.Error);
@@ -1157,7 +1157,7 @@ namespace DCT_data_import
                             values += ",";
                         }
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list", columns, values);
+                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_list", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list' error:" + response.Error);
@@ -1217,7 +1217,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
+                        response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                         if (!string.IsNullOrEmpty(response.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
@@ -1238,7 +1238,7 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
+                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
@@ -1286,7 +1286,7 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
+                            response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values);
                             if (!string.IsNullOrEmpty(response.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
@@ -1315,7 +1315,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(1, values.Length - 2);
                     }
-                    response = ExecuteInsertWithAPI(DatabaseService, "fail_pin_rate_test_result", columns, values);
+                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
@@ -1334,7 +1334,7 @@ namespace DCT_data_import
             #endregion
             return true;
         }
-        public Execute_query_response ExecuteInsertWithAPI(DatabaseService DatabaseService, string tableName, string columns, string values)
+        public Execute_query_response ExecuteInsert(DatabaseService DatabaseService, string tableName, string columns, string values)
         {
             try
             {
@@ -1344,12 +1344,10 @@ namespace DCT_data_import
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
-                // 宣告 Web API body
                 Execute_query execute_query = new Execute_query
                 {
                     Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
                 };
-                // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -1378,7 +1376,6 @@ namespace DCT_data_import
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
                 Query = @"DELETE t1, t2, t3
@@ -1387,7 +1384,6 @@ namespace DCT_data_import
 										  LEFT JOIN lots_result t3 ON t1.id = t3.lot_id
 									WHERE t1.id = " + lot_id + "; "
             };
-            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1409,7 +1405,6 @@ namespace DCT_data_import
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
                 Query = @"DELETE t1, t2, t3, t4
@@ -1419,7 +1414,6 @@ namespace DCT_data_import
 										  LEFT JOIN tester_production_analysis t4 ON t1.id = t4.device_info_id
 									 WHERE t1.id = " + device_info_id + "; "
             };
-            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1441,7 +1435,6 @@ namespace DCT_data_import
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            // 宣告 Web API body
             Execute_query execute_query = new Execute_query
             {
                 Query = @"DELETE t3
@@ -1449,7 +1442,6 @@ namespace DCT_data_import
 										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
 									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
-            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1457,7 +1449,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list_pin_ball error");
             }
-            // 宣告 Web API body
             execute_query = new Execute_query
             {
                 Query = @"DELETE t4
@@ -1465,7 +1456,6 @@ namespace DCT_data_import
 										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
 									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
             };
-            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1473,7 +1463,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_test_result error ");
             }
-            // 宣告 Web API body
             execute_query = new Execute_query
             {
                 Query = @"DELETE t1, t2
@@ -1481,7 +1470,6 @@ namespace DCT_data_import
 										  LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
 									WHERE t1.id = " + fail_pin_id + "; "
             };
-            // 回傳 {"data":{"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":2,"warningStatus":0},"error":null}
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
