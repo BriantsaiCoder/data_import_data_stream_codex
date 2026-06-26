@@ -3,7 +3,7 @@ name: CI
 # .NET Framework 4.6.2 + packages.config(主專案) + SDK-style net462 xUnit(測試專案)。
 # 需 Windows MSBuild;packages.config 不被 dotnet restore 還原,故用 nuget restore。
 # R5 的 2 條測試是 by-design RED(釘住未修的加權和 bug),以 Category!=ByDesignRed 排除,避免 CI 假紅。
-# ⚠️ 本 workflow 由無 Windows 環境的開發機撰寫,尚未於 Actions 實跑驗證 — 首次 push 為其驗證點。
+# 本 workflow 由無 Windows 環境的開發機撰寫,已於 GitHub Actions(windows-latest)實跑驗證:build + test 綠燈。
 
 on:
   push:
@@ -15,18 +15,18 @@ jobs:
   build-test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+        uses: NuGet/setup-nuget@v4
 
       - name: Restore (packages.config + PackageReference)
         run: nuget restore DCT_data_import.sln
