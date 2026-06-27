@@ -21,7 +21,6 @@ namespace DCT_data_import.ReadAndImport
         public ImportResult ReadAndImportIeda(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             string ftpserver = string.Empty;
-            StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
             //抓mac id
@@ -49,9 +48,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     ftpserver = GetSourcePath("TSMC_DATA/IEDA/" + filename);
                     string errorPath = GetSourcePath("TSMC_DATA/IEDA_error/" + filename);
-                    reader = OpenBig5Reader(ftpserver);
-                    IedaDataFormat iedaDataFormat = FileReadIeda(reader);
-                    reader.Close();
+                    IedaDataFormat iedaDataFormat = ReadBig5File(ftpserver, FileReadIeda);
                     if (!string.IsNullOrEmpty(iedaDataFormat.ErrMsg))
                     {
                         MoveToError(ftpserver, errorPath);
@@ -187,20 +184,21 @@ namespace DCT_data_import.ReadAndImport
                 ftpserver = GetSourcePath("TSMC_DATA/CSV/" + filename);
                 errorPath = GetSourcePath("TSMC_DATA/CSV_error/" + filename);
                 string netNameLine = string.Empty;
-                StreamReader reader = OpenBig5Reader(ftpserver);
-                string line = reader.ReadLine();
-                while (line != null)
+                using (StreamReader reader = OpenBig5Reader(ftpserver))
                 {
-                    // Safe string splitting with bounds checking
-                    var lineParts = line.Split(',');
-                    if (lineParts.Length > 0 && lineParts[0] == "Net Name")
+                    string line = reader.ReadLine();
+                    while (line != null)
                     {
-                        netNameLine = line;
-                        break;
+                        // Safe string splitting with bounds checking
+                        var lineParts = line.Split(',');
+                        if (lineParts.Length > 0 && lineParts[0] == "Net Name")
+                        {
+                            netNameLine = line;
+                            break;
+                        }
+                        line = reader.ReadLine();
                     }
-                    line = reader.ReadLine();
                 }
-                reader.Close();
                 netNameList = netNameLine.Split(',').ToList();
                 if (netNameList.Count > 0) netNameList.RemoveAt(0);
                 // 刪除已成功讀完的TSMC CSV檔案
@@ -225,13 +223,10 @@ namespace DCT_data_import.ReadAndImport
         {
             WriteToLog writeToLog = new WriteToLog();
             string ftpserver;
-            StreamReader reader;
             try
             {
                 ftpserver = GetSourcePath("TSMC_DATA/LotID/lot_mapping.csv");
-                reader = OpenBig5Reader(ftpserver);
-                string lines = reader.ReadToEnd();
-                reader.Close();
+                string lines = ReadBig5File(ftpserver, reader => reader.ReadToEnd());
                 List<string> split_lines = lines.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
                 for (int i = 0; i < split_lines.Count; i++)
                 {

@@ -313,6 +313,14 @@ namespace DCT_data_import.ReadAndImport
             return new StreamReader(FileSource.OpenRead(path), Encoding.GetEncoding("big5"));
         }
 
+        protected T ReadBig5File<T>(string path, Func<StreamReader, T> read)
+        {
+            using (StreamReader reader = OpenBig5Reader(path))
+            {
+                return read(reader);
+            }
+        }
+
         protected long GetFileLength(string path)
         {
             return FileSource.GetLength(path);

@@ -13,7 +13,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            StreamReader reader;
             bool isDBKeyExist = false, import_result = false;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
@@ -36,12 +35,10 @@ namespace DCT_data_import.ReadAndImport
             }
             try
             {
-                reader = OpenBig5Reader(ftpFilePath);
                 long fileSize = GetFileLength(ftpFilePath);
                 stopWatch.Reset();
                 stopWatch.Start();
-                TestStatusContentFormat testStatusContentFormat = FileReadTesterStatus(reader);
-                reader.Close();
+                TestStatusContentFormat testStatusContentFormat = ReadBig5File(ftpFilePath, FileReadTesterStatus);
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -104,14 +101,12 @@ namespace DCT_data_import.ReadAndImport
                         Console.WriteLine("匯入完成! Tester Status   檔名: " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
                         deleteStatus = CompleteSuccess(ftpFilePath);
-                        reader.Close();
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: Tester Status " + filename);
                         writeToLog.WriteErrorLog("匯入失敗: " + ftpFilePath);
                         MoveToError(ftpFilePath, errorPath);
-                        reader.Close();
                         return new ImportResult(3, "Import failed.");
                     }
                 }

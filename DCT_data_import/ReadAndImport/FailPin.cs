@@ -14,7 +14,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            StreamReader reader;
             bool import_result = false, isDBKeyExist = false;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
@@ -37,12 +36,10 @@ namespace DCT_data_import.ReadAndImport
                     writeToLog.WriteErrorLog("Fail Pin Log File not found: " + ftpFilePath);
                     return new ImportResult(0, "File not found.");
                 }
-                reader = OpenBig5Reader(ftpFilePath);
                 long fileSize = GetFileLength(ftpFilePath);
                 stopWatch.Reset();
                 stopWatch.Start();
-                FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
-                reader.Close();
+                FailPinLogContentFormat failPinLogContent = ReadBig5File(ftpFilePath, FileReadFailPinLog);
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -92,14 +89,12 @@ namespace DCT_data_import.ReadAndImport
                         Console.WriteLine("匯入完成! Fail Pin      檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除完成的CSV檔案
                         deleteStatus = CompleteSuccess(ftpFilePath);
-                        reader.Close();
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: Fail Pin " + filename);
                         writeToLog.WriteErrorLog("匯入失敗:" + ftpFilePath);
                         MoveToError(ftpFilePath, errorPath);
-                        reader.Close();
                         return new ImportResult(3, "Import failed.");
                     }
                 }

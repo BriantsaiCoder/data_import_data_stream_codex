@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DCT_data_import;
@@ -200,6 +201,19 @@ namespace DCT_data_import.Tests
             Assert.False(File.Exists(errorPath));
         }
 
+        [Fact]
+        public void ReadBig5File_WhenParserThrows_DisposesSourceStream()
+        {
+            var stream = new TrackingStream(new byte[] { 0x61 });
+            var importData = new TestImportData(new ThrowingReadFileSource(stream));
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                importData.ReadBig5FileForTests("Data_Cloud_CSV/test_result_DB001.csv"));
+
+            Assert.Equal("boom", ex.Message);
+            Assert.True(stream.WasDisposed);
+        }
+
         private sealed class TestImportData : ImportData
         {
             internal TestImportData(IImportFileSource fileSource)
@@ -210,6 +224,54 @@ namespace DCT_data_import.Tests
             public string GetFilePathForTests(string fileType, string dbKey)
             {
                 return GetFilePath(fileType, dbKey);
+            }
+
+            public string ReadBig5FileForTests(string path)
+            {
+                return ReadBig5File<string>(path, reader =>
+                {
+                    throw new InvalidOperationException("boom");
+                });
+            }
+        }
+
+        private sealed class ThrowingReadFileSource : IImportFileSource
+        {
+            private readonly Stream _stream;
+
+            public ThrowingReadFileSource(Stream stream)
+            {
+                _stream = stream;
+            }
+
+            public string GetPath(string relativePath) => relativePath;
+
+            public bool Exists(string path) => true;
+
+            public List<string> ListFiles(string directoryPath, string filePattern) => new List<string>();
+
+            public Stream OpenRead(string path) => _stream;
+
+            public long GetLength(string path) => _stream.Length;
+
+            public string CompleteSuccess(string path) => string.Empty;
+
+            public string MoveToError(string path, string errorPath) => string.Empty;
+        }
+
+        private sealed class TrackingStream : MemoryStream
+        {
+            public TrackingStream(byte[] buffer)
+                : base(buffer)
+            {
+            }
+
+            public bool WasDisposed { get; private set; }
+
+            protected override void Dispose(bool disposing)
+            {
+                WasDisposed = true;
+                base.Dispose(disposing);
             }
         }
     }

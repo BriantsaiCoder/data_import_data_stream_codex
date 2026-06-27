@@ -14,7 +14,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportRecoveryRateData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
             Stopwatch stopWatch = new Stopwatch();
@@ -49,13 +48,10 @@ namespace DCT_data_import.ReadAndImport
             {
                 bool import_result = false;
                 bool isDBKeyExist = false;
-                // 取得編碼格式
-                reader = OpenBig5Reader(ftpFilePath);
                 long fileSize = GetFileLength(ftpFilePath);
                 stopWatch.Reset();
                 stopWatch.Start();
-                RecoveryRateDataContentFormat recoveryRateDataContentFormat = FileReadRecoveryRateData(reader);
-                reader.Close();
+                RecoveryRateDataContentFormat recoveryRateDataContentFormat = ReadBig5File(ftpFilePath, FileReadRecoveryRateData);
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -127,7 +123,6 @@ namespace DCT_data_import.ReadAndImport
                         Console.WriteLine("匯入完成! Recovery Rate    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
                         deleteStatus = CompleteSuccess(ftpFilePath);
-                        reader.Close();
                         //return new ImportResult(1, "");
                     }
                     else
@@ -135,7 +130,6 @@ namespace DCT_data_import.ReadAndImport
                         Console.WriteLine("匯入失敗: Recovery Rate " + filename);
                         writeToLog.WriteToDataImportLog("匯入失敗 Recovery Rate:" + ftpFilePath);
                         MoveToError(ftpFilePath, errorPath);
-                        reader.Close();
                         return new ImportResult(3, "Import failed.");
                     }
                 }

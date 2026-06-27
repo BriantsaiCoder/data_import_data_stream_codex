@@ -13,7 +13,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKeyUiStatus)
         {
-            StreamReader reader;
             bool import_result = false;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
@@ -37,9 +36,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 import_result = false;
-                reader = OpenBig5Reader(ftpFilePath);
-                UIStatusContentFormat uiStatusContentFormat = FileReadUIStatus(reader);
-                reader.Close();
+                UIStatusContentFormat uiStatusContentFormat = ReadBig5File(ftpFilePath, FileReadUIStatus);
                 if (!string.IsNullOrEmpty(uiStatusContentFormat.ErrMsg))
                 {
                     return new ImportResult(2, uiStatusContentFormat.ErrMsg);
@@ -69,17 +66,15 @@ namespace DCT_data_import.ReadAndImport
                     Console.WriteLine("匯入完成! UI Status " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                     // 刪除已存在的的CSV檔案
                     deleteStatus = CompleteSuccess(ftpFilePath);
-                    reader.Close();
                 }
                 else
                 {
                     Console.WriteLine("匯入失敗: UI Status " + filename);
                     writeToLog.WriteToDataImportLog("匯入失敗:" + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
-                    reader.Close();
                     return new ImportResult(3, "Import failed.");
                 }
-                Thread.Sleep(500); reader.Close();
+                Thread.Sleep(500);
             }
             catch (Exception ex)
             {
