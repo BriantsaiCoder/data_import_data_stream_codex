@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
@@ -25,8 +26,15 @@ namespace DCT_data_import
                 SendResult = "DryRun: email send skipped";
                 return true;
             }
-            const string ipString = "10.12.10.31";
-            IPAddress tIP = IPAddress.Parse(ipString);
+            // SMTP 伺服器位址外部化至 App.config(S4);TryParse 在 try 外,未設定/格式錯都回 false
+            // (不丟未捕捉例外 crash 輪詢執行緒;null 亦回 false),行為對齊下方「Connect email server fail」失敗路徑。
+            string ipString = ConfigurationManager.AppSettings["SmtpServer"];
+            if (!IPAddress.TryParse(ipString, out IPAddress tIP))
+            {
+                SendResult = "SMTP 伺服器位址未設定或格式錯誤(App.config SmtpServer)";
+                Console.WriteLine($"[EmailModels] {SendResult}");
+                return false;
+            }
             using (Ping tPingControl = new Ping())
             {
                 PingReply tReply = tPingControl.Send(tIP);
@@ -36,10 +44,35 @@ namespace DCT_data_import
                     return false;
                 }
             }
+            // 寄件人外部化至 App.config(S4)。位址與顯示名皆為部署設定,缺漏屬部署錯誤、不是執行期輸入。
+            // 先以 IsNullOrWhiteSpace 明確守衛兩者,不依賴 MailAddress 對 null/空顯示名的框架語意——該語意
+            // 在「文件契約 vs 實際 source」有已知落差,且可能在 net462 與 net8 間分歧(雙 TFM 平價風險);
+            // 顯式守衛使行為跨 TFM 確定。再建立 MailAddress 以攔位址格式錯(FormatException)。任一錯誤都回明確
+            // 設定錯誤訊息,不落到主 try 的通用 catch 被誤標為「未預期的錯誤」,也不與收件人位址解析錯誤混淆。
+            string fromAddrCfg = ConfigurationManager.AppSettings["SmtpFromAddress"];
+            string fromNameCfg = ConfigurationManager.AppSettings["SmtpFromDisplayName"];
+            if (string.IsNullOrWhiteSpace(fromAddrCfg) || string.IsNullOrWhiteSpace(fromNameCfg))
+            {
+                SendResult = "寄件人設定未設定(App.config SmtpFromAddress / SmtpFromDisplayName)";
+                Console.WriteLine($"[EmailModels] {SendResult}");
+                return false;
+            }
+            MailAddress fromAddress;
+            try
+            {
+                fromAddress = new MailAddress(fromAddrCfg, fromNameCfg, Encoding.UTF8);
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is FormatException)
+            {
+                SendResult = "寄件人設定格式錯誤(App.config SmtpFromAddress / SmtpFromDisplayName)";
+                Console.WriteLine($"[EmailModels] 寄件人設定錯誤: {ex.Message}");
+                return false;
+            }
             try
             {
                 using (MailMessage mailObj = new MailMessage())
-                using (SmtpClient mysmtp = new SmtpClient(ipString))
+                // host 用 tIP.ToString()(正規化位址)與上方 Ping 目標一致,勿改回原始字串以免兩者分歧
+                using (SmtpClient mysmtp = new SmtpClient(tIP.ToString()))
                 {
                     //設定編碼
                     mailObj.SubjectEncoding = Encoding.UTF8;
@@ -47,8 +80,8 @@ namespace DCT_data_import
                     mailObj.Subject = Subject;
                     //設定內文
                     mailObj.Body = Body;
-                    //設定寄件人
-                    mailObj.From = new MailAddress("CTRD5900@aseglobal.com", "CTRD Sender", Encoding.UTF8);
+                    //設定寄件人(已於上方守衛預先驗證,見 fromAddress)
+                    mailObj.From = fromAddress;
                     //設定to名單
                     for (int i = 0; i < ToList.Count; i++)
                     {
