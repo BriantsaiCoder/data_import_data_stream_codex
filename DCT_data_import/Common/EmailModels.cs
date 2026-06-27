@@ -63,7 +63,7 @@ namespace DCT_data_import
             try
             {
                 using (MailMessage mailObj = new MailMessage())
-                using (SmtpClient mysmtp = new SmtpClient(ipString))
+                using (SmtpClient mysmtp = new SmtpClient(tIP.ToString()))
                 {
                     //設定編碼
                     mailObj.SubjectEncoding = Encoding.UTF8;
