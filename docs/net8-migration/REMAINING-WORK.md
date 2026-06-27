@@ -55,7 +55,7 @@
 
 ### A3 — Cutover 期人工 smoke（**需真 MySQL/FTP + net8 runtime**）
 - [x] 使用者回報 Windows PC 已順利 pass A3。
-- [x] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-44]）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
+- [x] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-45]）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
 
 ### A4 — 砍 net462 + 文件同步（**已完成**）
 - [x] csproj 回 single `net8.0-windows`、移除 net462-only 套件（ConfigurationManager 9.x / Unsafe / Tasks.Extensions / ReferenceAssemblies）。`App.config` 已無 binding redirects。

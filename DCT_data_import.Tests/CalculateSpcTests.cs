@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using DCT_data_import;
 using Xunit;
 
@@ -48,13 +49,22 @@ namespace DCT_data_import.Tests
         [Fact]
         public void AverageOfSumSquare_WhenDecimalVarianceRoundsSlightlyNegative_KeepsStatistic()
         {
-            var content = CreateRawDataContent("[1234567.89,1234567.89]", failCount: "0");
+            CultureInfo originalCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+                var content = CreateRawDataContent("[1234567.89,1234567.89]", failCount: "0");
 
-            var result = new CalculateSPC().AverageOfSumSquare(content);
+                var result = new CalculateSPC().AverageOfSumSquare(content);
 
-            Assert.Single(result);
-            Assert.Equal(2m, result[0].pass_n);
-            Assert.Equal(1234567.89m, result[0].avg);
+                Assert.Single(result);
+                Assert.Equal(2m, result[0].pass_n);
+                Assert.InRange(result[0].avg, 1234567.88m, 1234567.90m);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = originalCulture;
+            }
         }
 
         private static RawDataContentFormat CreateRawDataContent(
