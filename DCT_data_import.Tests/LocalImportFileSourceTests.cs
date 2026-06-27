@@ -103,6 +103,8 @@ namespace DCT_data_import.Tests
 
             var files = source.ListFiles(directory, "test_result_site*_DB001.csv");
 
+            Assert.EndsWith(Path.DirectorySeparatorChar.ToString(), directory);
+            Assert.True(File.Exists(directory + "test_result_site1_DB001.csv"));
             Assert.Equal(new[] { "test_result_site1_DB001.csv" }, files.OrderBy(x => x).ToArray());
         }
 

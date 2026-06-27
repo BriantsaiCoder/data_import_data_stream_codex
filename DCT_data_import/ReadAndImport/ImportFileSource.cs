@@ -148,7 +148,12 @@ namespace DCT_data_import.ReadAndImport
             catch (WebException ex)
             {
                 response = ex.Response as FtpWebResponse;
-                return false;
+                if (response?.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
+                {
+                    return false;
+                }
+
+                throw;
             }
             finally
             {
@@ -257,7 +262,13 @@ namespace DCT_data_import.ReadAndImport
         public string GetPath(string relativePath)
         {
             string localRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-            return NormalizeUnderRoot(Path.Combine(_root, localRelativePath));
+            string path = NormalizeUnderRoot(Path.Combine(_root, localRelativePath));
+            if (EndsWithDirectorySeparator(relativePath) && !EndsWithDirectorySeparator(path))
+            {
+                return path + Path.DirectorySeparatorChar;
+            }
+
+            return path;
         }
 
         public bool Exists(string path)
@@ -380,6 +391,11 @@ namespace DCT_data_import.ReadAndImport
             }
 
             return candidate;
+        }
+
+        private static bool EndsWithDirectorySeparator(string path)
+        {
+            return path.EndsWith("/", StringComparison.Ordinal) || path.EndsWith("\\", StringComparison.Ordinal);
         }
     }
 
