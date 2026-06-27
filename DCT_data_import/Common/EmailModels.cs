@@ -32,6 +32,7 @@ namespace DCT_data_import
             if (!IPAddress.TryParse(ipString, out IPAddress tIP))
             {
                 SendResult = "SMTP 伺服器位址未設定或格式錯誤(App.config SmtpServer)";
+                Console.WriteLine($"[EmailModels] {SendResult}");
                 return false;
             }
             using (Ping tPingControl = new Ping())
@@ -53,6 +54,7 @@ namespace DCT_data_import
             if (string.IsNullOrWhiteSpace(fromAddrCfg) || string.IsNullOrWhiteSpace(fromNameCfg))
             {
                 SendResult = "寄件人設定未設定(App.config SmtpFromAddress / SmtpFromDisplayName)";
+                Console.WriteLine($"[EmailModels] {SendResult}");
                 return false;
             }
             MailAddress fromAddress;
@@ -69,6 +71,7 @@ namespace DCT_data_import
             try
             {
                 using (MailMessage mailObj = new MailMessage())
+                // host 用 tIP.ToString()(正規化位址)與上方 Ping 目標一致,勿改回原始字串以免兩者分歧
                 using (SmtpClient mysmtp = new SmtpClient(tIP.ToString()))
                 {
                     //設定編碼
