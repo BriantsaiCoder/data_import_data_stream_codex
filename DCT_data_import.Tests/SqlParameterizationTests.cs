@@ -65,6 +65,23 @@ namespace DCT_data_import.Tests
         }
 
         [Fact]
+        public void AddInsertParameter_KeepsCsvPayloadOutOfMultiRowSql()
+        {
+            const string csvPayload = "A\"),('B'); DROP TABLE lots_result;--";
+            var parameters = new DynamicParameters();
+            int parameterIndex = 0;
+
+            string values = FileProcess.AddInsertParameter(parameters, ref parameterIndex, "batch", csvPayload) +
+                            "),(" +
+                            FileProcess.AddInsertParameter(parameters, ref parameterIndex, "batch", "safe");
+            Execute_query query = FileProcess.BuildInsertQuery("lots_result", "`lot_id`", values, parameters);
+
+            Assert.Contains("@batch_0),(@batch_1", query.Query);
+            Assert.DoesNotContain(csvPayload, query.Query);
+            Assert.True(DynamicParametersContain((DynamicParameters)query.Parameters, csvPayload));
+        }
+
+        [Fact]
         public void BuildIedaTitleInsertQuery_KeepsFileValuesOutOfSqlText()
         {
             var content = new IedaDataFormat();

@@ -9,7 +9,7 @@
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
 | S1 | **High** | **明文憑證入版控**：`App.config` 內含 DB/FTP 帳密明文，隨 git 提交 | `App.config`（`{Env}User`/`{Env}Password`、FTP ConnectionStrings） | 移出版控，改 secret manager / 環境變數；提供只含 key name 的 `.env.example` |
-| S2 | **High（部分修復：A/PR-1）** | **SQL injection（全字串串接、零參數化）**：`DbAccess` / `TsmcIeda` / identifier chokepoint 已改參數化或跳脫；`FileProcess` 批次 INSERT CSV values 仍待 A/PR-2 | 已修：`DbAccess.cs` 4 個 db_key 值站、`TsmcIeda.cs` IEDA INSERT + `DataTable.Select`、`FileProcess.ExecuteInsert` optional parameters/identifier guard、`DatabaseService.CheckDatabaseAndTableExists` value parameters；待修：`FileProcess.cs` 批次 INSERT values 累加 | 完成 A/PR-2：把 `FileProcess.Import*` 批次 values 改 DynamicParameters；`DBmysql.FilterSqlCommand` 的 regex 補救仍屬症狀處理，非根治 |
+| S2 | **High（已修復：A/PR-1 + A/PR-2）** | **SQL injection（全字串串接、零參數化）**：`DbAccess` / `TsmcIeda` / identifier chokepoint / `FileProcess` 批次 INSERT CSV values 已改參數化或跳脫 | 已修：`DbAccess.cs` 4 個 db_key 值站、`TsmcIeda.cs` IEDA INSERT + `DataTable.Select`、`FileProcess.ExecuteInsert` optional parameters/identifier guard、`FileProcess.Import*` 批次 INSERT values、`DatabaseService.CheckDatabaseAndTableExists` value parameters | 保持新 SQL 走 Dapper parameters；`DBmysql.FilterSqlCommand` 僅保留為既有防線，非主要控制 |
 | S3 | **High** | **憑證明文輸出至 Console**：啟動時 `Console.WriteLine` 印出 HOST/USER/PASSWORD | `Program.cs:32-34` | 移除或遮罩；至少不印 PASSWORD |
 | S4 | Medium | **SMTP 無認證 + hardcoded IP**：寄信走匿名 SMTP，IP `10.12.10.31`、寄件者 `CTRD5900@aseglobal.com` 寫死 | `EmailModels.cs:21,44` | 移入設定；評估是否需認證/TLS |
 

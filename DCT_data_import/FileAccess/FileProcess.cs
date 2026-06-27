@@ -4,6 +4,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using Dapper;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
@@ -104,9 +105,11 @@ namespace DCT_data_import
             {
                 // 開始逐一insert recovery rate data
                 values = string.Empty;
+                var parameters = new DynamicParameters();
+                int parameterIndex = 0;
                 for (int i = 0; i < content.FinalRecoveryRateTable.Rows.Count; i++)
                 {
-                    values += "(\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim()) + "\",";
+                    values += "(" + AddInsertParameter(parameters, ref parameterIndex, "recovery_rate", ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim())) + ",";
                     for (int j = 1; j < content.FinalRecoveryRateTable.Columns.Count; j++)
                     { // 處理日期格式
                         if (string.Equals(content.FinalRecoveryRateTable.Columns[j].ColumnName.ToLower(), "date", StringComparison.OrdinalIgnoreCase))
@@ -114,7 +117,7 @@ namespace DCT_data_import
                             // 日期格式解析正確
                             content.FinalRecoveryRateTable.Rows[i][j] = ValidateDateTime(content.FinalRecoveryRateTable.Rows[i][j].ToString());
                         }
-                        values += "\"" + ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][j].ToString().Trim()) + "\"";
+                        values += AddInsertParameter(parameters, ref parameterIndex, "recovery_rate", ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][j].ToString().Trim()));
                         if (j != content.FinalRecoveryRateTable.Columns.Count - 1)
                         {
                             values += ",";
@@ -125,13 +128,15 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values);
+                        response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values, parameters);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' error:" + response2.Error);
                             return false;
                         }
                         values = string.Empty;
+                        parameters = new DynamicParameters();
+                        parameterIndex = 0;
                     }
                     else if (i != content.FinalRecoveryRateTable.Rows.Count - 1)
                     {
@@ -151,7 +156,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values, parameters);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' response error:" + response2.Error);
@@ -176,6 +181,8 @@ namespace DCT_data_import
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             #region insert raw data 的 info 表格
+            var lotsInfoParameters = new DynamicParameters();
+            int lotsInfoParameterIndex = 0;
             for (int i = 0; i < content.LotInfo.Columns.Count; i++)
             {
                 string column_name = content.LotInfo.Columns[i].ColumnName.ToLower();
@@ -195,8 +202,7 @@ namespace DCT_data_import
                     content.LotInfo.Rows[0][i] = CustomizeDateTimeParser(content.LotInfo.Rows[0][i].ToString());
                 }
                 columns += "`" + column_name.Trim() + "`";
-                values += "\"" + ConvertEmptyToDefaultString(content.LotInfo.Rows[0][i].ToString().Trim()) + "\"";
-                //values += "\"" + content.lotInfo.Rows[0][i].ToString().Trim() + "\"";
+                values += AddInsertParameter(lotsInfoParameters, ref lotsInfoParameterIndex, "lots_info", ConvertEmptyToDefaultString(content.LotInfo.Rows[0][i].ToString().Trim()));
                 if (i != content.LotInfo.Columns.Count - 1)
                 {
                     columns += ",";
@@ -205,7 +211,7 @@ namespace DCT_data_import
             }
             try
             {
-                response2 = ExecuteInsert(DatabaseService, "lots_info", columns, values);
+                response2 = ExecuteInsert(DatabaseService, "lots_info", columns, values, lotsInfoParameters);
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + response2.Error);
@@ -304,17 +310,19 @@ namespace DCT_data_import
             try
             {
                 values = string.Empty;
+                var lotsStatisticParameters = new DynamicParameters();
+                int lotsStatisticParameterIndex = 0;
                 for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
-                    values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
-                    values += "\"" + string.Join("\",\"", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))) + "\"";
+                    values += "(" + AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId)) + ",";
+                    values += AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString())));
                     // 每cut_size個row就匯入一次
                     if (i != 0 && i % cut_size == 0)
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
+                        response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values, lotsStatisticParameters);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -322,6 +330,8 @@ namespace DCT_data_import
                             return false;
                         }
                         values = string.Empty;
+                        lotsStatisticParameters = new DynamicParameters();
+                        lotsStatisticParameterIndex = 0;
                     }
                     else if (i != content.LotStatistic.Tables.Count - 1)
                     {
@@ -335,7 +345,7 @@ namespace DCT_data_import
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values, lotsStatisticParameters);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -376,13 +386,14 @@ namespace DCT_data_import
             try
             {
                 values = string.Empty;
+                var lotsResultParameters = new DynamicParameters();
+                int lotsResultParameterIndex = 0;
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
                 {
                     //// 判斷 index=1 的Serial是否為空，若為空則跳過
                     if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
                     {
-                        values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
-                        //values += "(\"" + lotId + "\",";
+                        values += "(" + AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(lotId)) + ",";
                         for (int j = 0; j < content.LotResult.Columns.Count; j++)
                         {
                             if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
@@ -399,7 +410,7 @@ namespace DCT_data_import
                                 DateTime out_dateTime;
                                 if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
                                 {
-                                    values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
+                                    values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
                                 }
                                 else
                                 {
@@ -408,7 +419,7 @@ namespace DCT_data_import
                             }
                             else
                             {
-                                values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
+                                values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
                             }
                             if (j != content.LotResult.Columns.Count - 1)
                             {
@@ -420,13 +431,15 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
+                            response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values, lotsResultParameters);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
                                 return false;
                             }
                             values = string.Empty;
+                            lotsResultParameters = new DynamicParameters();
+                            lotsResultParameterIndex = 0;
                         }
                         else if (i != content.LotResult.Rows.Count - 1)
                         {
@@ -447,7 +460,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values, lotsResultParameters);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_result' response error:" + response2.Error);
@@ -474,6 +487,8 @@ namespace DCT_data_import
             #region insert raw data 的 info 表格
             if (!MultiSiteRawDataLotInfoIsImported)
             {
+                var lotsInfoParameters = new DynamicParameters();
+                int lotsInfoParameterIndex = 0;
                 for (int i = 0; i < content.LotInfo.Columns.Count; i++)
                 {
                     string column_name = content.LotInfo.Columns[i].ColumnName.ToLower();
@@ -493,8 +508,7 @@ namespace DCT_data_import
                         content.LotInfo.Rows[0][i] = CustomizeDateTimeParser(content.LotInfo.Rows[0][i].ToString());
                     }
                     columns += "`" + column_name.Trim() + "`";
-                    values += "\"" + ConvertEmptyToDefaultString(content.LotInfo.Rows[0][i].ToString().Trim()) + "\"";
-                    //values += "\"" + content.lotInfo.Rows[0][i].ToString().Trim() + "\"";
+                    values += AddInsertParameter(lotsInfoParameters, ref lotsInfoParameterIndex, "lots_info", ConvertEmptyToDefaultString(content.LotInfo.Rows[0][i].ToString().Trim()));
                     if (i != content.LotInfo.Columns.Count - 1)
                     {
                         columns += ",";
@@ -503,7 +517,7 @@ namespace DCT_data_import
                 }
                 try
                 {
-                    response2 = ExecuteInsert(DatabaseService, "lots_info", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_info", columns, values, lotsInfoParameters);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + response2.Error);
@@ -606,18 +620,20 @@ namespace DCT_data_import
             try
             {
                 values = string.Empty;
+                var lotsStatisticParameters = new DynamicParameters();
+                int lotsStatisticParameterIndex = 0;
                 for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
-                    values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
-                    values += "\"" + ConvertEmptyToDefaultString(siteId.ToString()) + "\",";
-                    values += "\"" + string.Join("\",\"", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))) + "\"";
+                    values += "(" + AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId)) + ",";
+                    values += AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(siteId.ToString())) + ",";
+                    values += AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString())));
                     // 每cut_size個row就匯入一次
                     if (i != 0 && i % cut_size == 0)
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
+                        response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values, lotsStatisticParameters);
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -625,6 +641,8 @@ namespace DCT_data_import
                             return false;
                         }
                         values = string.Empty;
+                        lotsStatisticParameters = new DynamicParameters();
+                        lotsStatisticParameterIndex = 0;
                     }
                     else if (i != content.LotStatistic.Tables.Count - 1)
                     {
@@ -638,7 +656,7 @@ namespace DCT_data_import
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values, lotsStatisticParameters);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
@@ -679,13 +697,14 @@ namespace DCT_data_import
             try
             {
                 values = string.Empty;
+                var lotsResultParameters = new DynamicParameters();
+                int lotsResultParameterIndex = 0;
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
                 {
                     //// 判斷 index=1 的Serial是否為空，若為空則跳過
                     if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
                     {
-                        values += "(\"" + ConvertEmptyToDefaultString(lotId) + "\",";
-                        //values += "(\"" + lotId + "\",";
+                        values += "(" + AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(lotId)) + ",";
                         for (int j = 0; j < content.LotResult.Columns.Count; j++)
                         {
                             if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
@@ -702,7 +721,7 @@ namespace DCT_data_import
                                 DateTime out_dateTime;
                                 if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
                                 {
-                                    values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
+                                    values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
                                 }
                                 else
                                 {
@@ -711,7 +730,7 @@ namespace DCT_data_import
                             }
                             else
                             {
-                                values += "\"" + ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()) + "\"";
+                                values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
                             }
                             if (j != content.LotResult.Columns.Count - 1)
                             {
@@ -723,13 +742,15 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
+                            response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values, lotsResultParameters);
                             if (!string.IsNullOrEmpty(response2.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
                                 return false;
                             }
                             values = string.Empty;
+                            lotsResultParameters = new DynamicParameters();
+                            lotsResultParameterIndex = 0;
                         }
                         else if (i != content.LotResult.Rows.Count - 1)
                         {
@@ -750,7 +771,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(0, values.Length - 1);
                     }
-                    response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values);
+                    response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values, lotsResultParameters);
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_result' response error:" + response2.Error);
@@ -774,6 +795,8 @@ namespace DCT_data_import
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             #region insert `tester_device_info`
+            var testerDeviceInfoParameters = new DynamicParameters();
+            int testerDeviceInfoParameterIndex = 0;
             for (int i = 0; i < content.Tester_device_info.Columns.Count; i++)
             {
                 string column_name = content.Tester_device_info.Columns[i].ColumnName.ToLower();
@@ -793,14 +816,14 @@ namespace DCT_data_import
                     // 路徑的(\) 要處理成 (\\)
                     if (column_name == "program_path")
                     {
-                        values += "\"" + ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()).Replace(@"\", @"\\") + "\"";
+                        values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()).Replace(@"\", @"\\"));
                     }
                     else if (column_name == "start_time" || column_name == "end_time")
                     {
                         DateTime datetime = new DateTime();
                         if (DateTime.TryParse(content.Tester_device_info.Rows[0][i].ToString().Trim(), out datetime))
                         {
-                            values += "\"" + datetime.ToString("yyyy-MM-dd HH:mm:ss") + "\"";
+                            values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", datetime.ToString("yyyy-MM-dd HH:mm:ss"));
                         }
                         else
                         {
@@ -809,7 +832,7 @@ namespace DCT_data_import
                     }
                     else
                     {
-                        values += "\"" + ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()) + "\"";
+                        values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()));
                     }
                 }
                 columns += "`" + column_name.Trim() + "`";
@@ -821,7 +844,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsert(DatabaseService, "tester_device_info", columns, values);
+                response = ExecuteInsert(DatabaseService, "tester_device_info", columns, values, testerDeviceInfoParameters);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO tester_device_info' error:" + response.Error);
@@ -869,8 +892,9 @@ namespace DCT_data_import
                 {
                     // 只存一行資料，超過就不存
                     if (i > 0) break;
-                    values = "\"" + ConvertEmptyToDefaultString(device_info_Id) + "\",";
-                    //values = "\"" + device_info_Id + "\",";
+                    var testerStatusParameters = new DynamicParameters();
+                    int testerStatusParameterIndex = 0;
+                    values = AddInsertParameter(testerStatusParameters, ref testerStatusParameterIndex, "tester_status", ConvertEmptyToDefaultString(device_info_Id)) + ",";
                     for (int j = 0; j < content.Tester_status.Columns.Count; j++)
                     {
                         string columnName = content.Tester_status.Columns[j].ColumnName;
@@ -881,14 +905,14 @@ namespace DCT_data_import
                         }
                         else
                         {
-                            values += "\"" + ConvertEmptyToDefaultString(content.Tester_status.Rows[i][j].ToString()) + "\"";
+                            values += AddInsertParameter(testerStatusParameters, ref testerStatusParameterIndex, "tester_status", ConvertEmptyToDefaultString(content.Tester_status.Rows[i][j].ToString()));
                         }
                         if (j != content.Tester_status.Columns.Count - 1)
                         {
                             values += ",";
                         }
                     }
-                    response = ExecuteInsert(DatabaseService, "tester_status", columns, values);
+                    response = ExecuteInsert(DatabaseService, "tester_status", columns, values, testerStatusParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_status' error:" + response.Error);
@@ -926,17 +950,19 @@ namespace DCT_data_import
             {
                 for (int i = 0; i < content.Tester_sw_version.Rows.Count; i++)
                 {
-                    values = "\"" + ConvertEmptyToDefaultString(device_info_Id) + "\",";
+                    var testerSwVersionParameters = new DynamicParameters();
+                    int testerSwVersionParameterIndex = 0;
+                    values = AddInsertParameter(testerSwVersionParameters, ref testerSwVersionParameterIndex, "tester_sw_version", ConvertEmptyToDefaultString(device_info_Id)) + ",";
                     for (int j = 0; j < content.Tester_sw_version.Columns.Count; j++)
                     {
                         string columnName = content.Tester_sw_version.Columns[j].ColumnName;
-                        values += "\"" + ConvertEmptyToDefaultString(content.Tester_sw_version.Rows[i][j].ToString()) + "\"";
+                        values += AddInsertParameter(testerSwVersionParameters, ref testerSwVersionParameterIndex, "tester_sw_version", ConvertEmptyToDefaultString(content.Tester_sw_version.Rows[i][j].ToString()));
                         if (j != content.Tester_sw_version.Columns.Count - 1)
                         {
                             values += ",";
                         }
                     }
-                    response = ExecuteInsert(DatabaseService, "tester_sw_version", columns, values);
+                    response = ExecuteInsert(DatabaseService, "tester_sw_version", columns, values, testerSwVersionParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_sw_version' error:" + response.Error);
@@ -969,7 +995,9 @@ namespace DCT_data_import
             {
                 for (int i = 0; i < content.Tester_production_analysis.Rows.Count; i++)
                 {
-                    values = "\"" + ConvertEmptyToDefaultString(device_info_Id) + "\",";
+                    var testerProductionAnalysisParameters = new DynamicParameters();
+                    int testerProductionAnalysisParameterIndex = 0;
+                    values = AddInsertParameter(testerProductionAnalysisParameters, ref testerProductionAnalysisParameterIndex, "tester_production_analysis", ConvertEmptyToDefaultString(device_info_Id)) + ",";
                     for (int j = 0; j < content.Tester_production_analysis.Columns.Count; j++)
                     {
                         string columnName = content.Tester_production_analysis.Columns[j].ColumnName;
@@ -979,14 +1007,14 @@ namespace DCT_data_import
                         }
                         else
                         {
-                            values += "\"" + ConvertEmptyToDefaultString(content.Tester_production_analysis.Rows[i][j].ToString()) + "\"";
+                            values += AddInsertParameter(testerProductionAnalysisParameters, ref testerProductionAnalysisParameterIndex, "tester_production_analysis", ConvertEmptyToDefaultString(content.Tester_production_analysis.Rows[i][j].ToString()));
                         }
                         if (j != content.Tester_production_analysis.Columns.Count - 1)
                         {
                             values += ",";
                         }
                     }
-                    response = ExecuteInsert(DatabaseService, "tester_production_analysis", columns, values);
+                    response = ExecuteInsert(DatabaseService, "tester_production_analysis", columns, values, testerProductionAnalysisParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_production_analysis' error:" + response.Error);
@@ -1031,6 +1059,8 @@ namespace DCT_data_import
                 os_machine = content.UI_status.Rows[i]["OS_Machine"].ToString().Trim();
                 date = content.UI_status.Rows[i]["Date"].ToString().Trim();
                 values = string.Empty;
+                var uiStatusParameters = new DynamicParameters();
+                int uiStatusParameterIndex = 0;
                 for (int j = 0; j < content.UI_status.Columns.Count; j++)
                 {
                     string[] numTypeColumn = { "auto_learn", "dct_product_file_setting_ui", "dct_login_ui", "os_self_diag_2k", "pattonkan_ui", "dct_i_v_curve_tool", "os_tester_100ma_vi", "os_tester_2a_vi", "os_tester_lcr_meter", "wire_assignment_tool", "bga_highlight_tool", "simplificationui", "os_scan_tool", "dct_uploadtp_ui", "dct_autodownloadtp", "dct_sw_control_tool", "dct_downloadtp_kh" };
@@ -1045,7 +1075,7 @@ namespace DCT_data_import
                     }
                     else
                     {
-                        values += "\"" + ConvertEmptyToDefaultString(content.UI_status.Rows[i][j].ToString()) + "\"";
+                        values += AddInsertParameter(uiStatusParameters, ref uiStatusParameterIndex, "ui_status", ConvertEmptyToDefaultString(content.UI_status.Rows[i][j].ToString()));
                     }
                     if (j != content.UI_status.Columns.Count - 1)
                     {
@@ -1054,7 +1084,7 @@ namespace DCT_data_import
                 }
                 try
                 {
-                    response = ExecuteInsert(DatabaseService, "ui_status", columns, values);
+                    response = ExecuteInsert(DatabaseService, "ui_status", columns, values, uiStatusParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO ui_status' error:" + response.Error);
@@ -1079,6 +1109,8 @@ namespace DCT_data_import
             string columns = string.Empty, values = string.Empty;
             Execute_query_response response;
             #region insert `fail_pin_rate_info`
+            var failPinRateInfoParameters = new DynamicParameters();
+            int failPinRateInfoParameterIndex = 0;
             for (int i = 0; i < content.Fail_pin_rate_info.Columns.Count; i++)
             {
                 string column_name = content.Fail_pin_rate_info.Columns[i].ColumnName.ToLower();
@@ -1088,7 +1120,7 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(content.Fail_pin_rate_info.Rows[0][i].ToString().Trim()))
                 {
                     columns += "`" + column_name.Trim() + "`";
-                    values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_info.Rows[0][i].ToString()) + "\"";
+                    values += AddInsertParameter(failPinRateInfoParameters, ref failPinRateInfoParameterIndex, "fail_pin_rate_info", ConvertEmptyToDefaultString(content.Fail_pin_rate_info.Rows[0][i].ToString()));
                 }
                 else
                 {
@@ -1103,7 +1135,7 @@ namespace DCT_data_import
             }
             try
             {
-                response = ExecuteInsert(DatabaseService, "fail_pin_rate_info", columns, values);
+                response = ExecuteInsert(DatabaseService, "fail_pin_rate_info", columns, values, failPinRateInfoParameters);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_info' error:" + response.Error);
@@ -1136,7 +1168,9 @@ namespace DCT_data_import
             {
                 for (int i = 0; i < content.Fail_pin_rate_list.Rows.Count; i++)
                 {
-                    values = "\"" + ConvertEmptyToDefaultString(fail_pin_rate_info_Id) + "\",";
+                    var failPinRateListParameters = new DynamicParameters();
+                    int failPinRateListParameterIndex = 0;
+                    values = AddInsertParameter(failPinRateListParameters, ref failPinRateListParameterIndex, "fail_pin_rate_list", ConvertEmptyToDefaultString(fail_pin_rate_info_Id)) + ",";
                     for (int j = 0; j < content.Fail_pin_rate_list.Columns.Count; j++)
                     {
                         string columnName = content.Fail_pin_rate_list.Columns[j].ColumnName;
@@ -1147,14 +1181,14 @@ namespace DCT_data_import
                         }
                         else
                         {
-                            values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_list.Rows[i][j].ToString()) + "\"";
+                            values += AddInsertParameter(failPinRateListParameters, ref failPinRateListParameterIndex, "fail_pin_rate_list", ConvertEmptyToDefaultString(content.Fail_pin_rate_list.Rows[i][j].ToString()));
                         }
                         if (j != content.Fail_pin_rate_list.Columns.Count - 1)
                         {
                             values += ",";
                         }
                     }
-                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_list", columns, values);
+                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_list", columns, values, failPinRateListParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list' error:" + response.Error);
@@ -1189,6 +1223,8 @@ namespace DCT_data_import
             try
             {
                 values = string.Empty;
+                var failPinRatePinBallParameters = new DynamicParameters();
+                int failPinRatePinBallParameterIndex = 0;
                 for (int i = 0; i < content.Fail_pin_rate_list_pin_ball.Rows.Count; i++)
                 {
                     values += "(";
@@ -1197,12 +1233,12 @@ namespace DCT_data_import
                         string columnName = content.Fail_pin_rate_list_pin_ball.Columns[j].ColumnName;
                         if (columnName != "fail_pin_rate_list_id")
                         {
-                            values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString()) + "\"";
+                            values += AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString()));
                         }
                         else
                         {
                             string val = ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString());
-                            values += "\"" + fail_pin_rate_list_Id[int.Parse(val) - 1].ToString() + "\"";
+                            values += AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", fail_pin_rate_list_Id[int.Parse(val) - 1].ToString());
                         }
                         if (j != content.Fail_pin_rate_list_pin_ball.Columns.Count - 1)
                         {
@@ -1214,7 +1250,7 @@ namespace DCT_data_import
                     {
                         values += ")";
                         values = values.Substring(1, values.Length - 2);
-                        response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
+                        response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values, failPinRatePinBallParameters);
                         if (!string.IsNullOrEmpty(response.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
@@ -1222,6 +1258,8 @@ namespace DCT_data_import
                             return false;
                         }
                         values = string.Empty;
+                        failPinRatePinBallParameters = new DynamicParameters();
+                        failPinRatePinBallParameterIndex = 0;
                     }
                     else if (i != content.Fail_pin_rate_list_pin_ball.Rows.Count - 1)
                     {
@@ -1235,7 +1273,7 @@ namespace DCT_data_import
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
-                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values);
+                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values, failPinRatePinBallParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
@@ -1258,11 +1296,13 @@ namespace DCT_data_import
             try
             {
                 values = string.Empty;
+                var failPinRateTestResultParameters = new DynamicParameters();
+                int failPinRateTestResultParameterIndex = 0;
                 for (int table_i = 0; table_i < content.Fail_pin_rate_list_test_result.Tables.Count; table_i++)
                 {
                     for (int i = 0; i < content.Fail_pin_rate_list_test_result.Tables[table_i].Rows.Count; i++)
                     {
-                        values += "(\"" + ConvertEmptyToDefaultString(fail_pin_rate_list_Id[table_i].ToString()) + "\",";
+                        values += "(" + AddInsertParameter(failPinRateTestResultParameters, ref failPinRateTestResultParameterIndex, "fail_pin_rate_test_result", ConvertEmptyToDefaultString(fail_pin_rate_list_Id[table_i].ToString())) + ",";
                         for (int j = 0; j < content.Fail_pin_rate_list_test_result.Tables[table_i].Columns.Count; j++)
                         {
                             if (j > 0 && string.IsNullOrEmpty(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()))
@@ -1271,7 +1311,7 @@ namespace DCT_data_import
                             }
                             else
                             {
-                                values += "\"" + ConvertEmptyToDefaultString(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()) + "\"";
+                                values += AddInsertParameter(failPinRateTestResultParameters, ref failPinRateTestResultParameterIndex, "fail_pin_rate_test_result", ConvertEmptyToDefaultString(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()));
                             }
                             if (j != content.Fail_pin_rate_list_test_result.Tables[table_i].Columns.Count - 1)
                             {
@@ -1283,7 +1323,7 @@ namespace DCT_data_import
                         {
                             values += ")";
                             values = values.Substring(1, values.Length - 2);
-                            response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values);
+                            response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values, failPinRateTestResultParameters);
                             if (!string.IsNullOrEmpty(response.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
@@ -1291,6 +1331,8 @@ namespace DCT_data_import
                                 return false;
                             }
                             values = string.Empty;
+                            failPinRateTestResultParameters = new DynamicParameters();
+                            failPinRateTestResultParameterIndex = 0;
                         }
                         else if (table_i != content.Fail_pin_rate_list_test_result.Tables.Count - 1)
                         {
@@ -1312,7 +1354,7 @@ namespace DCT_data_import
                     {
                         values = values.Substring(1, values.Length - 2);
                     }
-                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values);
+                    response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values, failPinRateTestResultParameters);
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
@@ -1394,6 +1436,24 @@ namespace DCT_data_import
                 Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");",
                 Parameters = parameters
             };
+        }
+
+        internal static string AddInsertParameter(DynamicParameters parameters, ref int parameterIndex, string prefix, string value)
+        {
+            string parameterName = prefix + "_" + parameterIndex.ToString(CultureInfo.InvariantCulture);
+            parameterIndex++;
+            parameters.Add(parameterName, value);
+            return "@" + parameterName;
+        }
+
+        internal static string AddInsertParameters(DynamicParameters parameters, ref int parameterIndex, string prefix, IEnumerable<string> values)
+        {
+            var placeholders = new List<string>();
+            foreach (string value in values)
+            {
+                placeholders.Add(AddInsertParameter(parameters, ref parameterIndex, prefix, value));
+            }
+            return string.Join(",", placeholders);
         }
 
         private static void ValidateSqlIdentifier(string value, string paramName)
