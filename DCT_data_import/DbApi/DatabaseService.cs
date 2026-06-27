@@ -44,7 +44,7 @@ namespace DCT_data_import
                 {
                     var DB = new DBmysql();
                     DB.Connect(server, port, user, password, database);
-                    return DB.Excute_mysql_cmd(Execute_query.Query, mode);
+                    return DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters);
                 }).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -97,15 +97,13 @@ namespace DCT_data_import
             try
             {
                 // 檢查資料庫
-                var dbQuery = $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{Program.DATABASE}'";
-                var dbResult = ExecuteSqlAsync(new Execute_query { Query = dbQuery }, "select").GetAwaiter().GetResult();
+                var dbResult = ExecuteSqlAsync(BuildDatabaseExistsQuery(Program.DATABASE), "select").GetAwaiter().GetResult();
 
                 if (!string.IsNullOrEmpty(dbResult.Error) || dbResult.Data == null || dbResult.Data.Count == 0)
                     return false;
 
                 // 檢查資料表
-                var tableQuery = $"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{Program.DATABASE}' AND TABLE_NAME = '{tableName}'";
-                var tableResult = ExecuteSqlAsync(new Execute_query { Query = tableQuery }, "select").GetAwaiter().GetResult();
+                var tableResult = ExecuteSqlAsync(BuildTableExistsQuery(Program.DATABASE, tableName), "select").GetAwaiter().GetResult();
 
                 return string.IsNullOrEmpty(tableResult.Error) && tableResult.Data != null && tableResult.Data.Count > 0;
             }
@@ -116,6 +114,24 @@ namespace DCT_data_import
                 Console.WriteLine($"[DatabaseService] 檢查資料庫/資料表存在性失敗: {ex.Message}");
                 return false;
             }
+        }
+
+        internal static Execute_query BuildDatabaseExistsQuery(string databaseName)
+        {
+            return new Execute_query
+            {
+                Query = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = @databaseName",
+                Parameters = new { databaseName }
+            };
+        }
+
+        internal static Execute_query BuildTableExistsQuery(string databaseName, string tableName)
+        {
+            return new Execute_query
+            {
+                Query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = @databaseName AND TABLE_NAME = @tableName",
+                Parameters = new { databaseName, tableName }
+            };
         }
 
         /// <summary>

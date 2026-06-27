@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
+using Dapper;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
@@ -102,7 +103,7 @@ namespace DCT_data_import.ReadAndImport
                             charIdx += iedaDataFormat.titleColumnsDataSize[j];
                         }
                         // 取得ase_lot
-                        DataRow[] mappingDtRows = _lotMappingDt.Select("tsmc_lot='" + dr["lot_id"].ToString() + "'");
+                        DataRow[] mappingDtRows = _lotMappingDt.Select("tsmc_lot='" + EscapeDataTableFilterValue(dr["lot_id"].ToString()) + "'");
                         if (mappingDtRows.Length > 0)
                         {
                             dr["ase_lot"] = mappingDtRows[0]["ase_lot"];
@@ -172,7 +173,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 // 取得 CSV 檔名
-                DataRow[] mappingDtRows = _lotMappingDt.Select("ase_lot='" + aseLot + "'");
+                DataRow[] mappingDtRows = _lotMappingDt.Select("ase_lot='" + EscapeDataTableFilterValue(aseLot) + "'");
                 if (mappingDtRows.Length > 0)
                 {
                     filename = mappingDtRows[0]["csv"].ToString();  //mappingDtRows[2] 是 "csv" 欄位值
@@ -260,25 +261,13 @@ namespace DCT_data_import.ReadAndImport
         public bool ImportIeda(IedaDataFormat content, DatabaseService DatabaseService)
         {
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
-            // assign 需要 insert 的 欄位名稱 與 values
-            string columns = string.Empty, values = string.Empty;
             Execute_query_response response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
             #region insert ieda 的 title 表格
             try
             {
-                for (int i = 0; i < content.IedaTitle.Columns.Count; i++)
-                {
-                    columns += "`" + content.IedaTitle.Columns[i].ColumnName.Trim() + "`";
-                    values += "'" + fileProcess.ConvertEmptyToDefaultString(content.IedaTitle.Rows[0][i].ToString()) + "'";
-                    if (i != content.IedaTitle.Columns.Count - 1)
-                    {
-                        columns += ",";
-                        values += ",";
-                    }
-                }
-                response2 = fileProcess.ExecuteInsert(DatabaseService, "ieda_title", columns, values);
+                response2 = fileProcess.ExecuteInsert(DatabaseService, "ieda_title", BuildIedaTitleInsertQuery(content.IedaTitle, fileProcess));
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO ieda_title' error:" + response2.Error);
@@ -307,35 +296,7 @@ namespace DCT_data_import.ReadAndImport
             #region insert ieda 的 content 表格
             try
             {
-                columns = string.Empty;
-                for (int i = 0; i < content.IedaContent.Columns.Count; i++)
-                {
-                    columns += "`" + content.IedaContent.Columns[i].ColumnName.Trim() + "`";
-                    values += "'" + fileProcess.ConvertEmptyToDefaultString(content.IedaContent.Rows[0][i].ToString()) + "'";
-                    if (i != content.IedaContent.Columns.Count - 1)
-                    {
-                        columns += ",";
-                    }
-                }
-                values = string.Empty;
-                for (int i = 0; i < content.IedaContent.Rows.Count; i++)
-                {
-                    values += "('" + fileProcess.ConvertEmptyToDefaultString(titleId) + "',";
-                    for (int j = 1; j < content.IedaContent.Columns.Count; j++)
-                    {
-                        values += "'" + fileProcess.ConvertEmptyToDefaultString(content.IedaContent.Rows[i][j].ToString()) + "'";
-                        if (j != content.IedaContent.Columns.Count - 1)
-                        {
-                            values += ",";
-                        }
-                    }
-                    if (i != content.IedaContent.Rows.Count - 1)
-                    {
-                        values += "),";
-                    }
-                }
-                values = values.Substring(1, values.Length - 1);
-                response2 = fileProcess.ExecuteInsert(DatabaseService, "ieda_content", columns, values);
+                response2 = fileProcess.ExecuteInsert(DatabaseService, "ieda_content", BuildIedaContentInsertQuery(content.IedaContent, titleId, fileProcess));
                 if (!string.IsNullOrEmpty(response2.Error))
                 {
                     writeToLog.WriteErrorLog("'INSERT INTO ieda_content' error:" + response2.Error);
@@ -349,6 +310,68 @@ namespace DCT_data_import.ReadAndImport
             }
             #endregion
             return true;
+        }
+
+        internal static string EscapeDataTableFilterValue(string value)
+        {
+            return (value ?? string.Empty).Replace("'", "''");
+        }
+
+        internal static Execute_query BuildIedaTitleInsertQuery(DataTable titleTable, FileProcess fileProcess)
+        {
+            string columns = string.Empty;
+            string values = string.Empty;
+            var parameters = new DynamicParameters();
+            for (int i = 0; i < titleTable.Columns.Count; i++)
+            {
+                columns += "`" + titleTable.Columns[i].ColumnName.Trim() + "`";
+                values += "@title_" + i;
+                parameters.Add("title_" + i, fileProcess.ConvertEmptyToDefaultString(titleTable.Rows[0][i].ToString()));
+                if (i != titleTable.Columns.Count - 1)
+                {
+                    columns += ",";
+                    values += ",";
+                }
+            }
+
+            return FileProcess.BuildInsertQuery("ieda_title", columns, values, parameters);
+        }
+
+        internal static Execute_query BuildIedaContentInsertQuery(DataTable contentTable, string titleId, FileProcess fileProcess)
+        {
+            string columns = string.Empty;
+            for (int i = 0; i < contentTable.Columns.Count; i++)
+            {
+                columns += "`" + contentTable.Columns[i].ColumnName.Trim() + "`";
+                if (i != contentTable.Columns.Count - 1)
+                {
+                    columns += ",";
+                }
+            }
+
+            string values = string.Empty;
+            var parameters = new DynamicParameters();
+            for (int i = 0; i < contentTable.Rows.Count; i++)
+            {
+                values += "(@content_" + i + "_0,";
+                parameters.Add("content_" + i + "_0", fileProcess.ConvertEmptyToDefaultString(titleId));
+                for (int j = 1; j < contentTable.Columns.Count; j++)
+                {
+                    values += "@content_" + i + "_" + j;
+                    parameters.Add("content_" + i + "_" + j, fileProcess.ConvertEmptyToDefaultString(contentTable.Rows[i][j].ToString()));
+                    if (j != contentTable.Columns.Count - 1)
+                    {
+                        values += ",";
+                    }
+                }
+                if (i != contentTable.Rows.Count - 1)
+                {
+                    values += "),";
+                }
+            }
+            values = values.Substring(1, values.Length - 1);
+
+            return FileProcess.BuildInsertQuery("ieda_content", columns, values, parameters);
         }
     }
 }

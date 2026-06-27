@@ -28,10 +28,7 @@ namespace DCT_data_import
             }
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            var execute_query = new Execute_query
-            {
-                Query = "SELECT db_key FROM " + db_table_name + " where db_key='" + db_key + "';"
-            };
+            var execute_query = BuildDbKeyExistsQuery(db_table_name, db_key);
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query).GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1334,24 +1331,35 @@ namespace DCT_data_import
             #endregion
             return true;
         }
-        public Execute_query_response ExecuteInsert(DatabaseService DatabaseService, string tableName, string columns, string values)
+        public Execute_query_response ExecuteInsert(DatabaseService DatabaseService, string tableName, string columns, string values, object parameters = null)
         {
             try
             {
+                return ExecuteInsert(DatabaseService, tableName, BuildInsertQuery(tableName, columns, values, parameters));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                writeToLog.WriteErrorLog($"INSERT {tableName} error : {ex.Message}");
+                return new Execute_query_response { Error = ex.Message };
+            }
+        }
+
+        internal Execute_query_response ExecuteInsert(DatabaseService DatabaseService, string tableName, Execute_query execute_query)
+        {
+            try
+            {
+                ValidateSqlIdentifier(tableName, nameof(tableName));
                 // 檢查資料庫和資料表是否存在
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
-                Execute_query execute_query = new Execute_query
-                {
-                    Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"
-                };
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "insert").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"SQL Operation: INSERT {tableName}");
                     writeToLog.WriteErrorLog($"Error: {response.Error}");
                     writeToLog.WriteErrorLog($"INSERT {tableName} error");
                 }
@@ -1362,6 +1370,56 @@ namespace DCT_data_import
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog($"INSERT {tableName} error : {ex.Message}");
                 return new Execute_query_response { Error = ex.Message };
+            }
+        }
+
+        internal static Execute_query BuildDbKeyExistsQuery(string tableName, string dbKey)
+        {
+            ValidateSqlIdentifier(tableName, nameof(tableName));
+
+            return new Execute_query
+            {
+                Query = "SELECT db_key FROM " + tableName + " where db_key=@dbKey;",
+                Parameters = new { dbKey }
+            };
+        }
+
+        internal static Execute_query BuildInsertQuery(string tableName, string columns, string values, object parameters = null)
+        {
+            ValidateSqlIdentifier(tableName, nameof(tableName));
+            ValidateColumnList(columns, nameof(columns));
+
+            return new Execute_query
+            {
+                Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");",
+                Parameters = parameters
+            };
+        }
+
+        private static void ValidateSqlIdentifier(string value, string paramName)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Any(c => !(char.IsLetterOrDigit(c) || c == '_')))
+            {
+                throw new ArgumentException("Unsafe SQL identifier", paramName);
+            }
+        }
+
+        private static void ValidateColumnList(string columns, string paramName)
+        {
+            if (string.IsNullOrWhiteSpace(columns))
+            {
+                throw new ArgumentException("Unsafe SQL columns", paramName);
+            }
+
+            foreach (string part in columns.Split(','))
+            {
+                string column = part.Trim();
+                if (column.Length < 3 || column[0] != '`' || column[column.Length - 1] != '`' ||
+                    column.IndexOf('`', 1, column.Length - 2) >= 0 ||
+                    column.Contains(";") || column.Contains("--") || column.Contains("/*"))
+                {
+                    throw new ArgumentException("Unsafe SQL columns", paramName);
+                }
             }
         }
         private Execute_query_response DeleteRawData(DatabaseService DatabaseService, string lot_id)

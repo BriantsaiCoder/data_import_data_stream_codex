@@ -2,7 +2,7 @@
 
 > 本檔把 S2 的注入面盤點 + 致能改動 + 測試紀律 + 範圍分期一次釘死，給接手 S2 的新 session/codex 用，**避免重跑證據蒐集**。
 > 權威背景：[CONCERNS.md S2](../codebase/CONCERNS.md)、[REMAINING-WORK.md Stream C](REMAINING-WORK.md)、根 `CLAUDE.md` 關鍵約束 #4。
-> 狀態：**規劃完成、待用戶確認範圍分期後才動 code**（HIGH severity + 高扇入，不自走 user-confirmation gate）。
+> 狀態：**A/PR-1 已完成**（DbAccess 4 值站 + TsmcIeda 值站/DataTable.Select + identifier chokepoint）；**A/PR-2 待做**（FileProcess 批次 INSERT 值參數化）。
 
 ## 1. 致能改動（兩案共用；已驗證乾淨）
 
@@ -22,22 +22,22 @@
 
 | 站點 | SQL | 外部可注入值 |
 |---|---|---|
-| `DbAccess.cs:186` | `SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "'` | `dbKey` |
-| `DbAccess.cs:230-233` | `UPDATE db_key SET …,remark='" + remark + "' WHERE db_key='" + dbKey + "'` | `remark`、`dbKey`（其餘 recovery_rate/tester/test_result/fail_pin/import_status/mail 為內部數值碼） |
-| `DbAccess.cs:270` | `SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "'` | `dbKey` |
-| `DbAccess.cs:315-318` | `UPDATE db_key_ui_status SET …,remark='" + remark + "' WHERE db_key='" + dbKey + "'` | `remark`、`dbKey` |
-| `FileProcess.cs:33` | `SELECT … FROM {表名} WHERE db_key=…` | db_key 值（表名見 2b） |
+| `DbAccess.cs:186` | `SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "'` | `dbKey`（✅ A/PR-1 已改 `@dbKey`） |
+| `DbAccess.cs:230-233` | `UPDATE db_key SET …,remark='" + remark + "' WHERE db_key='" + dbKey + "'` | `remark`、`dbKey`（✅ A/PR-1 已改 `@remark` / `@dbKey`；其餘狀態值也一併參數化） |
+| `DbAccess.cs:270` | `SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "'` | `dbKey`（✅ A/PR-1 已改 `@dbKey`） |
+| `DbAccess.cs:315-318` | `UPDATE db_key_ui_status SET …,remark='" + remark + "' WHERE db_key='" + dbKey + "'` | `remark`、`dbKey`（✅ A/PR-1 已改 `@remark` / `@dbKey`） |
+| `FileProcess.cs:33` | `SELECT … FROM {表名} WHERE db_key=…` | db_key 值（✅ A/PR-1 已改 `@dbKey`；表名見 2b） |
 | `FileProcess.cs` 批次 INSERT 迴圈：`112-147`、`201-207`、`313`、`387-420`、`615-617`、`690-718` | CSV 欄位值 `values += "'"+v+"',"` 累加多列 `VALUES (…),(…)` | CSV 全欄位 — **複雜度集中於此（高扇入 ~1500 行檔）** |
-| `FileProcess.cs:1349` `ExecuteInsert` | `"INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"` | `values`（所有批次 INSERT 匯流經此；`tableName`/`columns` 識別碼見 2b） |
-| `TsmcIeda.cs:274/314/323/326` | INSERT 帶 IedaTitle/IedaContent 檔案資料 | IEDA 檔內容 |
+| `FileProcess.cs:1349` `ExecuteInsert` | `"INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");"` | `values`（A/PR-1 已打通 optional `Parameters` 給 TsmcIeda 使用；FileProcess 批次 values 仍待 A/PR-2） |
+| `TsmcIeda.cs:274/314/323/326` | INSERT 帶 IedaTitle/IedaContent 檔案資料 | IEDA 檔內容（✅ A/PR-1 已改 DynamicParameters） |
 
 ### 2b. 識別碼注入 → 白名單/驗證（**MySQL 無法用 `@param` 參數化表/欄名**）
 
 | 站點 | 注入點 |
 |---|---|
-| `FileProcess.cs:33` | SELECT 的表名 |
-| `FileProcess.cs:1349` | `ExecuteInsert` 的 `tableName` + `columns` |
-| `DatabaseService.cs:107` | `CheckDatabaseAndTableExists` 的 `tableName` |
+| `FileProcess.cs:33` | SELECT 的表名（✅ A/PR-1 已加 tableName identifier guard） |
+| `FileProcess.cs:1349` | `ExecuteInsert` 的 `tableName` + `columns`（✅ A/PR-1 已加 chokepoint validation；columns 允許現有 schema 的 backtick 欄名） |
+| `DatabaseService.cs:107` | `CheckDatabaseAndTableExists` 的 `tableName`（✅ A/PR-1 已改為 Dapper value parameter） |
 
 > 處理：對已知 schema 表/欄名做白名單比對或字元驗證（如只允許 `[A-Za-z0-9_]`），**不可** `@param`。多數 tableName 為內部衍生，真實風險低於值站，但仍需守。
 
@@ -45,8 +45,8 @@
 
 | 站點 | 篩選 |
 |---|---|
-| `TsmcIeda.cs:105` | `_lotMappingDt.Select("tsmc_lot='" + dr["lot_id"] + "'")`（lot_id 來自 IEDA 檔） |
-| `TsmcIeda.cs:175` | `…Select("…='" + aseLot + "'")`（aseLot 參數） |
+| `TsmcIeda.cs:105` | `_lotMappingDt.Select("tsmc_lot='" + dr["lot_id"] + "'")`（lot_id 來自 IEDA 檔；✅ A/PR-1 已做單引號跳脫） |
+| `TsmcIeda.cs:175` | `…Select("…='" + aseLot + "'")`（aseLot 參數；✅ A/PR-1 已做單引號跳脫） |
 
 > 處理：對值內的單引號跳脫（DataTable filter 語法用 `''` 跳脫），或改 LINQ-to-DataTable 型別化篩選。真實 injection 風險最低。
 
