@@ -85,11 +85,13 @@ namespace DCT_data_import
                         N++;
                     }
                     avg = sum / N;
-                    if (sum_of_square / N - avg * avg < 0)
+                    decimal variance = sum_of_square / N - avg * avg;
+                    if (variance < 0)
                     {
                         Console.WriteLine("發現根號負值!");
+                        variance = 0;
                     }
-                    stdev = Convert.ToDecimal(Math.Sqrt(Convert.ToDouble(sum_of_square / N - avg * avg)));
+                    stdev = Convert.ToDecimal(Math.Sqrt(Convert.ToDouble(variance)));
                     list_avg_sum_square.Add(sum_of_square / N);
                     list_avg.Add(avg);
                     list_n.Add(N);

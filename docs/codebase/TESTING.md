@@ -13,6 +13,7 @@
   - Import decision / thread supervisor / dry-run / App.config contract.
   - Big5 provider smoke.
   - net8-specialized characterization for special floating-point parse, double formatting, DateTime parsing, and statistic value conversion.
+  - SPC `AverageOfSumSquare` pass/fail filtering, empty-value fallback, and negative-variance guard.
 
 ### 2) Test Organization
 
@@ -36,7 +37,7 @@
   - `dotnet restore ... -p:NuGetAudit=true -p:NuGetAuditMode=all`
   - `dotnet build ... --configuration Release --no-restore`
   - `dotnet test ... --configuration Release --no-build`
-- Latest local A4 verification before this doc refresh: `dotnet test ... -m:1 /p:UseAppHost=false` passed `199` tests on macOS as build/test evidence. Runtime smoke still belongs on Windows.
+- Latest local verification after R1/R2 SPC work: `dotnet test ... -m:1 /p:UseAppHost=false` passed `203` tests on macOS as build/test evidence. Runtime smoke still belongs on Windows.
 
 ### 5) Evidence
 
@@ -51,6 +52,5 @@
 
 1. Parser characterization tests for the remaining CSV readers.
 2. `FileContentFormat.Compare*()` tests.
-3. Additional `CalculateSPC.AverageOfSumSquare` scenarios.
-4. MySQL/FTP integration smoke on a controlled Windows environment.
-5. Coverage tooling only after the high-value seams above are stable.
+3. MySQL/FTP integration smoke on a controlled Windows environment.
+4. Coverage tooling only after the high-value seams above are stable.

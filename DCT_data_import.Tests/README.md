@@ -9,6 +9,7 @@
 | R5 回歸 | `CheckStatusWeightedSumTests` | 必須通過 |
 | 遷移/執行期契約 | Big5 provider、Thread supervisor、App.config、DryRun、ImportDecision | 必須通過 |
 | net8 行為釘樁 | Special float parse、double formatting、DateTime parser、statistic value conversion | 必須通過 |
+| SPC 回歸 | `CalculateSpcTests` | 必須通過 |
 
 目前不使用 `ByDesignRed` 或 `CaptureBaseline` filter；若未來新增 by-design red 測試，需同步更新 CI 與本檔。
 
@@ -31,6 +32,7 @@ importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin
 - `DoubleToStringFormatTests`: net8 shortest round-trippable double formatting。
 - `DateTimeParserCultureTests`: `CustomizeDateTimeParser` 在指定 cultures 下的 net8 結果。
 - `ValidateAndConvertStatisticValueTests`: parse + format 合成點的 CurrentCulture 行為。
+- `CalculateSpcTests`: `AverageOfSumSquare` 的 pass/fail 篩選、無有效值 fallback、負 variance guard。
 
 ## 如何執行
 

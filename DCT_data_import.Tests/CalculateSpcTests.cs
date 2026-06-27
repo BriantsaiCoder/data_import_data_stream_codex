@@ -35,7 +35,7 @@ namespace DCT_data_import.Tests
         [Fact]
         public void AverageOfSumSquare_WhenNoValuesCanBeParsed_ReturnsZeroStatistic()
         {
-            var content = CreateRawDataContent("[abc,,NaN]", failCount: "0");
+            var content = CreateRawDataContent("[abc,not-a-number,text]", failCount: "0");
 
             var result = new CalculateSPC().AverageOfSumSquare(content);
 
@@ -43,6 +43,18 @@ namespace DCT_data_import.Tests
             Assert.Equal(0m, result[0].pass_n);
             Assert.Equal(0m, result[0].avg);
             Assert.Equal(0m, result[0].avg2);
+        }
+
+        [Fact]
+        public void AverageOfSumSquare_WhenDecimalVarianceRoundsSlightlyNegative_KeepsStatistic()
+        {
+            var content = CreateRawDataContent("[1234567.89,1234567.89]", failCount: "0");
+
+            var result = new CalculateSPC().AverageOfSumSquare(content);
+
+            Assert.Single(result);
+            Assert.Equal(2m, result[0].pass_n);
+            Assert.Equal(1234567.89m, result[0].avg);
         }
 
         private static RawDataContentFormat CreateRawDataContent(

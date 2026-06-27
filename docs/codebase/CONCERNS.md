@@ -35,8 +35,8 @@
 
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
-| R1 | Medium | **整合測試仍不足**：已有 `net8.0-windows` xUnit regression/characterization suite，但 importer / FTP / 真 MySQL 寫入仍缺自動化整合測試與 coverage gate | TESTING.md、`DCT_data_import.Tests/` | 續補 parser、`FileContentFormat.Compare*`、`CalculateSPC` 與 controlled DB/FTP smoke |
-| R2 | Medium | **SPC 負號根值無 NaN 防護**：遇 `sum_sq/N - avg² < 0` 只 `Console` 警告「發現根號負值!」，未阻斷 | `Common/CalculateSPC.cs:90` | 加防護/釐清業務預期 |
+| R1 | Medium | **整合測試仍不足**：已有 `net8.0-windows` xUnit regression/characterization suite，但 importer / FTP / 真 MySQL 寫入仍缺自動化整合測試與 coverage gate | TESTING.md、`DCT_data_import.Tests/` | 續補 parser、`FileContentFormat.Compare*` 與 controlled DB/FTP smoke |
+| R2 | ~~Medium~~ ✅已修 | **SPC 負號根值 NaN 防護**：`AverageOfSumSquare` 已把 rounding residue 造成的負 variance clamp 為 0，避免 `Math.Sqrt` 產生 NaN 後整列統計被 catch 掉 | `Common/CalculateSPC.cs`、`CalculateSpcTests.cs` | 維持 regression test；若未來要輸出 stdev，再補 stdev 欄位契約 |
 | R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、hardcoded `C:\temp` log 路徑 | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:29` | 路徑改設定；跨平台需求才重構 INI |
 | R4 | Low | **log 無 rotation/上限**：每日分檔但無大小限制與清理 | `WriteToLog.cs` | 視磁碟壓力決定是否加 |
 | R5 | ~~High~~ **已修復（2026-06-27，`fix/r5-checkstatus`）** | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:211`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:160,179,211`、各 importer `Result` 0/1/2/3、`Program.cs:483`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | **規格決定（用戶 2026-06-27）：分量正規化規則 = `Result == 1 ? 1 : 0`（成功才設位；明確排除 `Math.Min(x,1)`——後者會把失敗碼 2/3 也映成 1、反把失敗當成功）。** 已於純函式 `ComputeImportResult`（`DbAccess.cs:160`）單點套用此正規化，0/1 輸入行為不變、僅修正 ≥2 溢位。`CheckStatusWeightedSumTests` 3 條 `_R5` 測試（含一條判別 `Math.Min` 誤修的 pin）轉綠、移除 `ByDesignRed` trait 重納 CI gate。 |

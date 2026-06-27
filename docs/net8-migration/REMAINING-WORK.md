@@ -99,7 +99,7 @@
 
 > CLAUDE.md：「不主動現代化」。E 類除 R2/R3 屬 correctness/維運外，D2-D5/P1-P3 動前須確認。
 
-- [ ] **R2（MEDIUM）**：SPC 負根號 NaN guard。
+- [x] **R2（MEDIUM）**：SPC 負根號 NaN guard。
 - [ ] **R3（MEDIUM）**：hardcoded `C:\temp` log 路徑 → 可設定（net8 cutover 可能觸發）。
 - [ ] **R4（LOW）**：log rotation（optional）。
 - [ ] **D3（MEDIUM）**：dead code 清理（`Program.cs` TEST CASE 區塊、`DbAccess` 舊邏輯）。
