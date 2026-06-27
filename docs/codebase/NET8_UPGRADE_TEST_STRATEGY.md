@@ -198,7 +198,7 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --filter "Categor
 # 最終驗證同 CI：restore + Release build + filtered test 全綠
 ```
 
-- 不改現有 `[Trait("Category", "ByDesignRed")]` R5 測試；它們仍維持 excluded。
+- R5 測試已於 2026-06-27 修復（`fix/r5-checkstatus`）、移除 `ByDesignRed` trait、重納綠燈門檻；`ByDesignRed` 機制現專供本節新增的 net8 by-design 框架差異測試沿用（標 trait → CI 以 `Category!=ByDesignRed` 排除）。
 - 與 §8 的關係：附錄 B 是**單框架（net462）的紅綠跑法**；§8 是**跨框架 golden-master 比對順序**，net8 段在附錄 B 之上再加「切 net8 → 跑同套 → 比對 → 標 ByDesignRed」。
 
 ---

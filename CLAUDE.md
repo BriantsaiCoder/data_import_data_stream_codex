@@ -27,7 +27,7 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj   # 唯一測試:
 
 1. **絕不把憑證印到 Console / log**。`App.config` 內含明文 DB/FTP 帳密（已在版控,屬已知債 CONCERNS S1），`Program.cs:32-34` 現況會印出 HOST/USER/PASSWORD 明文（S3）— 改動該區時不要擴大洩露，最好遮罩。新增設定一律 key name 進範例、值走外部。
 2. **`ImportResult.Result` 回傳碼語意固定**：`0`=檔案不存在、`1`=成功、`2`=驗證/讀檔失敗、`3`=重複或匯入失敗。各 importer 一致，動其中之一要同步全部理解。
-3. **CheckStatus 加權和是脆弱契約（R5,High）**：`DbAccess.ComputeImportResult` = `8*recoveryRate + 4*tester + 2*testResult + failPin`，假設各分量只回 0/1，但實際回 0/1/2/3 → 任一回 2/3 會溢位污染高位 bit → 誤判失敗+寄信。**已抽純函式 + `DCT_data_import.Tests` 2 條 by-design RED 釘住，修法待規格確認**。碰這塊前先讀 [CONCERNS.md R5](docs/codebase/CONCERNS.md) 與測試 README。
+3. **CheckStatus 加權和（R5,~~High~~ 已修復 2026-06-27）**：`DbAccess.ComputeImportResult` = `8*recoveryRate + 4*tester + 2*testResult + failPin`，原假設各分量只回 0/1、實際回 0/1/2/3 → 任一回 2/3 會溢位污染高位 bit → 誤判失敗+寄信。**已修復**：依用戶規格在 `ComputeImportResult`（`DbAccess.cs:160`）把各分量正規化為 `Result == 1 ? 1 : 0`（成功才設位；**非 `Math.Min(x,1)`**——後者會把失敗碼 2/3 當成功）。3 條 `CheckStatusWeightedSumTests._R5` 回歸樁鎖定此修法（含一條擋 `Math.Min` 誤修）、已重納 CI 綠燈門檻；回退會轉紅擋下。碰這塊前先讀 [CONCERNS.md R5](docs/codebase/CONCERNS.md) 與測試 README。
 4. **SQL 全字串串接、零參數化**（S2）：`FileProcess` / `DbAccess` / `TsmcIeda` 直接把外部值拼進 SQL。沿用既有風格時務必意識到 injection 風險；新寫 SQL 優先參數化（Dapper 已支援具名參數）。
 5. **狀態機在 DB 不在程式**：`db_key` 表的 `check_status`(bitmask) / `import_status` / `mail` 欄位驅動「待處理/已匯入/待寄信」，非程式內狀態。
 

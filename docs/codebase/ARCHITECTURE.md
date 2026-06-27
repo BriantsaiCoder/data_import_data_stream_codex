@@ -73,7 +73,7 @@
 ## Extended Sections (Optional)
 
 - `CheckStatus` bit 語意（已用 `Program.cs` 派工條件交叉驗證，非單純反推）：
-  - Bit0(1)=**FailPin**、Bit1(2)=**RawData/TestResult**、Bit2(4)=**Tester**、Bit3(8)=**RecoveryRate**（公式 `importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin`，`DbAccess.cs:161`；引數順序對應 `Program.cs:501`）。
-  - Bit4(16)=**UiStatus** **不在上式內**——走獨立 pipeline（`db_key_ui_status` 表 + `UpdateDbKeyUiStatusImportStatus`，公式 `importResult = uiStatus`，`DbAccess.cs:257`）。把它與 Bit0–3 並列為同一 mask 是概念混用。
-  - ⚠ **脆弱隱性契約（見 CONCERNS R5）**：上式（純函式 `DbAccess.ComputeImportResult`，`DbAccess.cs:159-162`）只在「各 component 的 `Result` 都=1」時才能反推回 `check_status`；但匯入函式 `Result` 實際回 0/1/2/3，任一回 2/3 會讓加權和溢位、污染高位 bit，使 `importResult == check_status`（`DbAccess.cs:205`）恆為 false → 一律判失敗+寄信。已抽 seam + `DCT_data_import.Tests` 以 by-design RED 釘住（修法待規格確認）。
+  - Bit0(1)=**FailPin**、Bit1(2)=**RawData/TestResult**、Bit2(4)=**Tester**、Bit3(8)=**RecoveryRate**（公式 `importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin`，純函式 `DbAccess.cs:160`；引數順序對應 `Program.cs:483`）。
+  - Bit4(16)=**UiStatus** **不在上式內**——走獨立 pipeline（`db_key_ui_status` 表 + `UpdateDbKeyUiStatusImportStatus`，公式 `importResult = uiStatus`，`DbAccess.cs:263`）。把它與 Bit0–3 並列為同一 mask 是概念混用。
+  - ✅ **已修復脆弱隱性契約（見 CONCERNS R5，2026-06-27 `fix/r5-checkstatus`）**：上式（純函式 `DbAccess.ComputeImportResult`，`DbAccess.cs:160`）原只在「各 component 的 `Result` 都=1」時才能反推回 `check_status`；但匯入函式 `Result` 實際回 0/1/2/3，任一回 2/3 會讓加權和溢位、污染高位 bit，使 `importResult == check_status`（`DbAccess.cs:211`）恆為 false → 一律判失敗+寄信。**修法**：在 `ComputeImportResult` 內把各分量正規化為 `Result == 1 ? 1 : 0`（明確排除 `Math.Min`——它會把失敗碼 2/3 也映成 1、反把失敗當成功），0/1 輸入行為不變、僅修正 ≥2 溢位；`DCT_data_import.Tests` 3 條 `_R5` 回歸樁轉綠並移除 `ByDesignRed` trait、重納 CI gate。
   - [ASK USER] 對照正式規格確認：bit 定義、各 component 合法值域（是否該只存 0/1）、UiStatus 是否本就獨立、成功判定是否要求「全數成功」。
