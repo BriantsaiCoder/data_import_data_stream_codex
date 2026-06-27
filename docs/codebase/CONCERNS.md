@@ -39,7 +39,7 @@
 | R2 | Medium | **SPC 負號根值無 NaN 防護**：遇 `sum_sq/N - avg² < 0` 只 `Console` 警告「發現根號負值!」，未阻斷 | `Common/CalculateSPC.cs:90` | 加防護/釐清業務預期 |
 | R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、hardcoded `C:\temp` log 路徑 | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:29` | 路徑改設定；跨平台需求才重構 INI |
 | R4 | Low | **log 無 rotation/上限**：每日分檔但無大小限制與清理 | `WriteToLog.cs` | 視磁碟壓力決定是否加 |
-| R5 | ~~High~~ **已修復（2026-06-27，`fix/r5-checkstatus`）** | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:211`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:160,179,211`、各 importer `Result` 0/1/2/3、`Program.cs:501`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | **規格決定（用戶 2026-06-27）：分量正規化規則 = `Result == 1 ? 1 : 0`（成功才設位；明確排除 `Math.Min(x,1)`——後者會把失敗碼 2/3 也映成 1、反把失敗當成功）。** 已於純函式 `ComputeImportResult`（`DbAccess.cs:160`）單點套用此正規化，0/1 輸入行為不變、僅修正 ≥2 溢位。`CheckStatusWeightedSumTests` 3 條 `_R5` 測試（含一條判別 `Math.Min` 誤修的 pin）轉綠、移除 `ByDesignRed` trait 重納 CI gate。 |
+| R5 | ~~High~~ **已修復（2026-06-27，`fix/r5-checkstatus`）** | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:211`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:160,179,211`、各 importer `Result` 0/1/2/3、`Program.cs:483`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | **規格決定（用戶 2026-06-27）：分量正規化規則 = `Result == 1 ? 1 : 0`（成功才設位；明確排除 `Math.Min(x,1)`——後者會把失敗碼 2/3 也映成 1、反把失敗當成功）。** 已於純函式 `ComputeImportResult`（`DbAccess.cs:160`）單點套用此正規化，0/1 輸入行為不變、僅修正 ≥2 溢位。`CheckStatusWeightedSumTests` 3 條 `_R5` 測試（含一條判別 `Math.Min` 誤修的 pin）轉綠、移除 `ByDesignRed` trait 重納 CI gate。 |
 
 ### 5) Evidence
 
@@ -56,4 +56,4 @@
 ### 領域知識（程式看不出 why，值得保存）
 - **SPC 暖機排除**：`CalculateSPC.SeperatePassValue`（:112）會剔除 spec_max/spec_min 範圍外的 fail points 才算 stdev/avg——這是業務定義的良率計算規則，非單純技術過濾（剔除邏輯 `CalculateSPC.cs:127-132`）。
 - **統計值異常轉換**：`FileProcess.ValidateAndConvertStatisticValue`（:1527）把 `-1.#IND`/`1.#QNAN` 等非數值 stdev/cp/cpk/avg 轉 0——對應 git log `479f29e` 的資料完整性處理。
-- **CheckStatus bit 定義**（交叉驗證後修正）：Bit0(1)=FailPin、Bit1(2)=RawData/TestResult、Bit2(4)=Tester、Bit3(8)=RecoveryRate（公式 `DbAccess.cs:161`,已抽純函式 `ComputeImportResult` + `Program.cs:501` 引數順序）；Bit4(16)=UiStatus 走另一張表、不在此公式內（`DbAccess.cs:257`）。詳見 ARCHITECTURE.md Extended 與 R5。
+- **CheckStatus bit 定義**（交叉驗證後修正）：Bit0(1)=FailPin、Bit1(2)=RawData/TestResult、Bit2(4)=Tester、Bit3(8)=RecoveryRate（公式 `DbAccess.cs:161`,已抽純函式 `ComputeImportResult` + `Program.cs:483` 引數順序）；Bit4(16)=UiStatus 走另一張表、不在此公式內（`DbAccess.cs:257`）。詳見 ARCHITECTURE.md Extended 與 R5。
