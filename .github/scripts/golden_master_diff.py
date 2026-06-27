@@ -53,15 +53,18 @@ def is_tolerated(line, run_day):
 
 def load(path, run_day):
     kept = []
-    with open(path, encoding="utf-8", errors="replace") as fh:
+    raw_payload = 0  # 容忍過濾前的 payload 列數,供空集合守衛判斷 capture 是否真有內容
+    # utf-8-sig:Windows pwsh `>` 重導可能寫入 UTF-8 BOM,sig 去 BOM、無 BOM 時行為同 utf-8。
+    with open(path, encoding="utf-8-sig", errors="replace") as fh:
         for raw in fh:
             line = raw.rstrip("\n").strip()
             if not is_payload(line):
                 continue
+            raw_payload += 1
             if is_tolerated(line, run_day):
                 continue
             kept.append(line)
-    return sorted(kept)
+    return sorted(kept), raw_payload
 
 
 def main():
@@ -69,8 +72,18 @@ def main():
         print("usage: golden_master_diff.py <net462-capture.log> <net8-capture.log>", file=sys.stderr)
         return 2
     run_day = date.today().isoformat()
-    net462 = load(sys.argv[1], run_day)
-    net8 = load(sys.argv[2], run_day)
+    net462, raw462 = load(sys.argv[1], run_day)
+    net8, raw8 = load(sys.argv[2], run_day)
+
+    # 空集合守衛:CaptureBaseline 測試必印多列 payload,任一邊 0 列代表 capture 步驟失敗、
+    # log 編碼不對盤或 PAYLOAD_KEYS 不匹配——此時下方 diff 會「兩邊皆空 → 假綠」,故在此攔成 loud FAIL。
+    if raw462 == 0 or raw8 == 0:
+        print(
+            f"golden-master diff: FAIL — capture log 無任何 payload 列(net462={raw462} net8={raw8});"
+            " capture 失敗 / 編碼不對盤 / PAYLOAD_KEYS 不匹配,拒絕空集合假綠。",
+            file=sys.stderr,
+        )
+        return 1
 
     only_462 = [l for l in net462 if l not in net8]
     only_8 = [l for l in net8 if l not in net462]
