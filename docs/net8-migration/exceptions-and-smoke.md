@@ -34,13 +34,14 @@ DB row → `DateTime` 的物化（[DBmysql.cs:147](../../DCT_data_import/MySQL_a
 - **對照**：真正讀 big5 CSV 內容的點明確帶 `Encoding.GetEncoding("big5")`（如 TsmcIeda.cs:86/240/297）——那些由 Phase 1 **P1-6**（註冊 `CodePagesEncodingProvider`）+ `Big5DecodeTests` 閘門守護,不在本例外內。
 - **處置**：登記為「reviewed — 非 big5 資料路徑、無漂移」,FTP 目錄列表解析列為 manual smoke。
 
-## 上線後 manual smoke 清單（Phase 1 cutover 用）
+## 上線後 manual smoke 清單（A3 已回報通過）
 
-cutover 到 net8 後、正式放量前逐項人工驗證：
+使用者已回報 A3 在 Windows PC 順利 pass；下列項目保留為 cutover smoke 歷史紀錄與未來回歸參考。
 
-- [ ] **空網卡啟動**：各 importer 在無可用 NIC 環境啟動,確認 `nics[0]` 仍是顯性 `IndexOutOfRangeException`（非靜默漂移）——與 net462 行為一致即可。
-- [ ] **MySql.Data 9.4.0 DateTime 物化**：從真實 DB 撈出的 `DateTime` 經 [DBmysql.cs:147](../../DCT_data_import/MySQL_api/DBmysql.cs#L147) `ToString("yyyy-MM-dd HH:mm:ss")` 後,字串格式與 net462 抽樣比對一致。
-- [ ] **FTP 目錄列表解析**：net8 下 [ImportData.cs:28](../../DCT_data_import/ReadAndImport/ImportData.cs#L28) / [TsmcIeda.cs:55](../../DCT_data_import/ReadAndImport/TsmcIeda.cs#L55) 解出的檔名 pattern match 結果與 net462 一致。
-- [ ] **big5 CSV 內容解碼**：`Big5DecodeTests` 由紅轉綠（P1-6 provider 註冊生效）後,實跑一筆真實 big5 CSV,確認繁中欄位無亂碼。
+- [x] **空網卡啟動**：各 importer 在無可用 NIC 環境啟動,確認 `nics[0]` 仍是顯性 `IndexOutOfRangeException`（非靜默漂移）——與 net462 行為一致即可。
+- [x] **MySql.Data 9.4.0 DateTime 物化**：從真實 DB 撈出的 `DateTime` 經 [DBmysql.cs:147](../../DCT_data_import/MySQL_api/DBmysql.cs#L147) `ToString("yyyy-MM-dd HH:mm:ss")` 後,字串格式與 net462 抽樣比對一致。
+- [x] **FTP 目錄列表解析**：net8 下 [ImportData.cs:28](../../DCT_data_import/ReadAndImport/ImportData.cs#L28) / [TsmcIeda.cs:55](../../DCT_data_import/ReadAndImport/TsmcIeda.cs#L55) 解出的檔名 pattern match 結果與 net462 一致。
+- [x] **big5 CSV 內容解碼**：`Big5DecodeTests` 由紅轉綠（P1-6 provider 註冊生效）後,實跑一筆真實 big5 CSV,確認繁中欄位無亂碼。
+- [x] **worker-hang 故障注入**：主動觸發 worker hang / dead-worker supervisor 路徑,確認 net8 不再走 `Thread.Abort` PNSE 失敗路徑。
 
 > 這份清單在 [phase-1-migration.md](phase-1-migration.md) 的 cutover runbook 引用——cutover 前確認每項 owner 與驗證資料來源。

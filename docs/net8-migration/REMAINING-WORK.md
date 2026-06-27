@@ -55,9 +55,9 @@
 
 ### A3 — Cutover 期人工 smoke（**需真 MySQL/FTP + net8 runtime**）
 - [x] 使用者回報 Windows PC 已順利 pass A3。
-- [x] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-44]）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
+- [x] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-45]）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
 
-### A4 — 砍 net462 + 文件同步（**本分支執行中/已完成**）
+### A4 — 砍 net462 + 文件同步（**已完成**）
 - [x] csproj 回 single `net8.0-windows`、移除 net462-only 套件（ConfigurationManager 9.x / Unsafe / Tasks.Extensions / ReferenceAssemblies）。`App.config` 已無 binding redirects。
 - [x] 移除 source/test 內 net8/net462 腳手架：`Program.cs`、`ReadWriteINIfile.cs`、`EncodingTestBootstrap.cs`、`AppConfigContractTests.cs`。
 - [x] CaptureBaseline emit-only → net8 硬斷言。
@@ -71,7 +71,7 @@
 - [x] `DbAccess.ComputeImportResult` 分量正規化:**用戶規格決定（2026-06-27）= `Result == 1 ? 1 : 0`**（成功才設位,失敗碼 2/3 與缺席同視為 0;**明確排除 `Math.Min(x,1)`**——它會把 2/3 映成 1、反把失敗當成功）。單點 root-cause guard,0/1 輸入行為不變、僅修正 ≥2 溢位（`DbAccess.cs:160`）。
 - [x] `CheckStatusWeightedSumTests.cs`:2 條原 `_R5` by-design RED 轉綠 + 新增第 3 條判別測試（`_FailureCodeContributesNoBit_DistinctFromSuccess_R5`，擋 `Math.Min` 誤修）→ 移除 `ByDesignRed` trait → 重納 CI 綠燈門檻。A4 前 full suite 已擴至 199 綠。
 - [x] 文件同步:`CONCERNS.md` R5 標記已修復、`docs/codebase/TESTING.md`、`NET8_UPGRADE_TEST_STRATEGY.md`、`DCT_data_import.Tests/README.md`、`CLAUDE.md` 關鍵約束 #3。
-- 待後續品質閘（B PR 收尾）:code-simplifier → dotnet-code-reviewer → backend-release-verification + dependency-security-scan → finishing-a-development-branch（PR squash）。
+- [x] B PR 收尾品質閘已完成：review / verification / PR squash merge 已結束；後續新工作依各自分支重新執行收尾閘。
 
 ---
 
@@ -87,7 +87,7 @@
 
 - [ ] 6 個 parser characterization 測試（需 `InternalsVisibleTo` 給 3 個 private `FileRead*`）。
 - [ ] `FileContentFormat.Compare*()` 測試。
-- [ ] `CalculateSPC.AverageOfSumSquare` 3 情境測試。
+- [x] `CalculateSPC.AverageOfSumSquare` 3 情境測試。
 - [ ] `FileProcess` helper（`ConvertEmptyToDefaultString`、`AddColumnForDataset` round-9）測試。
 - [ ] MySql.Data DATETIME driver round-trip golden master（需真 MySQL）。
 - [ ] coverage 工具（coverlet）+ 門檻。
@@ -99,7 +99,7 @@
 
 > CLAUDE.md：「不主動現代化」。E 類除 R2/R3 屬 correctness/維運外，D2-D5/P1-P3 動前須確認。
 
-- [ ] **R2（MEDIUM）**：SPC 負根號 NaN guard。
+- [x] **R2（MEDIUM）**：SPC 負根號 NaN guard。
 - [ ] **R3（MEDIUM）**：hardcoded `C:\temp` log 路徑 → 可設定（net8 cutover 可能觸發）。
 - [ ] **R4（LOW）**：log rotation（optional）。
 - [ ] **D3（MEDIUM）**：dead code 清理（`Program.cs` TEST CASE 區塊、`DbAccess` 舊邏輯）。
