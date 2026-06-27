@@ -62,7 +62,7 @@ namespace DCT_data_import
             }
             catch (Exception ex) when (ex is ArgumentException || ex is FormatException)
             {
-                SendResult = "寄件人位址格式錯誤(App.config SmtpFromAddress)";
+                SendResult = "寄件人設定格式錯誤(App.config SmtpFromAddress / SmtpFromDisplayName)";
                 Console.WriteLine($"[EmailModels] 寄件人設定錯誤: {ex.Message}");
                 return false;
             }
