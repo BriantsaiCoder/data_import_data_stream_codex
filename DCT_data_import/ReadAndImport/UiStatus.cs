@@ -13,9 +13,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public ImportResult ReadAndImportUIStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKeyUiStatus)
         {
-            FtpWebRequest reqFTP;
-            FtpWebResponse response;
-            Stream responseStream;
             StreamReader reader;
             bool import_result = false;
             WriteToLog writeToLog = new WriteToLog();
@@ -30,7 +27,7 @@ namespace DCT_data_import.ReadAndImport
             string filename = "ui_status_" + dbKeyUiStatus + ".csv";
             string ftpFilePath = GetFilePath("uistatus", dbKeyUiStatus);
             string errorPath = GetErrorPath("uistatus", dbKeyUiStatus);
-            bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+            bool isFileExist = FileExists(ftpFilePath);
             if (!isFileExist)
             {
                 Console.WriteLine("UI Status File not found:  " + filename);
@@ -40,11 +37,7 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 import_result = false;
-                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
-                reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
-                response = (FtpWebResponse)reqFTP.GetResponse();
-                responseStream = response.GetResponseStream();
-                reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
+                reader = OpenBig5Reader(ftpFilePath);
                 UIStatusContentFormat uiStatusContentFormat = FileReadUIStatus(reader);
                 reader.Close();
                 if (!string.IsNullOrEmpty(uiStatusContentFormat.ErrMsg))
@@ -55,14 +48,14 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("UI Status 讀取失敗: " + filename);
                     writeToLog.WriteToDataImportLog("UI Status 讀取失敗:" + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "File content is missing.");
                 }
                 if (!uiStatusContentFormat.CompareUiStatus())
                 {
                     Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + filename);
                     writeToLog.WriteToDataImportLog("UI Status 之 ui_status 欄位名稱不符:" + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "ui_status field name not match.");
                 }
                 stopWatch.Reset();
@@ -75,28 +68,25 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("匯入完成! UI Status " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                     // 刪除已存在的的CSV檔案
-                    deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    deleteStatus = CompleteSuccess(ftpFilePath);
                     reader.Close();
-                    response.Close();
                 }
                 else
                 {
                     Console.WriteLine("匯入失敗: UI Status " + filename);
                     writeToLog.WriteToDataImportLog("匯入失敗:" + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     reader.Close();
-                    response.Close();
                     return new ImportResult(3, "Import failed.");
                 }
                 Thread.Sleep(500); reader.Close();
-                response.Close();
             }
             catch (Exception ex)
             {
                 WriteToLog writeToLogService = new WriteToLog();
                 writeToLogService.WriteErrorLog($"[UI Status匯入] 處理異常: {filename}, 錯誤: {ex.Message}");
                 Console.WriteLine(ex.Message);
-                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                MoveToError(ftpFilePath, errorPath);
                 return new ImportResult(3, "Exception error occurred during import. " + ex.Message);
             }
             GC.Collect();

@@ -13,9 +13,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            FtpWebRequest reqFTP;
-            FtpWebResponse response;
-            Stream responseStream;
             StreamReader reader;
             bool isDBKeyExist = false, import_result = false;
             WriteToLog writeToLog = new WriteToLog();
@@ -30,7 +27,7 @@ namespace DCT_data_import.ReadAndImport
             string filename = "tester_" + dbKey + ".csv";
             string ftpFilePath = GetFilePath("tester", dbKey);
             string errorPath = GetErrorPath("tester", dbKey);
-            bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+            bool isFileExist = FileExists(ftpFilePath);
             if (!isFileExist)
             {
                 Console.WriteLine("Tester Status File not found:  " + filename);
@@ -39,12 +36,8 @@ namespace DCT_data_import.ReadAndImport
             }
             try
             {
-                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
-                reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
-                response = (FtpWebResponse)reqFTP.GetResponse();
-                responseStream = response.GetResponseStream();
-                reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                reader = OpenBig5Reader(ftpFilePath);
+                long fileSize = GetFileLength(ftpFilePath);
                 stopWatch.Reset();
                 stopWatch.Start();
                 TestStatusContentFormat testStatusContentFormat = FileReadTesterStatus(reader);
@@ -60,27 +53,27 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("Tester Status 讀檔失敗:  " + filename);
                     writeToLog.WriteErrorLog("Tester Status  讀檔失敗: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "File content is missing. " + testStatusContentFormat.ErrMsg);
                 }
                 if (!testStatusContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Tester Status 之 information 欄位名稱不符:  " + filename);
                     writeToLog.WriteErrorLog("Tester Status 之 information 欄位名稱不符: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "Information field name not match.");
                 }
                 if (!testStatusContentFormat.CompareStatus())
                 {
                     Console.WriteLine("Tester Status 之 tester_status 欄位名稱不符:  " + filename);
                     writeToLog.WriteErrorLog("Tester Status 之 tester_status 欄位名稱不符: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "tester_status field name not match.");
                 }
                 if (!dbKey.Equals(testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString()))
                 {
                     writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), DatabaseService);
@@ -88,7 +81,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + filename);
                     writeToLog.WriteToDataImportLog("資料庫已存在此資料: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -110,17 +103,15 @@ namespace DCT_data_import.ReadAndImport
                     {
                         Console.WriteLine("匯入完成! Tester Status   檔名: " + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
-                        deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        deleteStatus = CompleteSuccess(ftpFilePath);
                         reader.Close();
-                        response.Close();
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: Tester Status " + filename);
                         writeToLog.WriteErrorLog("匯入失敗: " + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        MoveToError(ftpFilePath, errorPath);
                         reader.Close();
-                        response.Close();
                         return new ImportResult(3, "Import failed.");
                     }
                 }
@@ -130,7 +121,7 @@ namespace DCT_data_import.ReadAndImport
                 WriteToLog writeToLogService = new WriteToLog();
                 writeToLogService.WriteErrorLog($"[Tester 匯入] 處理異常: {filename}, 錯誤: {ex.Message}");
                 Console.WriteLine(ex.Message);
-                Console.WriteLine(RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD));
+                Console.WriteLine(MoveToError(ftpFilePath, errorPath));
                 return new ImportResult(3, "Exception error occurred during reading and import. " + ex.Message);
             }
             GC.Collect();

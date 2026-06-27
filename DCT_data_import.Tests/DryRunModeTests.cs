@@ -13,6 +13,7 @@ namespace DCT_data_import.Tests
     /// 且不依賴真實 MySQL / FTP / SMTP;DryRun=false(預設)時行為與遷移前一致(以 SELECT 仍照常走連線檢查為憑)。
     /// seam:以 <see cref="RuntimeMode.SetDryRunOverrideForTests"/> 覆寫旗標,測試不打外部資源。
     /// </summary>
+    [Collection("RuntimeMode")]
     public class DryRunModeTests : IDisposable
     {
         public void Dispose() => RuntimeMode.SetDryRunOverrideForTests(null);

@@ -2,10 +2,24 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Text;
 namespace DCT_data_import.ReadAndImport
 {
     public class ImportData
     {
+        private IImportFileSource _fileSource;
+
+        public ImportData()
+        {
+        }
+
+        internal ImportData(IImportFileSource fileSource)
+        {
+            _fileSource = fileSource;
+        }
+
+        internal IImportFileSource FileSource => _fileSource ?? (_fileSource = ImportFileSourceFactory.Create());
+
         /// <summary>
         /// 在FTP目錄中搜尋符合模式的檔案
         /// </summary>
@@ -16,34 +30,17 @@ namespace DCT_data_import.ReadAndImport
         /// <returns>符合模式的檔案名稱列表</returns>
         protected List<string> SearchFilesInFtpDirectory(string ftpDirectoryPath, string filePattern, string ftpUser, string ftpPassword)
         {
-            var matchingFiles = new List<string>();
             var writeToLog = new WriteToLog();
             try
             {
-                FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpDirectoryPath);
-                request.Credentials = new NetworkCredential(ftpUser, ftpPassword);
-                request.Method = WebRequestMethods.Ftp.ListDirectory;
-                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-                using (Stream responseStream = response.GetResponseStream())
-                using (StreamReader reader = new StreamReader(responseStream))
-                {
-                    string line;
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        // 使用正規表示式檢查檔案名稱是否符合模式
-                        if (IsFileMatchPattern(line, filePattern))
-                        {
-                            matchingFiles.Add(line);
-                        }
-                    }
-                }
+                return FileSource.ListFiles(ftpDirectoryPath, filePattern);
             }
             catch (Exception ex)
             {
-                writeToLog.WriteErrorLog(string.Format("[SearchFilesInFtpDirectory] FTP目錄搜尋失敗: {0}, 錯誤: {1}", ftpDirectoryPath, ex.Message));
-                Console.WriteLine(string.Format("[SearchFilesInFtpDirectory] FTP目錄搜尋失敗: {0}, 錯誤: {1}", ftpDirectoryPath, ex.Message));
+                writeToLog.WriteErrorLog(string.Format("[SearchFilesInFtpDirectory] 目錄搜尋失敗: {0}, 錯誤: {1}", ftpDirectoryPath, ex.Message));
+                Console.WriteLine(string.Format("[SearchFilesInFtpDirectory] 目錄搜尋失敗: {0}, 錯誤: {1}", ftpDirectoryPath, ex.Message));
             }
-            return matchingFiles;
+            return new List<string>();
         }
         /// <summary>
         /// 檢查檔案名稱是否符合指定模式
@@ -53,46 +50,24 @@ namespace DCT_data_import.ReadAndImport
         /// <returns>是否符合模式</returns>
         protected bool IsFileMatchPattern(string fileName, string pattern)
         {
-            // 將模式轉換為正規表示式
-            // * 代表任意數字
-            string regexPattern = pattern.Replace("*", @"\d+");
-            regexPattern = "^" + regexPattern + "$";
-            return System.Text.RegularExpressions.Regex.IsMatch(fileName, regexPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return ImportFileNameMatcher.IsMatch(fileName, pattern);
         }
         /// <summary>
         /// 檢查FTP伺服器上是否存在指定檔案
         /// </summary>
         protected bool CheckIfFileExistsOnServer(string requestUri, string ftpUser, string ftpPassword)
         {
-            FtpWebRequest request;
-            FtpWebResponse response = null;
             try
             {
-                request = (FtpWebRequest)WebRequest.Create(requestUri);
-                request.Credentials = new NetworkCredential(ftpUser, ftpPassword);
-                request.Method = WebRequestMethods.Ftp.GetFileSize;
-                response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-                return true;
+                return FileSource.Exists(requestUri);
             }
-            catch (WebException ex)
+            catch (Exception ex)
             {
                 var writeToLog = new WriteToLog();
-                writeToLog.WriteErrorLog(string.Format("[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {0}, 錯誤: {1}", requestUri, ex.Message));
-                Console.WriteLine(string.Format("[CheckIfFileExistsOnServer] FTP檔案檢查失敗: {0}, 錯誤: {1}", requestUri, ex.Message));
-                response?.Close();
-                response = (FtpWebResponse)ex.Response;
-                if (response != null && response.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
-                {
-                    response.Close();
-                    return false;
-                }
+                writeToLog.WriteErrorLog(string.Format("[CheckIfFileExistsOnServer] 檔案檢查失敗: {0}, 錯誤: {1}", requestUri, ex.Message));
+                Console.WriteLine(string.Format("[CheckIfFileExistsOnServer] 檔案檢查失敗: {0}, 錯誤: {1}", requestUri, ex.Message));
+                return false;
             }
-            finally
-            {
-                response?.Close();
-            }
-            return false;
         }
         protected string[] EraseSpecificChar(string str_line)
         {
@@ -123,24 +98,10 @@ namespace DCT_data_import.ReadAndImport
         #region Comman tool
         public string DeleteFile(string fileName, string user, string password)
         {
-            if (RuntimeMode.IsDryRun)
-            {
-                return "DryRun: FTP DeleteFile skipped";
-            }
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(fileName);
-            request.Method = WebRequestMethods.Ftp.DeleteFile;
-            request.Credentials = new NetworkCredential(user, password);
-            using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-            {
-                return response.StatusDescription;
-            }
+            return new FtpImportFileSource(string.Empty, user, password, string.Empty).CompleteSuccess(fileName);
         }
         public string RenameFile(string filePath, string newFilePath, string user, string password)
         {
-            if (RuntimeMode.IsDryRun)
-            {
-                return "DryRun: FTP RenameFile skipped";
-            }
             var writeToLog = new WriteToLog();
             if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(newFilePath))
                 return $"RenameFile() Fail: path is empty. [filePath={filePath}, newFilePath={newFilePath}]";
@@ -150,20 +111,8 @@ namespace DCT_data_import.ReadAndImport
                 var dstUri = new Uri(newFilePath, UriKind.Absolute);
                 if (srcUri.Scheme != Uri.UriSchemeFtp || dstUri.Scheme != Uri.UriSchemeFtp || srcUri.Host != dstUri.Host)
                     return $"RenameFile() Fail: only same FTP host is supported. [filePath={filePath}, newFilePath={newFilePath}]";
-                string renameTo = Uri.UnescapeDataString(dstUri.AbsolutePath);
-                var request = (FtpWebRequest)WebRequest.Create(srcUri);
-                request.Method = WebRequestMethods.Ftp.Rename;
-                request.Credentials = new NetworkCredential(user, password);
-                request.UsePassive = true;
-                request.UseBinary = true;
-                request.KeepAlive = false;
-                request.Proxy = null;
-                request.Timeout = 10000;
-                request.RenameTo = renameTo;
-                using (var response = (FtpWebResponse)request.GetResponse())
-                {
-                    return response.StatusDescription;
-                }
+                return new FtpImportFileSource(string.Empty, user, password, string.Empty)
+                    .MoveToError(filePath, newFilePath);
             }
             catch (UriFormatException ex)
             {
@@ -234,28 +183,17 @@ namespace DCT_data_import.ReadAndImport
         }
         public long GetFileSize(string ftpUrl, string ftpUsername, string ftpPassword)
         {
-            long fileSize = 0;
-            // 创建 FtpWebRequest 对象
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpUrl);
-            request.Method = WebRequestMethods.Ftp.GetFileSize; // 指定获取文件大小的方法
-            // 提供 FTP 凭据
-            request.Credentials = new NetworkCredential(ftpUsername, ftpPassword);
             try
             {
-                // 获取响应
-                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-                {
-                    fileSize = response.ContentLength;  // 文件大小
-                }
+                return FileSource.GetLength(ftpUrl);
             }
-            catch (WebException ex)
+            catch (Exception ex)
             {
                 var writeToLog = new WriteToLog();
-                writeToLog.WriteErrorLog($"[GetFileSize] FTP取得檔案大小失敗: {ftpUrl}, 狀態: {ex.Status}, 錯誤: {ex.Message}");
-                Console.WriteLine($"FTP GetFileSize 錯誤: {ex.Status}, {ex.Message}");
+                writeToLog.WriteErrorLog($"[GetFileSize] 取得檔案大小失敗: {ftpUrl}, 錯誤: {ex.Message}");
+                Console.WriteLine($"GetFileSize 錯誤: {ex.Message}");
                 return 0;
             }
-            return fileSize;
         }
         /// <summary>
         /// 轉換檔案大小
@@ -281,9 +219,6 @@ namespace DCT_data_import.ReadAndImport
         /// <returns>完整的FTP檔案路徑</returns>
         protected string GetFilePath(string fileType, string dbKey)
         {
-            string basePath = Program.Environment == "Dev"
-              ? "/DCT_Log/DCT_DB_DATA_Dev/"
-              : "/DCT_Log/DCT_DB_DATA/";
             var pathMap = new Dictionary<string, string>
         {
             {"rawdata", "Data_Cloud_CSV/test_result_"},
@@ -300,9 +235,9 @@ namespace DCT_data_import.ReadAndImport
             // 對於 multiSpecRawdata，返回目錄路徑用於搜尋
             if (fileType == "multiSpecRawdata")
             {
-                return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}";
+                return GetSourcePath(pathMap[fileType]);
             }
-            return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}{dbKey}.csv";
+            return GetSourcePath(pathMap[fileType] + dbKey + ".csv");
         }
         /// <summary>
         /// 根據檔案類型和DB Key產生FTP錯誤檔案路徑
@@ -312,9 +247,6 @@ namespace DCT_data_import.ReadAndImport
         /// <returns>完整的FTP錯誤檔案路徑</returns>
         protected string GetErrorPath(string fileType, string dbKey)
         {
-            string basePath = Program.Environment == "Dev"
-              ? "/DCT_Log/DCT_DB_DATA_Dev/"
-              : "/DCT_Log/DCT_DB_DATA/";
             var pathMap = new Dictionary<string, string>
         {
             {"rawdata", "Data_Cloud_CSV_Error/test_result_"},
@@ -331,9 +263,9 @@ namespace DCT_data_import.ReadAndImport
             // 對於 multiSpecRawdata，返回目錄路徑，因為檔案名稱是動態的
             if (fileType == "multiSpecRawdata")
             {
-                return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}";
+                return GetSourcePath(pathMap[fileType]);
             }
-            return $"ftp://{Program.FTP_IP}{basePath}{pathMap[fileType]}{dbKey}.csv";
+            return GetSourcePath(pathMap[fileType] + dbKey + ".csv");
         }
         /// <summary>
         /// 根據實際檔案名稱產生對應的錯誤檔案路徑
@@ -346,12 +278,50 @@ namespace DCT_data_import.ReadAndImport
         {
             if (fileType == "multiSpecRawdata")
             {
-                string errorDirectory = GetErrorPath(fileType, dbKey);
-                return errorDirectory + fileName;
+                return GetSourcePath("Data_Cloud_CSV_MultiSpec_Error/" + fileName);
             }
             else
             {
                 return GetErrorPath(fileType, dbKey);
+            }
+        }
+
+        protected string GetSourcePath(string relativePath)
+        {
+            return FileSource.GetPath(relativePath);
+        }
+
+        protected bool FileExists(string path)
+        {
+            return FileSource.Exists(path);
+        }
+
+        protected StreamReader OpenBig5Reader(string path)
+        {
+            return new StreamReader(FileSource.OpenRead(path), Encoding.GetEncoding("big5"));
+        }
+
+        protected long GetFileLength(string path)
+        {
+            return FileSource.GetLength(path);
+        }
+
+        protected string CompleteSuccess(string path)
+        {
+            return FileSource.CompleteSuccess(path);
+        }
+
+        protected string MoveToError(string path, string errorPath)
+        {
+            try
+            {
+                return FileSource.MoveToError(path, errorPath);
+            }
+            catch (Exception ex)
+            {
+                string msg = $"MoveToError() Fail: [path={path}, errorPath={errorPath}] Msg: {ex.Message}";
+                new WriteToLog().WriteErrorLog(msg);
+                return msg;
             }
         }
         #endregion Common tool
