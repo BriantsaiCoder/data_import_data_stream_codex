@@ -58,6 +58,7 @@ namespace DCT_data_import
         public class Execute_query
         {
             public string Query { get; set; }
+            public object Parameters { get; set; }
         }
         public class Execute_query_response
         {

@@ -181,10 +181,7 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Execute_query execute_query = new Execute_query
-                {
-                    Query = "SELECT id, check_status FROM db_key WHERE db_key='" + dbKey + "';"
-                };
+                Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key", dbKey);
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -225,17 +222,7 @@ namespace DCT_data_import
                 }
                 //importStatus = (importResult.ToString() == checkStatus) ? "1" : "2";
                 // 更新 import check 相關資訊
-                execute_query = new Execute_query
-                {
-                    Query = "UPDATE db_key " + "SET recovery_rate=" + recoveryRate.ToString() +
-                    ",tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
-                    "import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
-                    "WHERE `db_key`='" + dbKey + "';"
-                    //Query = "UPDATE db_key " +
-                    //"SET tester=" + tester.ToString() + ",test_result=" + testResult.ToString() + ",fail_pin=" + failPin.ToString() + "," +
-                    //"import_status=" + importStatus + ",mail=" + mail + ",remark='" + remark + "' " +
-                    //"WHERE `db_key`='" + dbKey + "';"
-                };
+                execute_query = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
                 response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -265,10 +252,7 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Execute_query execute_query = new Execute_query
-                {
-                    Query = "SELECT id, check_status FROM db_key_ui_status WHERE db_key='" + dbKey + "';"
-                };
+                Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key_ui_status", dbKey);
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -310,13 +294,7 @@ namespace DCT_data_import
                 //// 寫入寄信暫存檔
                 //writeToLog.WriteToMailTemp(dbKey + "," + dbKey);
                 // 更新 import check 相關資訊
-                execute_query = new Execute_query
-                {
-                    Query = "UPDATE db_key_ui_status " +
-                    "SET ui_status='" + uiStatus.ToString() + "', " +
-                    "import_status='" + importStatus + "',mail='" + mail + "',remark='" + remark + "' " +
-                    "WHERE `db_key`='" + dbKey + "';"
-                };
+                execute_query = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
                 response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -332,6 +310,53 @@ namespace DCT_data_import
             }
             return "OK";
         }
+
+        internal static Execute_query BuildDbKeyStatusSelectQuery(string tableName, string dbKey)
+        {
+            if (tableName != "db_key" && tableName != "db_key_ui_status")
+            {
+                throw new ArgumentException("Unsupported db_key table", nameof(tableName));
+            }
+
+            return new Execute_query
+            {
+                Query = "SELECT id, check_status FROM `" + tableName + "` WHERE db_key=@dbKey;",
+                Parameters = new { dbKey }
+            };
+        }
+
+        internal static Execute_query BuildDbKeyImportStatusUpdateQuery(
+            string dbKey,
+            int recoveryRate,
+            int tester,
+            int testResult,
+            int failPin,
+            string remark,
+            string importStatus,
+            string mail)
+        {
+            return new Execute_query
+            {
+                Query = "UPDATE db_key SET recovery_rate=@recoveryRate,tester=@tester,test_result=@testResult,fail_pin=@failPin," +
+                        "import_status=@importStatus,mail=@mail,remark=@remark WHERE `db_key`=@dbKey;",
+                Parameters = new { recoveryRate, tester, testResult, failPin, importStatus, mail, remark, dbKey }
+            };
+        }
+
+        internal static Execute_query BuildDbKeyUiStatusImportStatusUpdateQuery(
+            string dbKey,
+            int uiStatus,
+            string remark,
+            string importStatus,
+            string mail)
+        {
+            return new Execute_query
+            {
+                Query = "UPDATE db_key_ui_status SET ui_status=@uiStatus,import_status=@importStatus,mail=@mail,remark=@remark WHERE `db_key`=@dbKey;",
+                Parameters = new { uiStatus, importStatus, mail, remark, dbKey }
+            };
+        }
+
         public List<DbKeyObject> SelectFailDbKeyResult(DatabaseService DatabaseService, string mode = "")
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();

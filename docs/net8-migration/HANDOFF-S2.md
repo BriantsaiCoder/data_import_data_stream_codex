@@ -7,7 +7,7 @@
 
 ## 你是誰、做什麼
 接手 .NET Framework 4.6.2 → .NET 8(雙 TFM `net462;net8.0-windows`)半導體測試 ETL 批次服務的
-**唯一待動主線:C/S2 — 消除 SQL 全字串串接、改參數化**。其餘已完成或延後(見最末)。
+**C/S2 — 消除 SQL 全字串串接、改參數化已完成 A/PR-1 + A/PR-2**。其餘已完成或延後(見最末)。
 專案根:`DCT_data_import_data_stream_codex`。
 
 ## 先讀這些(權威來源,勿憑記憶)
@@ -26,10 +26,10 @@
 參數化管線其實**已存在於** `DBmysql.Excute_mysql_cmd(cmd, mode, object parameters)`(把 parameters 傳給 Dapper),只是被上層截斷。三步打通:
 1. `DbApi/DbObject.cs:58` — `Execute_query` DTO 加 `public object Parameters { get; set; }`
 2. `DbApi/DatabaseService.cs:47` — 改成 `DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters)`
-3. 逐站:`'"+v+"'` → `@p` + `Parameters = new { p = v }`;批次 INSERT 站用 `DynamicParameters` 逐列具名
+3. 逐站:`'"+v+"'` → `@p` + `Parameters = new { p = v }`;批次 INSERT 站已用 `DynamicParameters` 逐列具名
 
 ## 三種注入機制(別混用)
-- **值內插 → Dapper `@param`**:`DbAccess.cs` 186/230-233/270/315-318、`FileProcess` 批次 INSERT 迴圈(112-147/201-207/313/387-420/615-617/690-718)+ `ExecuteInsert`(1349 的 values)、`TsmcIeda.cs` 274/314/323/326。**複雜度集中在 `FileProcess`(~1500 行、最高扇入)的批次 values 累加迴圈**。
+- **值內插 → Dapper `@param`**:`DbAccess.cs` 186/230-233/270/315-318、`FileProcess` 批次 INSERT 迴圈(112-147/201-207/313/387-420/615-617/690-718)+ `ExecuteInsert`(1349 的 values)、`TsmcIeda.cs` 274/314/323/326 已完成。**複雜度集中在 `FileProcess`(~1500 行、最高扇入)的批次 values 累加迴圈，已於 A/PR-2 收斂**。
 - **識別碼注入(MySQL 不能 `@param` 表/欄名)→ 白名單/字元驗證**:`FileProcess.cs:33`、`FileProcess.cs:1349`(tableName/columns)、`DatabaseService.cs:107`。
 - **DataTable.Select 記憶體內篩選(Dapper 管不到)→ 單引號跳脫或 LINQ**:`TsmcIeda.cs:105/175`。
 
@@ -42,8 +42,8 @@
 6. **Merge gate**:CI 綠**且**等 Copilot 非阻塞 review(開 PR 後約 2-3 分鐘才異步出來,開 PR 當下空是延遲不是「無」)。有未處理建議走 `receiving-code-review`(採納或有據 pushback + 在 thread 回覆)才 merge。merge 後自動刪分支。
 7. 同步更新 `CONCERNS.md` 的 S2 標記 + `S2-SQL-PARAMETERIZATION-PLAN.md` 狀態(doc rot 視同 bug)。
 
-## ⏸ 動 code 前先問用戶範圍分期(S2 為 HIGH + 高扇入,不自走)
-- **A(★推薦)2 PR 風險二分**:PR-1 低風險群(DbAccess 4 值站 + TsmcIeda 值站&DataTable.Select + 識別碼白名單);PR-2 單獨攻 `FileProcess` 批次 INSERT。
+## 範圍分期結果
+- **A(★推薦)2 PR 風險二分，已完成**:PR-1 低風險群(DbAccess 4 值站 + TsmcIeda 值站&DataTable.Select + 識別碼白名單);PR-2 單獨攻 `FileProcess` 批次 INSERT。
 - **B 1 PR 一次到底**(blast radius 最大)。
 - **C 逐站最小步 3+ PR**(最保守最慢)。
 

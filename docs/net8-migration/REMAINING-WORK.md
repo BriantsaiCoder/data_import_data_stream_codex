@@ -74,7 +74,7 @@
 ## Stream C — 安全債（**僅剩 S2**；S4 已完成 PR #8、S1 維持不動、S3 已完成）
 
 - ~~**S1**：App.config 明文 DB/FTP 帳密~~ → **用戶決定（2026-06-27）：維持不動**，既有已知債明確不處理。**不得新增/擴大/搬移**該段帳密（連 env var 化也不做）。
-- [ ] **S2（HIGH，唯一待動主線）**：SQL 全字串串接零參數化（`FileProcess`/`DbAccess`/`TsmcIeda`）→ 改參數化（Dapper 具名參數）。**高扇入共用檔，動前先 `deps-check`**。沿用既有風格、新寫 SQL 優先參數化。完整計畫見 [S2-SQL-PARAMETERIZATION-PLAN.md](S2-SQL-PARAMETERIZATION-PLAN.md)、交接見 [HANDOFF-S2.md](HANDOFF-S2.md)。
+- [x] **S2（HIGH，已完成 A/PR-1 + A/PR-2）**：SQL 全字串串接零參數化（`FileProcess`/`DbAccess`/`TsmcIeda`）→ 已改參數化（Dapper 具名參數）。已完成 `DbAccess` / `TsmcIeda` / identifier chokepoint / `FileProcess.Import*` 批次 INSERT values。完整計畫見 [S2-SQL-PARAMETERIZATION-PLAN.md](S2-SQL-PARAMETERIZATION-PLAN.md)、交接見 [HANDOFF-S2.md](HANDOFF-S2.md)。
 - [x] ~~**S4（MEDIUM）**~~ → **✅ 已完成 PR #8 `7e6d6ba`**：SMTP IP/sender 已移到 App.config（ConfigurationManager TryParse 雙 TFM）；內網 relay 暫不需 auth/TLS、理由已記錄。
 
 ---

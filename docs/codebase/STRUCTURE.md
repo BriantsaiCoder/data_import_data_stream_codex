@@ -9,15 +9,15 @@
 | `DCT_data_import.sln` | Visual Studio 方案檔（單一專案） | `DCT_data_import.sln` |
 | `DCT_data_import/` | 主專案根目錄 | `.csproj` 位置 |
 | `DCT_data_import/Program.cs` | 程式進入點；環境偵測 + 3 執行緒監督迴圈 | `Program.cs:15,27` |
-| `DCT_data_import/ReadAndImport/` | 各資料格式 importer（業務邏輯層） | `ReadAndImport/*.cs`（7 個 importer + `ImportData` 基底） |
+| `DCT_data_import/ReadAndImport/` | 各資料格式 importer 與 FTP/Local 檔案來源抽象 | `ReadAndImport/*.cs`（7 個 importer + `ImportData` / `ImportFileSource`） |
 | `DCT_data_import/FileAccess/` | 檔案↔DB 橋接、CSV 格式契約、INI 讀寫 | `FileAccess/FileProcess.cs`、`FileContentFormat.cs`、`ReadWriteINIfile.cs` |
 | `DCT_data_import/DbApi/` | DB 服務介面與資料物件 | `DbApi/DatabaseService.cs`、`DbAccess.cs`、`DbObject.cs` |
 | `DCT_data_import/MySQL_api/` | MySQL 直連與 SQL 執行（Dapper） | `MySQL_api/DBmysql.cs` |
 | `DCT_data_import/Common/` | 共用工具：log、寄信、SPC 統計、email 模型 | `Common/WriteToLog.cs`、`NotificationService.cs`、`EmailModels.cs`、`CalculateSPC.cs` |
 | `DCT_data_import/Properties/AssemblyInfo.cs` | Assembly 中繼資料（版本 `2026.2.5.0`） | `Properties/AssemblyInfo.cs:30` |
 | `DCT_data_import/App.config` | 執行期設定（DB/FTP 連線、binding redirect） | `App.config` |
-| `DCT_data_import/packages.config` | NuGet 套件清單 | `packages.config` |
-| `專案架構報告.md` | 既有架構報告（**已與實際程式碼脫節**，見 CONCERNS） | repo 根目錄 |
+| `DCT_data_import/DCT_data_import.csproj` | SDK-style 雙 TFM + PackageReference 套件清單 | `DCT_data_import.csproj` |
+| `專案架構報告.md` / `專案架構視覺化.html` | 已刷新至 S2 SQL 參數化後的 root 架構導覽 | repo 根目錄 |
 
 ### 2) Entry Points
 
