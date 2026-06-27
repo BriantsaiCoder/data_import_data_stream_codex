@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
@@ -25,8 +26,14 @@ namespace DCT_data_import
                 SendResult = "DryRun: email send skipped";
                 return true;
             }
-            const string ipString = "10.12.10.31";
-            IPAddress tIP = IPAddress.Parse(ipString);
+            // SMTP 伺服器位址外部化至 App.config(S4);TryParse 在 try 外,未設定/格式錯都回 false
+            // (不丟未捕捉例外 crash 輪詢執行緒;null 亦回 false),行為對齊下方「Connect email server fail」失敗路徑。
+            string ipString = ConfigurationManager.AppSettings["SmtpServer"];
+            if (!IPAddress.TryParse(ipString, out IPAddress tIP))
+            {
+                SendResult = "SMTP 伺服器位址未設定或格式錯誤(App.config SmtpServer)";
+                return false;
+            }
             using (Ping tPingControl = new Ping())
             {
                 PingReply tReply = tPingControl.Send(tIP);
@@ -47,8 +54,11 @@ namespace DCT_data_import
                     mailObj.Subject = Subject;
                     //設定內文
                     mailObj.Body = Body;
-                    //設定寄件人
-                    mailObj.From = new MailAddress("CTRD5900@aseglobal.com", "CTRD Sender", Encoding.UTF8);
+                    //設定寄件人(外部化至 App.config,S4;位址為 null 時 MailAddress 會丟 ArgumentException,由下方 catch 接住回 false)
+                    mailObj.From = new MailAddress(
+                        ConfigurationManager.AppSettings["SmtpFromAddress"],
+                        ConfigurationManager.AppSettings["SmtpFromDisplayName"],
+                        Encoding.UTF8);
                     //設定to名單
                     for (int i = 0; i < ToList.Count; i++)
                     {
