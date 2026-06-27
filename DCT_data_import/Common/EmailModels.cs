@@ -71,11 +71,8 @@ namespace DCT_data_import
                     mailObj.Subject = Subject;
                     //設定內文
                     mailObj.Body = Body;
-                    //設定寄件人(外部化至 App.config,S4;位址為 null 時 MailAddress 會丟 ArgumentException,由下方 catch 接住回 false)
-                    mailObj.From = new MailAddress(
-                        ConfigurationManager.AppSettings["SmtpFromAddress"],
-                        ConfigurationManager.AppSettings["SmtpFromDisplayName"],
-                        Encoding.UTF8);
+                    //設定寄件人(已於上方守衛預先驗證,見 fromAddress)
+                    mailObj.From = fromAddress;
                     //設定to名單
                     for (int i = 0; i < ToList.Count; i++)
                     {
