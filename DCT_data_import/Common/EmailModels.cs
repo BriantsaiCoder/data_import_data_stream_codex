@@ -26,6 +26,15 @@ namespace DCT_data_import
                 SendResult = "DryRun: email send skipped";
                 return true;
             }
+            // 收件人清單為部署設定(INI mail_to);為 null(mail_to 未設定)或空(只含逗號被濾光)皆屬設定錯誤。
+            // 在 Ping 前明確攔下並回明確訊息(對齊 S4 設定錯誤模式),不落到下方主 try 的通用 catch 被誤標
+            // 「未預期的錯誤」(null 會在 ToList.Count 丟 NullReferenceException),也省去無收件人時的無謂連網。
+            if (ToList == null || ToList.Count == 0)
+            {
+                SendResult = "收件人清單為空(dct_import_mail_list.ini mail_list/mail_to)";
+                Console.WriteLine($"[EmailModels] {SendResult}");
+                return false;
+            }
             // SMTP 伺服器位址外部化至 App.config(S4);TryParse 在 try 外,未設定/格式錯都回 false
             // (不丟未捕捉例外 crash 輪詢執行緒;null 亦回 false),行為對齊下方「Connect email server fail」失敗路徑。
             string ipString = ConfigurationManager.AppSettings["SmtpServer"];
