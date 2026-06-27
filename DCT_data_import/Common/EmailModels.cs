@@ -58,8 +58,8 @@ namespace DCT_data_import
             }
             // 寄件人外部化至 App.config(S4)。位址與顯示名皆為部署設定,缺漏屬部署錯誤、不是執行期輸入。
             // 先以 IsNullOrWhiteSpace 明確守衛兩者,不依賴 MailAddress 對 null/空顯示名的框架語意——該語意
-            // 在「文件契約 vs 實際 source」有已知落差,且可能在 net462 與 net8 間分歧(雙 TFM 平價風險);
-            // 顯式守衛使行為跨 TFM 確定。再建立 MailAddress 以攔位址格式錯(FormatException)。任一錯誤都回明確
+            // 在「文件契約 vs 實際 source」有已知落差;顯式守衛使行為不依賴 BCL 細節。
+            // 再建立 MailAddress 以攔位址格式錯(FormatException)。任一錯誤都回明確
             // 設定錯誤訊息,不落到主 try 的通用 catch 被誤標為「未預期的錯誤」,也不與收件人位址解析錯誤混淆。
             string fromAddrCfg = ConfigurationManager.AppSettings["SmtpFromAddress"];
             string fromNameCfg = ConfigurationManager.AppSettings["SmtpFromDisplayName"];

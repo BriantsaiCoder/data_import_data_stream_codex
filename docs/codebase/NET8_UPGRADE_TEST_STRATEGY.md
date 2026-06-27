@@ -1,5 +1,7 @@
 # .NET 8 升級前測試策略（characterization / golden-master）
 
+> ⚠️ **歷史文件**：本檔記錄 net462→net8 遷移前的測試策略與當時決策。A4 後 live stack 已是 single `net8.0-windows`，目前 build/test 指令與測試狀態以 `docs/codebase/STACK.md`、`docs/codebase/TESTING.md`、`DCT_data_import.Tests/README.md` 為準。
+
 > 結論先講：升級 **.NET Framework 4.6.2 → .NET 8** 前，先補一批 characterization 測試，**在 net462 上跑出基準值並釘住**，升級後在 net8 上跑同一批比對——**值有差異 = 回歸**。
 >
 > 本檔是兩份來源合併後的權威清單：

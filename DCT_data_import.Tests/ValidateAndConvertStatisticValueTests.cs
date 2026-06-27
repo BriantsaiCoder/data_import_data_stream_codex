@@ -1,22 +1,18 @@
 using System.Globalization;
 using System.Threading;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace DCT_data_import.Tests
 {
     /// <summary>
-    /// Root cause B(parse)＋C(format)在生產**合成點**的特性化 capture。
+    /// Root cause B(parse)＋C(format)在生產**合成點**的 net8 特性化測試。
     ///
     /// <see cref="FileProcess"/>.<c>ValidateAndConvertStatisticValue</c>(FileProcess.cs:1515)是 B 與 C
     /// 唯一合成處:先以**無 culture 參數**的 <c>double.TryParse(trimmed, out result)</c>(:1527,2-arg
     /// overload → 吃 <see cref="CultureInfo.CurrentCulture"/> 的 <see cref="NumberStyles.Float"/>|
     /// <c>AllowThousands</c>)把字串轉 double(B 腿),回傳值經呼叫端 :260 的 <c>validatedValue.ToString()</c>
-    /// (CurrentCulture)序列化進 SQL literal(C 腿)。原假設 B 腿在 net462 接受 Windows-CRT token
-    /// <c>-1.#IND</c>/<c>1.#QNAN</c>/<c>1.#INF</c>、net8 拒收——**CI golden-master 推翻**:兩框架 B 腿
-    /// 皆拒收這些 token(回 0);B 腿唯一真正翻轉是 <c>1E400</c>(net462 溢位成 +∞ → literal「Infinity」/
-    /// culture「∞」,net8 回 0)。C 腿差異則如預期落地:net462 用 G15、net8 改最短往返(見 capture 的位數
-    /// 漂移)。兩腿差異在此函式合成後一起改變寫進 MySQL 的字面值。
+    /// (CurrentCulture)序列化進 SQL literal(C 腿)。A4 後固定斷言 net8 對 Windows-CRT token、標準
+    /// <c>NaN</c>/<c>Infinity</c>、<c>1E400</c>、locale 數字與 trim/空值分支的合成結果。
     ///
     /// 既有 <see cref="SpecialFloatParseTests"/>(B 孤立腿、Invariant 釘 float-token 維)與
     /// <see cref="DoubleToStringFormatTests"/>(C 孤立腿)各測**單腿**;本檔補的是「合成後的分支」:
@@ -25,20 +21,10 @@ namespace DCT_data_import.Tests
     /// → 寫 <c>C:\temp\…</c>(WriteToLog.cs:29/61),在 CI 屬不必要副作用;故以**鏡像兩條 live 分支 + 生產同款
     /// 2-arg overload** 純 BCL 重現(對齊本suite既有 capture 紀律,零 production 改動)。
     ///
-    /// 全屬 capture-don't-assert(<c>[Trait("Category","CaptureBaseline")]</c>):每列同時印回傳 double 的
-    /// bit pattern(B 腿錨)與 <c>.ToString()</c> 渲染(C 腿 literal),經 <see cref="ITestOutputHelper"/> 印出
-    /// 當 net462 基準、**不硬斷言**;真實值待 CI(windows-latest)capture step 回填。升級 net8 後同檔再跑、
-    /// 逐列 diff = 回歸訊號。綠燈門檻濾除本類(<c>Category!=CaptureBaseline</c>)。
+    /// A4 後專案只保留 net8.0-windows;這裡固定斷言 net8 的合成行為。
     /// </summary>
     public class ValidateAndConvertStatisticValueTests
     {
-        private readonly ITestOutputHelper output;
-
-        public ValidateAndConvertStatisticValueTests(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
         /// <summary>
         /// 鏡像 <c>FileProcess.ValidateAndConvertStatisticValue</c> 的兩條 live 分支
         /// (FileProcess.cs:1520-1533):空白/null → 0、Trim 後 2-arg <c>TryParse</c> 成功回值、否則 0。
@@ -64,8 +50,8 @@ namespace DCT_data_import.Tests
             // B 腿翻轉 token + locale 數字 + trim/空/null/非數字,涵蓋合成函式的每條分支。
             string[] inputs =
             {
-                "-1.#IND", "1.#QNAN", "1.#INF", "-1.#INF", // Windows-CRT 舊 token(capture:兩框架皆拒→0)
-                "NaN", "Infinity", "1E400",                 // NaN/Infinity 兩框架皆收;1E400 僅 net462 溢位成 +∞、net8 拒
+                "-1.#IND", "1.#QNAN", "1.#INF", "-1.#INF", // Windows-CRT 舊 token(net8 拒收→0)
+                "NaN", "Infinity", "1E400",                 // 標準特殊值與溢位字串(net8 CurrentCulture 行為)
                 "1,5", "1.5",                               // locale 小數 / 千分位歧義(culture 敏感)
                 "  3.14  ",                                 // 前後空白(Trim 分支)
                 "", null, "abc",                            // 空 → 0 / null → 0 / 非數字 → 0
@@ -82,8 +68,7 @@ namespace DCT_data_import.Tests
 
         [Theory]
         [MemberData(nameof(InputsAndCultures))]
-        [Trait("Category", "CaptureBaseline")]
-        public void ValidateAndConvert_Synthesis_CaptureNet462Behavior(string input, string culture)
+        public void ValidateAndConvert_Synthesis_ReturnsExpectedNet8Behavior(string input, string culture)
         {
             CultureInfo target = string.IsNullOrEmpty(culture)
                 ? CultureInfo.InvariantCulture
@@ -97,16 +82,51 @@ namespace DCT_data_import.Tests
                 double returned = Mirror(input);           // B 腿:合成後回傳的 double
                 string literal = returned.ToString();      // C 腿:呼叫端 :260 的 CurrentCulture 序列化
 
-                output.WriteLine(
-                    $"input={(input == null ? "<null>" : "\"" + input + "\"")} " +
-                    $"culture=\"{(string.IsNullOrEmpty(culture) ? "Invariant" : culture)}\" " +
-                    $"bits=0x{System.BitConverter.DoubleToInt64Bits(returned):X16} " +
-                    $"literal=\"{literal}\"");
+                (string expectedBits, string expectedLiteral) = Expected(input, culture);
+                Assert.Equal(expectedBits, System.BitConverter.DoubleToInt64Bits(returned).ToString("X16"));
+                Assert.Equal(expectedLiteral, literal);
             }
             finally
             {
                 Thread.CurrentThread.CurrentCulture = original;
             }
+        }
+
+        private static (string Bits, string Literal) Expected(string input, string culture)
+        {
+            if (string.IsNullOrWhiteSpace(input) || input == "-1.#IND" || input == "1.#QNAN"
+                || input == "1.#INF" || input == "-1.#INF" || input == "abc")
+            {
+                return ("0000000000000000", "0");
+            }
+
+            if (input == "NaN")
+            {
+                return string.IsNullOrEmpty(culture) || culture == "en-US"
+                    ? ("FFF8000000000000", "NaN")
+                    : ("0000000000000000", "0");
+            }
+
+            if (input == "Infinity")
+            {
+                return string.IsNullOrEmpty(culture)
+                    ? ("7FF0000000000000", "Infinity")
+                    : ("0000000000000000", "0");
+            }
+
+            if (input == "1E400")
+            {
+                return string.IsNullOrEmpty(culture)
+                    ? ("7FF0000000000000", "Infinity")
+                    : ("7FF0000000000000", "∞");
+            }
+
+            if (input == "1,5")
+                return ("402E000000000000", "15");
+            if (input == "1.5")
+                return ("3FF8000000000000", "1.5");
+
+            return ("40091EB851EB851F", "3.14");
         }
     }
 }

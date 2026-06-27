@@ -10,14 +10,14 @@
 |---|----------|------|----------|------|
 | S1 | **High** | **明文憑證入版控**：`App.config` 內含 DB/FTP 帳密明文，隨 git 提交 | `App.config`（`{Env}User`/`{Env}Password`、FTP ConnectionStrings） | 移出版控，改 secret manager / 環境變數；提供只含 key name 的 `.env.example` |
 | S2 | **High（已修復：A/PR-1 + A/PR-2）** | **SQL injection（全字串串接、零參數化）**：`DbAccess` / `TsmcIeda` / identifier chokepoint / `FileProcess` 批次 INSERT CSV values 已改參數化或跳脫 | 已修：`DbAccess.cs` 4 個 db_key 值站、`TsmcIeda.cs` IEDA INSERT + `DataTable.Select`、`FileProcess.ExecuteInsert` optional parameters/identifier guard、`FileProcess.Import*` 批次 INSERT values、`DatabaseService.CheckDatabaseAndTableExists` value parameters | 保持新 SQL 走 Dapper parameters；`DBmysql.FilterSqlCommand` 僅保留為既有防線，非主要控制 |
-| S3 | **High** | **憑證明文輸出至 Console**：啟動時 `Console.WriteLine` 印出 HOST/USER/PASSWORD | `Program.cs:32-34` | 移除或遮罩；至少不印 PASSWORD |
-| S4 | Medium | **SMTP 無認證 + hardcoded IP**：寄信走匿名 SMTP，IP `10.12.10.31`、寄件者 `CTRD5900@aseglobal.com` 寫死 | `EmailModels.cs:21,44` | 移入設定；評估是否需認證/TLS |
+| S3 | ~~High~~ ✅已修 | **憑證明文輸出至 Console**：PASSWORD 已遮罩為 set/unset，不再印明文 | `Program.cs` | 維持遮罩；新增設定輸出不得洩露 secret |
+| S4 | ~~Medium~~ ✅已修 | **SMTP hardcode**：server/from 已移至 `App.config`；目前仍採內網匿名 relay，為環境決策 | `EmailModels.cs`、`App.config` | 若環境要求，再評估 auth/TLS |
 
 ### 2) Technical Debt
 
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
-| D1 | **High** | **架構文件嚴重脫節**：`專案架構報告.md` 引用多個不存在的檔（`*Refactored.cs`、`DatabaseSchemaDefinitions.cs`、`ConfigurationService.cs`、`ThreadManager.cs`）與錯誤 API 形狀（`ImportResult.IsSuccess`/`.ErrorMessage` vs 實際 `.Result`/`.Message`） | `專案架構報告.md` vs 實際 `ReadAndImport/`、`.csproj`（註解記錄這些檔已移除） | 重寫或刪除該報告；以本 `docs/codebase/` 取代 |
+| D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：root 架構報告 / HTML 已刷新至 S2 與 net8-only 現況 | `專案架構報告.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新 |
 | D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。`Execute_query`/`Execute_query_response` 型別名未改（blast radius 較大,仍為歷史殘留） | `App.config`（現無 API 鍵）、`FileProcess.cs:1337`（`ExecuteInsert`）、git 歷史 | ✅ 完成;型別改名可日後評估 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:40-70` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:40-70` | 清除（git 已留歷史） |
 | D4 | Medium | **TSMC IEDA importer 自走一套**：不經 `FileProcess`，自行組 INSERT + `DataTable.Select` 查詢，與其餘 importer 不一致 | `TsmcIeda.cs:141,225` | 收斂至共用路徑或明確記錄為例外 |
@@ -35,7 +35,7 @@
 
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
-| R1 | **High** | **測試覆蓋率近乎零**：僅 R5 seam（`ComputeImportResult`）有 xUnit 釘樁，importer / `FileProcess` / `CalculateSPC` / FTP / DB 寫入全無測試；CI（`.github/workflows/ci.yml`）只驗 build + 該單一 seam，大面積重構仍無安全網 | TESTING.md、`DCT_data_import.Tests/` | 續為純函式（`CalculateSPC`、`FileContentFormat.Compare*`）補 characterization test 擴大覆蓋 |
+| R1 | Medium | **整合測試仍不足**：已有 `net8.0-windows` xUnit regression/characterization suite，但 importer / FTP / 真 MySQL 寫入仍缺自動化整合測試與 coverage gate | TESTING.md、`DCT_data_import.Tests/` | 續補 parser、`FileContentFormat.Compare*`、`CalculateSPC` 與 controlled DB/FTP smoke |
 | R2 | Medium | **SPC 負號根值無 NaN 防護**：遇 `sum_sq/N - avg² < 0` 只 `Console` 警告「發現根號負值!」，未阻斷 | `Common/CalculateSPC.cs:90` | 加防護/釐清業務預期 |
 | R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、hardcoded `C:\temp` log 路徑 | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:29` | 路徑改設定；跨平台需求才重構 INI |
 | R4 | Low | **log 無 rotation/上限**：每日分檔但無大小限制與清理 | `WriteToLog.cs` | 視磁碟壓力決定是否加 |

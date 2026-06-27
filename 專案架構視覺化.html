@@ -151,7 +151,7 @@
 <!-- ============ NAV ============ -->
 <nav>
   <div style="font-weight:700;font-size:15px;color:var(--txt)">DCT_data_import</div>
-  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.1.1</div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.2.0</div>
   <h2>導覽</h2>
   <a href="#overview">① 系統概觀</a>
   <a href="#stack">② 技術棧</a>
@@ -174,11 +174,11 @@
   <h1>DCT_data_import 專案架構</h1>
   <p class="lead" style="margin-top:8px">半導體 DCT 測試資料自動匯入 MySQL 的常駐背景服務 · 給接手者的一頁式導覽</p>
   <div class="meta">
-    <span class="pill"><b>.NET</b> net462 + net8.0-windows</span>
+    <span class="pill"><b>.NET</b> net8.0-windows</span>
     <span class="pill"><b>資料來源</b> FTP / Local</span>
     <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
     <span class="pill"><b>原始碼</b> 24 檔 / 5 層</span>
-    <span class="pill"><b>對應</b> fix/s2-sql-injection @ e70e94a</span>
+    <span class="pill"><b>對應</b> chore/a4-net8-only</span>
     <span class="pill"><b>更新</b> 2026-06-27</span>
   </div>
   <div class="note" style="margin-top:18px;margin-bottom:0">
@@ -205,7 +205,7 @@
 <section id="stack">
   <h2 class="sec"><span class="num">2</span> 技術棧</h2>
   <div class="grid g3">
-    <div class="card"><h4>Runtime</h4><p>net462 + net8.0-windows · Console (Exe) · 雙 TFM 過渡</p></div>
+    <div class="card"><h4>Runtime</h4><p>net8.0-windows · Console (Exe) · single TFM</p></div>
     <div class="card"><h4>資料存取</h4><p>MySql.Data 9.4.0 + Dapper 2.1.66,Dapper 直連 MySQL + parameters</p></div>
     <div class="card"><h4>專案格式</h4><p>SDK-style csproj + PackageReference;新增 <code>.cs</code> 自動納入</p></div>
   </div>
@@ -213,7 +213,7 @@
     ✅ SDK-style 專案已不需要手動維護 <span class="kbd">&lt;Compile Include&gt;</span>;新增原始碼檔會由 SDK glob 納入。
   </div>
   <div class="note warn">
-    ⚠️ MySql.Data 9.4.0 在 net462 仍會拉進大量 transitive 依賴(Protobuf / ZstdSharp / Bcl.AsyncInterfaces…),舊框架執行期 <code>FileLoadException</code> → 先查輸出 config 的 assemblyBinding redirect。
+    ⚠️ A4 後專案不再保留 net462 fallback;CI 與本機驗證以 single <code>net8.0-windows</code> build/test 為準,production-like smoke 仍需 Windows + MySQL/FTP。
   </div>
 </section>
 
@@ -461,23 +461,24 @@
     <div class="tl-item"><span class="tl-hash">fdf5727</span> RenameFile FTP 加固(Uri + 同主機 + UsePassive/Timeout)</div>
     <div class="tl-item"><span class="tl-hash">56ba5ba</span> EmailModels 寄信前 Ping 主機 IP</div>
     <div class="tl-item"><span class="tl-hash">ff028df</span> WriteToLog UTF-8 BOM 編碼修正(繁中亂碼)</div>
-    <div class="tl-item"><span class="tl-hash">a33e94d</span> 升級至 .NET Framework 4.6.2</div>
+    <div class="tl-item"><span class="tl-hash">A4</span> 砍 net462 / 雙 TFM 腳手架,改 single net8.0-windows</div>
+    <div class="tl-item"><span class="tl-hash">a33e94d</span> 歷史:升級至 .NET Framework 4.6.2</div>
   </div>
 </section>
 
 <!-- ⑪ RISK -->
 <section id="risk">
   <h2 class="sec"><span class="num">11</span> 已知風險與技術債</h2>
-  <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">明文密碼進版控</div><div class="rk-d">Prod DB <code>TID_5910!</code>、FTP <code>5900</code> 都在 App.config。應移至 env / secret manager,只留 .env.example。</div></div></div>
-  <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">啟動時 Console 印出 HOST/USER/PASSWORD 明文</div><div class="rk-d">Program.cs 除錯殘留。</div></div></div>
+  <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">既有 DB/FTP secret 仍在 App.config 入版控</div><div class="rk-d">不得新增或擴大 secret 輸出;新設定值應外部化。</div></div></div>
+  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">啟動輸出需維持 secret 遮罩</div><div class="rk-d">目前 PASSWORD 只印 set/unset;新增輸出不得回退成明文。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">殘餘動態 SQL 組裝需維持 guard</div><div class="rk-d">S2 已將值參數化;FileProcess 仍組 table / columns / placeholders,新增路徑不得繞過 ExecuteInsert。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">無真實 DB transaction</div><div class="rk-d">best-effort cascade DELETE:lots_result 失敗留 orphan;MultiSpec 多 site 失敗 partial import。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">假 async + .GetAwaiter().GetResult() 阻塞</div><div class="rk-d">DB 層宣告 async 但同步阻塞執行,async 只是形式。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">環境靠本機 IP 硬編碼判定</div><div class="rk-d">10.16.92.67/68 → Prod。換機 / 換 IP 即失效。</div></div></div>
-  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">SMTP 主機 IP / 寄件人硬編碼</div><div class="rk-d">EmailModels.cs。搬遷郵件主機須改 code 重編譯。</div></div></div>
+  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">SMTP 仍為內網匿名 relay</div><div class="rk-d">server/from 已在 App.config;auth/TLS 視環境決策。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Thread.Sleep(432000) 註解誤標「2H」(實 7.2 分)</div><div class="rk-d">Program.cs。認知陷阱。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">ui_status 失敗通知被註解停用</div><div class="rk-d">NotificationService.cs。</div></div></div>
-  <div class="note danger">高風險 1–2 仍屬<b>既有設計</b>。SQL 值注入已由 S2 參數化收斂;後續新增 SQL 須沿用 <code>Execute_query.Parameters</code> / <code>ExecuteInsert</code>。</div>
+  <div class="note danger">高風險 1 仍屬<b>既有設計</b>。SQL 值注入已由 S2 參數化收斂;後續新增 SQL 須沿用 <code>Execute_query.Parameters</code> / <code>ExecuteInsert</code>。</div>
 </section>
 
 <!-- ⑫ QUICKSTART -->
@@ -488,13 +489,13 @@
     <div class="card"><h4>2️⃣ 環境判定</h4><p>本機 IP 在 10.16.92.67/68 → Prod,否則 Dev(localhost)。開發機預設走 Dev。</p></div>
     <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/;新增 DB 寫入走 Execute_query.Parameters / ExecuteInsert。</p></div>
     <div class="card"><h4>4️⃣ 動共用檔前</h4><p>WriteToLog / FileProcess / DbAccess 扇入極高,先確認所有呼叫端。</p></div>
-    <div class="card"><h4>5️⃣ FileLoadException</h4><p>net462 查輸出 config 的 assemblyBinding redirect。</p></div>
+    <div class="card"><h4>5️⃣ Build / test</h4><p>single <code>net8.0-windows</code> restore/build/test;runtime smoke 需 Windows + MySQL/FTP。</p></div>
     <div class="card"><h4>6️⃣ Debug 日誌</h4><p><code>C:\temp\DCT_data_import\data_import_logs\</code></p></div>
   </div>
 </section>
 
 <footer>
-  本頁由實際原始碼掃描產生,對應 <code>fix/s2-sql-injection @ e70e94a</code>(2026-06-27)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
+  本頁由實際原始碼掃描產生,對應 <code>chore/a4-net8-only</code>(2026-06-27)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
 </footer>
 
 </main>

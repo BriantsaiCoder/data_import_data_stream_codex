@@ -34,12 +34,12 @@
 - 錯誤策略：每個 importer 以一個大 `try/catch(Exception)` 包住整段流程，catch 內 `WriteToLog.WriteErrorLog(...)` + `Console.WriteLine(...)`，回傳 `ImportResult(code, message)`。`ImportResult.Result` 慣例：`0`=檔案不存在、`1`=成功、`2`=驗證/讀檔失敗、`3`=重複或匯入失敗（`RawData.cs`、`Tester.cs` 等一致）。
 - DB 層錯誤：`DBmysql.Excute_mysql_cmd` 對 `MySqlException` 依錯誤碼補中文說明（`FormatMySqlError`，`DBmysql.cs:245-272`）；`DatabaseService.GetSafeErrorMessage` 只回 `ex.Message`、不含 StackTrace（脫敏，`DatabaseService.cs:126-138`）。
 - Logging 樣式：`{yyyy/MM/dd HH:mm:ss} [INFO|ERROR] {message}`（`WriteToLog.cs:40`）。多執行緒以命名 `Mutex` 保護寫檔，逾時 30 秒（`WriteToLog.cs:37-83,113-145,171-211`）。log 寫到 `C:\temp\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（每日分檔，UTF-8 BOM）。
-- 敏感資料脫敏：**不足**——`Program.cs:32-34` 直接 `Console.WriteLine` 印出 HOST/USER/PASSWORD 明文（見 CONCERNS）。
+- 敏感資料脫敏：啟動輸出已遮罩 PASSWORD，只印 set/unset；`App.config` 仍含既有明文 DB/FTP 設定（見 CONCERNS S1）。
 - 慣例不一致：log 方法混用 `WriteErrorLog` / `WriteToDataImportLog` / `WriteInfoLog` / `WriteToCheckLog`，同類事件在不同 importer 用不同方法（如 `RecoveryRate`/`UiStatus` 偏好 `WriteToDataImportLog`，其餘偏 `WriteErrorLog`）。
 
 ### 5) Testing Conventions
 
-- 測試專案：`DCT_data_import.Tests`（SDK-style net462 xUnit），唯一測試專案，僅釘 R5 純函式 `ComputeImportResult`（1 綠 + 2 by-design RED）；產品碼端主專案仍無測試（見 TESTING.md）。
+- 測試專案：`DCT_data_import.Tests`（SDK-style `net8.0-windows` xUnit），涵蓋 R5、遷移契約與 net8 characterization；仍缺 importer / FTP / DB 整合測試（見 TESTING.md）。
 - Mocking：N/A。
 - Coverage 期望：N/A。
 

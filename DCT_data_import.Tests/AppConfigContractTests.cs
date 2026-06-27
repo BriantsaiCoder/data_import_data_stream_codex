@@ -20,15 +20,12 @@ namespace DCT_data_import.Tests
     /// net8 升級會重生 config(<c>.exe.config</c>→<c>.dll.config</c>),本測試讀「出貨的」config
     /// (主組件旁的 <c>*.config</c>),確保遷移不漏 key。</para>
     ///
-    /// <para>僅 net8 執行:net462 測試 host 會把組件 shadow-copy 到 Fusion 暫存快取
-    /// (<c>...\assembly\dl3\...</c>),<see cref="System.Reflection.Assembly.Location"/> 指向那裡、旁邊沒有 config,
-    /// 在 net462 下會與 shadow-copy 纏鬥而假紅。App.config 內容與 TFM 無關,在遷移目標 net8 驗一次即足夠;
-    /// net462(L1 fallback)的「config 隨 exe 出貨」是沿用多年的既有行為、不受本次遷移影響。</para>
+    /// <para>A4 後專案只保留 net8.0-windows;本測試直接驗主組件旁的出貨 config,
+    /// 確保 App.config 在 SDK-style build 後仍隨產品組件複製。</para>
     ///
     /// 注意:不可寫成直接讀 <c>Program.HOST</c> 的測試——測試行程載入的是 <c>DCT_data_import.Tests.dll.config</c>
     /// (不含這些 key),那樣會假紅。本測試刻意讀主組件旁的 config 檔。
     /// </summary>
-#if NET8_0_OR_GREATER
     public class AppConfigContractTests
     {
         // 鏡射 Program.cs:19-26 的讀取;Environment 執行期決定,故 Dev/Prod 兩組都要在
@@ -45,7 +42,6 @@ namespace DCT_data_import.Tests
 
             XDocument doc = XDocument.Load(configPath);
 
-            // net462(.NET Standard 2.0)無 Enumerable.ToHashSet();HashSet<T>(IEnumerable<T>) 建構式雙 TFM 皆有。
             HashSet<string> appKeys = new HashSet<string>(doc
                 .Descendants("appSettings").Elements("add")
                 .Select(e => (string)e.Attribute("key"))
@@ -81,5 +77,4 @@ namespace DCT_data_import.Tests
                 Environment.NewLine + string.Join(Environment.NewLine, missing));
         }
     }
-#endif
 }

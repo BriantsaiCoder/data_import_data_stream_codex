@@ -4,54 +4,55 @@
 
 ## 這是什麼
 
-C# **.NET Framework 4.6.2** Console App（`OutputType=Exe`），長駐輪詢式多執行緒 ETL：3 條 `Thread`（Tester / UiStatus / TSMC 模式）週期性輪詢 MySQL `db_key` 旗標表 → 從 FTP 拉 CSV（big5）→ 解析驗證 → 串接 SQL INSERT 寫回 MySQL → 依結果寄信/搬檔。入口 `DCT_data_import/Program.cs:27`。
+C# **.NET 8 (`net8.0-windows`)** Console App（`OutputType=Exe`），長駐輪詢式多執行緒 ETL：3 條 `Thread`（Tester / UiStatus / TSMC 模式）週期性輪詢 MySQL `db_key` 旗標表 → 從 FTP 或 Local 來源取得 big5 CSV → 解析驗證 → 以 Dapper parameters 寫回 MySQL → 依結果寄信/搬檔。入口 `DCT_data_import/Program.cs`。
 
-詳見 [docs/codebase/ARCHITECTURE.md](docs/codebase/ARCHITECTURE.md)。
+詳見 [docs/codebase/ARCHITECTURE.md](docs/codebase/ARCHITECTURE.md) 與 [專案架構報告.md](專案架構報告.md)。
 
 ## Build / Run / Test
 
-> ⚠️ **執行期 Windows-only**（`kernel32.dll` P/Invoke、hardcoded `C:\temp` log、FtpWebRequest/FTP、MySQL — 這些編譯得過、只在非 Windows 執行時失敗）。**但編譯可跨平台**：net462 缺的只是參考組件，本機已實測主專案在 macOS 以 `dotnet build` + `FrameworkPathOverride`→Mono `4.6.2-api` **零錯誤編譯**（跨平台替代：`Microsoft.NETFramework.ReferenceAssemblies` 套件）。下列 PowerShell 為 Windows 標準全流程（含實跑 exe / 測試）；mac 僅供編譯驗證，實跑與 net462 測試以 Windows / Mono 為準。
+> ⚠️ **執行期 Windows-oriented**：`kernel32.dll` P/Invoke、hardcoded `C:\temp` log、FTP、MySQL 連線等需要 Windows/實際環境才能做 production-like smoke。macOS/Linux 可作 `dotnet build` / `dotnet test` evidence，但不等於完整 runtime 驗證。
 
 ```powershell
-nuget restore DCT_data_import.sln                          # packages.config 模式,dotnet restore 不還原它
-msbuild DCT_data_import.sln /p:Configuration=Release       # VS Developer Command Prompt
-DCT_data_import\bin\Release\DCT_data_import.exe            # 產物 console exe
-
-dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj   # 唯一測試:R5 回歸樁(見下)
+dotnet restore DCT_data_import.sln
+dotnet build DCT_data_import.sln --configuration Release --no-restore
+dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build
+dotnet publish DCT_data_import\DCT_data_import.csproj --configuration Release --runtime win-x64 --self-contained true
+DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 ```
 
-- 主專案用 `packages.config`（舊式），測試專案用 PackageReference（SDK-style）— 兩者共存於同一 `.sln`，`dotnet test` 不還原 packages.config，需先 VS / `nuget restore`。
-- 無 linter / formatter 設定；CI 為 GitHub Actions（`.github/workflows/ci.yml`，build + test，runner windows-latest）。觀察到的格式：**4 空格縮排、Allman 大括號、`using` 置頂**。
+- 主專案與測試專案皆為 SDK-style PackageReference。
+- CI 為 GitHub Actions（`.github/workflows/ci.yml`，windows-latest，restore + NuGetAudit + build + test）。
+- 無 linter / formatter 設定；觀察到的格式：**4 空格縮排、Allman 大括號、`using` 置頂**。
 
 ## 關鍵約束（踩雷點）
 
-1. **絕不把憑證印到 Console / log**。`App.config` 內含明文 DB/FTP 帳密（已在版控,屬已知債 CONCERNS S1），`Program.cs:32-34` 現況會印出 HOST/USER/PASSWORD 明文（S3）— 改動該區時不要擴大洩露，最好遮罩。新增設定一律 key name 進範例、值走外部。
+1. **絕不把憑證印到 Console / log**。`App.config` 內含既有 DB/FTP 帳密，屬已知債 S1。`Program.cs` 目前只印 PASSWORD set/unset，不印明文；新增或修改設定輸出時要維持遮罩。
 2. **`ImportResult.Result` 回傳碼語意固定**：`0`=檔案不存在、`1`=成功、`2`=驗證/讀檔失敗、`3`=重複或匯入失敗。各 importer 一致，動其中之一要同步全部理解。
-3. **CheckStatus 加權和（R5,~~High~~ 已修復 2026-06-27）**：`DbAccess.ComputeImportResult` = `8*recoveryRate + 4*tester + 2*testResult + failPin`，原假設各分量只回 0/1、實際回 0/1/2/3 → 任一回 2/3 會溢位污染高位 bit → 誤判失敗+寄信。**已修復**：依用戶規格在 `ComputeImportResult`（`DbAccess.cs:160`）把各分量正規化為 `Result == 1 ? 1 : 0`（成功才設位；**非 `Math.Min(x,1)`**——後者會把失敗碼 2/3 當成功）。3 條 `CheckStatusWeightedSumTests._R5` 回歸樁鎖定此修法（含一條擋 `Math.Min` 誤修）、已重納 CI 綠燈門檻；回退會轉紅擋下。碰這塊前先讀 [CONCERNS.md R5](docs/codebase/CONCERNS.md) 與測試 README。
-4. **SQL 全字串串接、零參數化**（S2）：`FileProcess` / `DbAccess` / `TsmcIeda` 直接把外部值拼進 SQL。沿用既有風格時務必意識到 injection 風險；新寫 SQL 優先參數化（Dapper 已支援具名參數）。
-5. **狀態機在 DB 不在程式**：`db_key` 表的 `check_status`(bitmask) / `import_status` / `mail` 欄位驅動「待處理/已匯入/待寄信」，非程式內狀態。
+3. **CheckStatus 加權和（R5，已修復）**：`DbAccess.ComputeImportResult` = `8*recoveryRate + 4*tester + 2*testResult + failPin`，分量必須先正規化為 `Result == 1 ? 1 : 0`。不可改成 `Math.Min(x,1)`，那會把失敗碼 `2/3` 當成功。
+4. **新增 SQL 必須走 Dapper parameters / identifier guard**。S2 已完成 `DbAccess` / `TsmcIeda` / `FileProcess` 批次 INSERT 參數化；不要回到手動拼接外部值。`DBmysql.FilterSqlCommand` 只是殘留防線，不是主要安全控制。
+5. **狀態機在 DB 不在程式**：`db_key` 表的 `check_status` / `import_status` / `mail` 欄位驅動「待處理/已匯入/待寄信」，非程式內狀態。
 
 ## 慣例與風險
 
-- 沿用既有檔風格（縮排/命名/註解）；註解以**繁中為主**（夾雜少量簡體）。命名：檔/類/方法 PascalCase、區域變數 camelCase（常沿用型別名）、靜態全域設定全大寫、DB 物件 snake_case。
-- **namespace 與資料夾不對齊**（根層類別常掛 `DCT_data_import` 而非 `DCT_data_import.FileAccess`）— 既有現象，勿順手「修正」。
-- `async` 方法全被 `.GetAwaiter().GetResult()` 同步呼叫（fake async）；現代化非本專案目標，維運沿用。
+- 沿用既有檔風格；註解以繁中為主。
+- **namespace 與資料夾不對齊**是既有現象，勿順手「修正」。
+- `async` 方法多被 `.GetAwaiter().GetResult()` 同步呼叫；現代化非本專案目標，維運沿用。
 - 完整風險清單見 [docs/codebase/CONCERNS.md](docs/codebase/CONCERNS.md)。
 
 ## 文件地圖
 
 | 檔 | 內容 |
 |----|------|
-| `docs/codebase/*.md` | 七檔工程文件（STACK/STRUCTURE/ARCHITECTURE/CONVENTIONS/INTEGRATIONS/TESTING/CONCERNS），每條附 file:line evidence — **權威來源** |
-| `docs/codebase/NET8_UPGRADE_TEST_STRATEGY.md` | .NET 8 升級前 characterization/golden-master 測試策略（10 節 + 附錄 A/B；四大 root cause、capture-don't-assert 紀律、seam 機制、優先級骨架） |
-| `專案架構報告.md` | 架構報告 v2.0.0（已對齊實際程式碼） |
+| `docs/codebase/*.md` | 七檔工程文件（STACK/STRUCTURE/ARCHITECTURE/CONVENTIONS/INTEGRATIONS/TESTING/CONCERNS） |
+| `docs/codebase/NET8_UPGRADE_TEST_STRATEGY.md` | 歷史 migration 測試策略，描述 net462→net8 過程，不是 live stack 權威 |
+| `docs/net8-migration/REMAINING-WORK.md` | net8 遷移收尾 backlog 與 A1-A4 狀態 |
+| `專案架構報告.md` | 架構報告 |
 | `專案架構視覺化.html` | self-contained 互動視覺化 |
-| `DCT_data_import.Tests/README.md` | R5 回歸樁說明（含「故意紅燈」提醒） |
+| `DCT_data_import.Tests/README.md` | 測試說明 |
 
 ## AI 協作守則
 
-- **.NET Framework 維運**：沿用既有風格，**不主動現代化**（不擅自把 fake async 改真 async、不重排 namespace、不改既有 SQL 串接風格除非任務要求）。
+- **.NET 8 維運**：沿用既有風格，**不主動現代化**（不擅自把 fake async 改真 async、不重排 namespace、不改既有 SQL 路徑除非任務要求）。
 - 改高扇入共用檔（`FileProcess` / `DbAccess` / `ImportData` 基底）前先列依賴方。
-- 修 bug 先寫 failing regression test 再修（R5 已示範此模式）。
+- 修 bug 先寫或確認 failing regression test，再修；若沒有可測 seam，要回報替代驗證。
 - 改動 `docs/codebase/` 對應的程式碼時同步更新文件，doc rot 視同 bug。
-- 個人 .NET 慣例可另以 `@~/.claude/rules/dotnet.md` 本機 import（非committed 依賴）。

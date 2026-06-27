@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a .NET Framework 4.6.2 console ETL app for DCT data import.
+This repository contains a .NET 8 (`net8.0-windows`) console ETL app for DCT data import.
 
 - `DCT_data_import/`: main application source.
 - `DCT_data_import/Program.cs`: process entry point and thread orchestration.
@@ -10,21 +10,22 @@ This repository contains a .NET Framework 4.6.2 console ETL app for DCT data imp
 - `DCT_data_import/FileAccess/`: CSV format contracts, file handling, and DB insert bridge.
 - `DCT_data_import/DbApi/` and `DCT_data_import/MySQL_api/`: database access and Dapper/MySQL execution.
 - `DCT_data_import/Common/`: logging, notification, SPC, and shared models.
-- `DCT_data_import.Tests/`: xUnit regression tests and test notes.
+- `DCT_data_import.Tests/`: xUnit regression and characterization tests.
 - `docs/codebase/`: architecture, stack, testing, integration, convention, and risk documentation.
 
 ## Build, Test, and Development Commands
 
-Use Windows or a Visual Studio Developer Command Prompt for the full workflow.
+Use Windows for production-like runtime verification. The solution can build and run tests with the .NET 8 SDK.
 
 ```powershell
-nuget restore DCT_data_import.sln
-msbuild DCT_data_import.sln /p:Configuration=Release /m
-DCT_data_import\bin\Release\DCT_data_import.exe
-dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category!=ByDesignRed"
+dotnet restore DCT_data_import.sln
+dotnet build DCT_data_import.sln --configuration Release --no-restore
+dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build
+dotnet publish DCT_data_import\DCT_data_import.csproj --configuration Release --runtime win-x64 --self-contained true
+DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 ```
 
-`nuget restore` is required because the main project uses `packages.config`. The test project is SDK-style `net462`, but CI still builds on `windows-latest`.
+CI runs on `windows-latest` and uses the same restore/build/test flow. The app still depends on Windows runtime behavior (`kernel32.dll` INI P/Invoke, `C:\temp` logs, FTP/MySQL environment access), so macOS/Linux checks are build/test evidence only.
 
 ## Coding Style & Naming Conventions
 
@@ -38,7 +39,7 @@ For bug fixes, trace the shared flow and callers before editing. Fix the root ca
 
 ## Testing Guidelines
 
-Tests use xUnit in `DCT_data_import.Tests/`. Name tests by behavior, for example `ComputeImportResult_MatchesBitmask_WhenComponentsAreZeroOrOne`. Two R5 pinning tests are intentionally marked `[Trait("Category", "ByDesignRed")]`; exclude them for normal green CI runs and read `DCT_data_import.Tests/README.md` before changing that contract.
+Tests use xUnit in `DCT_data_import.Tests/` and target `net8.0-windows`. Name tests by behavior, for example `ComputeImportResult_MatchesBitmask_WhenComponentsAreZeroOrOne`. The former migration capture tests now assert net8 behavior directly; normal CI runs the full suite without `ByDesignRed` or `CaptureBaseline` filters.
 
 ## Commit & Pull Request Guidelines
 

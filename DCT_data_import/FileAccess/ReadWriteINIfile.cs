@@ -264,13 +264,8 @@ namespace DCT_data_import
         /// <returns>是否為 Windows 平台</returns>
         public static bool IsWindowsPlatform()
         {
-#if NET8_0_OR_GREATER
             // net8.0-windows 啟用 CA1416 平台相容性分析器,只認 OperatingSystem.IsWindows() 當 kernel32 守衛。
-            // OperatingSystem.IsWindows() 為 .NET 5+ API,net462 無,故以 #if 隔離(雙 TFM 腳手架,P1-8 砍 net462 後收為無條件)。
             return OperatingSystem.IsWindows();
-#else
-            return Environment.OSVersion.Platform == PlatformID.Win32NT;
-#endif
         }
     }
 }

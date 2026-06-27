@@ -5,10 +5,10 @@ namespace DCT_data_import.Tests
 {
     /// <summary>
     /// 特性化(characterization)測試:釘住 <see cref="ImportDecision"/> 的 check_status bitmask 分派判斷,
-    /// 作為 net8 升級前的行為基準。
+    /// 作為 net8 維運時的行為基準。
     ///
-    /// 這些判斷是純整數 bitmask、框架不變(net462 與 net8 同值),屬升級安全網中的「不變量回歸樁」:
-    /// 升級或重構期間若有人「順手整理」這些條件而改變語意,本測試即轉紅。
+    /// 這些判斷是純整數 bitmask,屬「不變量回歸樁」:
+    /// 若有人「順手整理」這些條件而改變語意,本測試即轉紅。
     ///
     /// 判斷抽自 <c>Program.ImportTesterMode</c>(Program.cs:405/423/453/471)的外層 check_status 條件,
     /// 與原 inline 判斷逐字相同。check_status 為 4-bit bitmask(0..15):
