@@ -258,6 +258,12 @@ paket-files/
 # CodeRush
 .cr/
 
+# Understand Anything generated graph/cache
+.understand-anything/
+
+# CodeGraph local index/cache
+.codegraph/
+
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
