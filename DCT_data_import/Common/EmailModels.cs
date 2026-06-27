@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net;
+using System.Linq;
 using System.Net.Mail;
 using System.Net.NetworkInformation;
 using System.Text;
@@ -25,6 +26,17 @@ namespace DCT_data_import
             {
                 SendResult = "DryRun: email send skipped";
                 return true;
+            }
+            // 收件人清單為部署設定(INI mail_to);null(未設定)/空/全為空白皆屬設定錯誤。先濾掉空白項:
+            // 部分 caller(Program.cs 的 legacy SendMailModel)只做 Split(',') 未過濾,mail_to=","/",," 會
+            // 產生含空字串的 list(Count>0),不濾會在下方 mailObj.To.Add("") 丟例外、落到主 try 的 catch 被誤標。
+            // 在 Ping 前以濾後清單明確攔下並回明確訊息(對齊 S4 設定錯誤模式),也省去無收件人時的無謂連網。
+            List<string> toRecipients = ToList?.Where(addr => !string.IsNullOrWhiteSpace(addr)).ToList();
+            if (toRecipients == null || toRecipients.Count == 0)
+            {
+                SendResult = "收件人清單為空(dct_import_mail_list.ini mail_list/mail_to)";
+                Console.WriteLine($"[EmailModels] {SendResult}");
+                return false;
             }
             // SMTP 伺服器位址外部化至 App.config(S4);TryParse 在 try 外,未設定/格式錯都回 false
             // (不丟未捕捉例外 crash 輪詢執行緒;null 亦回 false),行為對齊下方「Connect email server fail」失敗路徑。
@@ -82,25 +94,32 @@ namespace DCT_data_import
                     mailObj.Body = Body;
                     //設定寄件人(已於上方守衛預先驗證,見 fromAddress)
                     mailObj.From = fromAddress;
-                    //設定to名單
-                    for (int i = 0; i < ToList.Count; i++)
+                    //設定to名單(已於上方守衛濾除空白項,見 toRecipients)
+                    for (int i = 0; i < toRecipients.Count; i++)
                     {
-                        mailObj.To.Add(ToList[i]);
+                        mailObj.To.Add(toRecipients[i]);
                     }
-                    //設定cc名單
+                    //設定cc名單(逐項濾空白:cc 屬 optional,空/全空白即不設定;未過濾的 caller(Program.cs
+                    //SendMailModel)mail_cc 含空字串時,CC.Add("") 會丟 ArgumentException 讓整封信失敗)
                     if (CCList != null)
                     {
                         for (int i = 0; i < CCList.Count; i++)
                         {
-                            mailObj.CC.Add(CCList[i]);
+                            if (!string.IsNullOrWhiteSpace(CCList[i]))
+                            {
+                                mailObj.CC.Add(CCList[i]);
+                            }
                         }
                     }
-                    //設定bcc名單
+                    //設定bcc名單(同 cc:逐項濾空白,空/全空白即不設定,不讓 Bcc.Add("") 丟例外)
                     if (BccList != null)
                     {
                         for (int i = 0; i < BccList.Count; i++)
                         {
-                            mailObj.Bcc.Add(BccList[i]);
+                            if (!string.IsNullOrWhiteSpace(BccList[i]))
+                            {
+                                mailObj.Bcc.Add(BccList[i]);
+                            }
                         }
                     }
                     //設定夾檔
