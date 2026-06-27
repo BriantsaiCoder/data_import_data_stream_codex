@@ -37,5 +37,15 @@ jobs:
       - name: Test (綠燈門檻:排除 by-design RED 與 CaptureBaseline)
         run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category!=ByDesignRed&Category!=CaptureBaseline" --logger "console;verbosity=normal"
 
-      - name: Capture net462 baseline (遷移敏感特性化,emit-only 不影響綠燈)
-        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category=CaptureBaseline" --logger "console;verbosity=detailed"
+      # golden-master 逐值 diff(P1-8):同一套 CaptureBaseline 測試在 net462 / net8.0-windows 各跑一次、
+      # 各產一份 capture log,再由 golden_master_diff.py 逐列比對。容忍清單(Family A double.ToString 位數 ×4、
+      # Family B "1E400" 溢位 ×4)與 DateTimeParser 的 Now fallback 非決定性列在 diff 時排除;殘餘任何差異 = 回歸 → exit 1。
+      # 兩步以 -f 明確指定單一 TFM(取代原先不帶 -f 的合併 capture);--no-build 沿用前面 Build step 的雙 TFM 產物。
+      - name: Capture net462 baseline (CaptureBaseline,逐值 diff 左腿)
+        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj -f net462 --configuration Release --no-build --filter "Category=CaptureBaseline" --logger "console;verbosity=detailed" > net462-capture.log
+
+      - name: Capture net8 baseline (CaptureBaseline,逐值 diff 右腿)
+        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj -f net8.0-windows --configuration Release --no-build --filter "Category=CaptureBaseline" --logger "console;verbosity=detailed" > net8-capture.log
+
+      - name: Golden-master fail-on-diff (net462 ↔ net8,排除 8 條良性 divergence + Now fallback)
+        run: python .github/scripts/golden_master_diff.py net462-capture.log net8-capture.log
