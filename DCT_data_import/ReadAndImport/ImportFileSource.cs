@@ -128,6 +128,19 @@ namespace DCT_data_import.ReadAndImport
             _environment = environment;
         }
 
+        // ponytail: HttpClient does not support FTP; replace this chokepoint when adopting a dedicated FTP library.
+#pragma warning disable SYSLIB0014
+        private static FtpWebRequest CreateFtpRequest(string path)
+        {
+            return (FtpWebRequest)WebRequest.Create(path);
+        }
+
+        private static FtpWebRequest CreateFtpRequest(Uri uri)
+        {
+            return (FtpWebRequest)WebRequest.Create(uri);
+        }
+#pragma warning restore SYSLIB0014
+
         public string GetPath(string relativePath)
         {
             string basePath = _environment == "Dev" ? "/DCT_Log/DCT_DB_DATA_Dev/" : "/DCT_Log/DCT_DB_DATA/";
@@ -139,7 +152,7 @@ namespace DCT_data_import.ReadAndImport
             FtpWebResponse response = null;
             try
             {
-                FtpWebRequest request = (FtpWebRequest)WebRequest.Create(path);
+                FtpWebRequest request = CreateFtpRequest(path);
                 request.Credentials = new NetworkCredential(_ftpUser, _ftpPassword);
                 request.Method = WebRequestMethods.Ftp.GetFileSize;
                 response = (FtpWebResponse)request.GetResponse();
@@ -164,7 +177,7 @@ namespace DCT_data_import.ReadAndImport
         public List<string> ListFiles(string directoryPath, string filePattern)
         {
             var matchingFiles = new List<string>();
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(directoryPath);
+            FtpWebRequest request = CreateFtpRequest(directoryPath);
             request.Credentials = new NetworkCredential(_ftpUser, _ftpPassword);
             request.Method = WebRequestMethods.Ftp.ListDirectory;
             using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
@@ -185,7 +198,7 @@ namespace DCT_data_import.ReadAndImport
 
         public Stream OpenRead(string path)
         {
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(new Uri(path));
+            FtpWebRequest request = CreateFtpRequest(new Uri(path));
             request.Credentials = new NetworkCredential(_ftpUser, _ftpPassword);
             FtpWebResponse response = (FtpWebResponse)request.GetResponse();
             return new FtpResponseStream(response);
@@ -193,7 +206,7 @@ namespace DCT_data_import.ReadAndImport
 
         public long GetLength(string path)
         {
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(path);
+            FtpWebRequest request = CreateFtpRequest(path);
             request.Method = WebRequestMethods.Ftp.GetFileSize;
             request.Credentials = new NetworkCredential(_ftpUser, _ftpPassword);
             using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
@@ -209,7 +222,7 @@ namespace DCT_data_import.ReadAndImport
                 return "DryRun: FTP DeleteFile skipped";
             }
 
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(path);
+            FtpWebRequest request = CreateFtpRequest(path);
             request.Method = WebRequestMethods.Ftp.DeleteFile;
             request.Credentials = new NetworkCredential(_ftpUser, _ftpPassword);
             using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
@@ -227,7 +240,7 @@ namespace DCT_data_import.ReadAndImport
 
             var srcUri = new Uri(path, UriKind.Absolute);
             var dstUri = new Uri(errorPath, UriKind.Absolute);
-            var request = (FtpWebRequest)WebRequest.Create(srcUri);
+            var request = CreateFtpRequest(srcUri);
             request.Method = WebRequestMethods.Ftp.Rename;
             request.Credentials = new NetworkCredential(_ftpUser, _ftpPassword);
             request.UsePassive = true;
