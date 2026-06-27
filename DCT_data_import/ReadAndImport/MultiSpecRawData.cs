@@ -105,10 +105,6 @@ namespace DCT_data_import.ReadAndImport
         }
         public async Task<ImportResult> ReadAndImportMultiSpecRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            FtpWebRequest reqFTP;
-            FtpWebResponse response;
-            Stream responseStream;
-            StreamReader reader;
             WriteToLog writeToLog = new WriteToLog();
             bool compareResult = false;
             CalculateSPC calculateSPC = new CalculateSPC();
@@ -142,7 +138,7 @@ namespace DCT_data_import.ReadAndImport
                     string filename = result.FileNames[i];
                     string errorPath = result.ErrorPaths[i];
                     Console.WriteLine("資料庫已存在此資料: MultiSpec Raw data 比對: " + compareResult + "   檔名:" + filename);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                 }
                 return new ImportResult(3, "The same DB_Key exists in the database.");
             }
@@ -163,17 +159,10 @@ namespace DCT_data_import.ReadAndImport
                 try
                 {
                     bool import_result = false;
-                    // 取得編碼格式
-                    reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
-                    reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
-                    response = (FtpWebResponse)reqFTP.GetResponse();
-                    responseStream = response.GetResponseStream();
-                    reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                    long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    long fileSize = GetFileLength(ftpFilePath);
                     stopWatch.Reset();
                     stopWatch.Start();
-                    RawDataContentFormat rawDataContentFormat = FileReadRawData(reader);
-                    reader.Close();
+                    RawDataContentFormat rawDataContentFormat = ReadBig5File(ftpFilePath, FileReadRawData);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -181,34 +170,34 @@ namespace DCT_data_import.ReadAndImport
                     {
                         Console.WriteLine("MultiSpec Raw data Error:  " + rawDataContentFormat.ErrMsg);
                         writeToLog.WriteErrorLog("MultiSpec Raw data Error: " + rawDataContentFormat.ErrMsg);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(2, rawDataContentFormat.ErrMsg);
                     }
                     if (rawDataContentFormat == null || rawDataContentFormat.LotInfo.Rows.Count < 1)
                     {
                         Console.WriteLine("MultiSpec Raw data 讀檔失敗:  " + filename);
                         writeToLog.WriteErrorLog("MultiSpec Raw data 讀檔失敗: " + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(2, "File content is missing. " + rawDataContentFormat.ErrMsg);
                     }
                     if (!rawDataContentFormat.CompareInfo())
                     {
                         Console.WriteLine("MultiSpec Raw data 之 information 欄位名稱不符:  " + filename);
                         writeToLog.WriteErrorLog("MultiSpec Raw data 之 information 欄位名稱不符:" + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(2, "Information field name not match.");
                     }
                     if (!rawDataContentFormat.CompareStatistic())
                     {
                         Console.WriteLine("MultiSpec Raw data 之 statistic 欄位名稱不符:  " + filename);
                         writeToLog.WriteErrorLog("MultiSpec Raw data 之 statistic 欄位名稱不符:" + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(2, "Statistic field name not match.");
                     }
                     if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
                     {
                         writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                     }
                     // 計算均方和
@@ -232,17 +221,13 @@ namespace DCT_data_import.ReadAndImport
                     {
                         Console.WriteLine("匯入完成! MultiSpec Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
-                        deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
-                        reader.Close();
-                        response.Close();
+                        deleteStatus = CompleteSuccess(ftpFilePath);
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: MultiSpec Raw data " + filename);
                         writeToLog.WriteErrorLog("匯入失敗:" + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                        reader.Close();
-                        response.Close();
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(3, "Import failed.");
                     }
                 }
@@ -250,7 +235,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     writeToLog.WriteErrorLog($"RawData MultiSpec 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
                     Console.WriteLine($"RawData MultiSpec 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "Exception error occurred during import.");
                 }
                 finally

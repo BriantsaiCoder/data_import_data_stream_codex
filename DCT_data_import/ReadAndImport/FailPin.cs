@@ -14,10 +14,6 @@ namespace DCT_data_import.ReadAndImport
     {
         public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
-            FtpWebRequest reqFTP;
-            FtpWebResponse response;
-            Stream responseStream;
-            StreamReader reader;
             bool import_result = false, isDBKeyExist = false;
             WriteToLog writeToLog = new WriteToLog();
             string deleteStatus;
@@ -33,23 +29,17 @@ namespace DCT_data_import.ReadAndImport
             try
             {
                 // 檢查FTP是否有此檔案
-                bool isFileExist = CheckIfFileExistsOnServer(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                bool isFileExist = FileExists(ftpFilePath);
                 if (!isFileExist)
                 {
                     Console.WriteLine("Fail Pin Log File not found:  " + filename);
                     writeToLog.WriteErrorLog("Fail Pin Log File not found: " + ftpFilePath);
                     return new ImportResult(0, "File not found.");
                 }
-                reqFTP = (FtpWebRequest)WebRequest.Create(new Uri(ftpFilePath));
-                reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
-                response = (FtpWebResponse)reqFTP.GetResponse();
-                responseStream = response.GetResponseStream();
-                reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-                long fileSize = GetFileSize(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
+                long fileSize = GetFileLength(ftpFilePath);
                 stopWatch.Reset();
                 stopWatch.Start();
-                FailPinLogContentFormat failPinLogContent = FileReadFailPinLog(reader);
-                reader.Close();
+                FailPinLogContentFormat failPinLogContent = ReadBig5File(ftpFilePath, FileReadFailPinLog);
                 stopWatch.Stop();
                 ts2 = stopWatch.Elapsed;
                 readTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -62,21 +52,21 @@ namespace DCT_data_import.ReadAndImport
                 {
                     Console.WriteLine("Fail Pin Log 讀取失敗:  " + filename);
                     writeToLog.WriteErrorLog("Fail Pin Log 讀取失敗: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "File content is missing. ");
                 }
                 if (!failPinLogContent.CompareInfo())
                 {
                     Console.WriteLine("Fail Pin Log 之 information 欄位名稱不符:  " + filename);
                     writeToLog.WriteErrorLog("Fail Pin Log 之 information 欄位名稱不符: " + ftpFilePath);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "Information field name not match.");
                 }
                 isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);
-                    RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                    MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
                 else
@@ -98,17 +88,13 @@ namespace DCT_data_import.ReadAndImport
                     {
                         Console.WriteLine("匯入完成! Fail Pin      檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除完成的CSV檔案
-                        deleteStatus = DeleteFile(ftpFilePath, Program.FTP_USER, Program.FTP_PASSWORD);
-                        reader.Close();
-                        response.Close();
+                        deleteStatus = CompleteSuccess(ftpFilePath);
                     }
                     else
                     {
                         Console.WriteLine("匯入失敗: Fail Pin " + filename);
                         writeToLog.WriteErrorLog("匯入失敗:" + ftpFilePath);
-                        RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
-                        reader.Close();
-                        response.Close();
+                        MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(3, "Import failed.");
                     }
                 }
@@ -117,7 +103,7 @@ namespace DCT_data_import.ReadAndImport
             {
                 Console.WriteLine(ex.Message);
                 writeToLog.WriteErrorLog(ex.Message);
-                RenameFile(ftpFilePath, errorPath, Program.FTP_USER, Program.FTP_PASSWORD);
+                MoveToError(ftpFilePath, errorPath);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
             GC.Collect();
