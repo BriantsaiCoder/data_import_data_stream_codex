@@ -14,6 +14,14 @@
     <AutoGenerateBindingRedirects Condition="'$(TargetFramework)' == 'net462'">true</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
+  <!-- cutover self-contained 發佈 target RID(複數 RuntimeIdentifiers,僅供 restore 提示用)。
+       刻意不設 RuntimeIdentifier(單數)/SelfContained:那會改變 dotnet build 預設行為、
+       可能擾動 golden-master 與 net462 路徑。實際自包含產物由 cutover runbook 的 dotnet publish
+       顯式帶 RID + self-contained 旗標產生(見 docs/net8-migration/phase-1-migration.md Rollback L2)。 -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
   <!-- 兩框架共用的執行期相依 -->
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
