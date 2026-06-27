@@ -30,6 +30,12 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration R
 
 Follow existing C# style: 4-space indentation, Allman braces, `using` directives at the top, PascalCase for types/methods/files, and camelCase for locals. Do not reorganize namespaces just to match folders; this repo intentionally contains legacy namespace drift. Keep comments short and useful, preferably matching the surrounding Traditional Chinese documentation style.
 
+## Implementation Discipline
+
+Prefer the smallest correct change that follows existing project patterns. Before adding new code, check whether the repo already has a helper, pattern, or installed dependency that covers the need. Avoid speculative abstractions, new dependencies, boilerplate, and unrelated refactors.
+
+For bug fixes, trace the shared flow and callers before editing. Fix the root cause at the common point when feasible, and add the smallest relevant regression test or verification that would fail if the issue returns.
+
 ## Testing Guidelines
 
 Tests use xUnit in `DCT_data_import.Tests/`. Name tests by behavior, for example `ComputeImportResult_MatchesBitmask_WhenComponentsAreZeroOrOne`. Two R5 pinning tests are intentionally marked `[Trait("Category", "ByDesignRed")]`; exclude them for normal green CI runs and read `DCT_data_import.Tests/README.md` before changing that contract.
