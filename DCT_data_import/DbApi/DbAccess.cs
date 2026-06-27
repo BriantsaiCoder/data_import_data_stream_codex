@@ -159,7 +159,7 @@ namespace DCT_data_import
         /// </remarks>
         public static int ComputeImportResult(int recoveryRate, int tester, int testResult, int failPin)
         {
-            // ponytail: 單點 root-cause guard——分量只認「成功==1」才設位,失敗碼 2/3 與缺席同視為 0。
+            // 單點 root-cause guard——分量只認「成功==1」才設位,失敗碼 2/3 與缺席同視為 0。
             // 用 ==1?1:0 而非 Math.Min(x,1):後者會把失敗碼 2/3 也映成 1、反把失敗當成功(R5 pin #3 鎖定此差異)。
             return 8 * (recoveryRate == 1 ? 1 : 0)
                  + 4 * (tester == 1 ? 1 : 0)

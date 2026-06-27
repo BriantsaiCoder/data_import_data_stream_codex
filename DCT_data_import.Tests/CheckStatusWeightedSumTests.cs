@@ -63,12 +63,17 @@ namespace DCT_data_import.Tests
         [Fact]
         public void ComputeImportResult_FailureCodeContributesNoBit_DistinctFromSuccess_R5()
         {
-            int testResultFailed    = DbAccess.ComputeImportResult(0, 0, 2, 0);
-            int testResultAbsent    = DbAccess.ComputeImportResult(0, 0, 0, 0);
-            int testResultSucceeded = DbAccess.ComputeImportResult(0, 0, 1, 0);
+            int testResultAbsent     = DbAccess.ComputeImportResult(0, 0, 0, 0);
+            int testResultSucceeded  = DbAccess.ComputeImportResult(0, 0, 1, 0);
+            int testResultFailed     = DbAccess.ComputeImportResult(0, 0, 2, 0); // 2=驗證/讀檔失敗
+            int testResultDuplicate  = DbAccess.ComputeImportResult(0, 0, 3, 0); // 3=重複/匯入失敗
 
-            Assert.Equal(testResultAbsent, testResultFailed);        // 失敗碼貢獻 == 未設位(擋下 Math.Min 誤修)
-            Assert.NotEqual(testResultSucceeded, testResultFailed);  // 失敗 != 成功
+            // 兩種失敗碼(2/3)貢獻都必須 == 未設位(擋下把失敗碼映成 1 的 Math.Min 誤修)
+            Assert.Equal(testResultAbsent, testResultFailed);
+            Assert.Equal(testResultAbsent, testResultDuplicate);
+            // 失敗碼 != 成功(成功才設位)
+            Assert.NotEqual(testResultSucceeded, testResultFailed);
+            Assert.NotEqual(testResultSucceeded, testResultDuplicate);
         }
     }
 }
