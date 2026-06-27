@@ -43,9 +43,19 @@ namespace DCT_data_import.Tests
         [MemberData(nameof(RepresentativeDoubles))]
         public void DoubleToString_ReturnsExpectedNet8Format(double value, string expectedBits, string expectedText)
         {
-            Assert.Equal(expectedBits, System.BitConverter.DoubleToInt64Bits(value).ToString("X16"));
-            Assert.Equal(expectedText, value.ToString());
-            Assert.Equal(expectedText, value.ToString(CultureInfo.InvariantCulture));
+            CultureInfo original = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+                Assert.Equal(expectedBits, System.BitConverter.DoubleToInt64Bits(value).ToString("X16"));
+                Assert.Equal(expectedText, value.ToString());
+                Assert.Equal(expectedText, value.ToString(CultureInfo.InvariantCulture));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
         }
     }
 }
