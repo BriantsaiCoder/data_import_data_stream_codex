@@ -17,7 +17,7 @@
 [Program.Main 環境偵測 + 3 執行緒]
    -> [DbAccess.SelectDbKey 撈出 check_status>0 且 import_status=0 的待處理旗標]
    -> [依 CheckStatus bitmask + 各分量旗標決定要跑哪些 importer]
-   -> [ReadAndImport.*：FTP 下載 CSV(big5) -> FileContentFormat 欄位驗證 -> 解析成 DataTable]
+   -> [ReadAndImport.*：IImportFileSource 讀取 FTP/Local CSV(big5) -> FileContentFormat 欄位驗證 -> 解析成 DataTable]
    -> [FileProcess.Import*：DataTable -> Dapper 參數化 INSERT(分批) -> DatabaseService.ExecuteSqlAsync]
    -> [DBmysql：MySqlConnection + Dapper Query/Execute(parameters)，結果轉 JArray]
    -> [DbAccess.UpdateDbKeyImportStatus：比對 importResult==check_status 設 import_status=1/2，失敗寫 mail_temp]
@@ -27,7 +27,7 @@
 4–6 步 file-backed 說明：
 1. `Program.cs:18` 偵測環境 → 由 `App.config` 取 DB 連線；`Main` 啟動三模式執行緒並監督重啟。
 2. `DbApi/DbAccess.cs:69-150` `SelectDbKey(mode)`：以 `SELECT ... WHERE check_status>0 AND import_status=0 AND mail=0` 取得待匯入清單。
-3. importer（如 `ReadAndImport/RawData.cs:16`）依 `ImportData.GetFilePath()`（`ReadAndImport/ImportData.cs:274`）組 FTP 路徑、下載、以 `Encoding.GetEncoding("big5")` 解析。
+3. importer（如 `ReadAndImport/RawData.cs:16`）依 `ImportData.GetFilePath()`（`ReadAndImport/ImportData.cs:274`）組相對路徑，透過 `ImportFileSourceFactory` 選擇 FTP 或 Local 來源，再以 `Encoding.GetEncoding("big5")` 解析。
 4. `FileContentFormat`（`FileAccess/FileContentFormat.cs`）的 `CompareInfo()`/`CompareStatistic()` 等做欄位名驗證後，importer 把資料填入 `DataTable`。
 5. `FileProcess.Import*`（`FileAccess/FileProcess.cs:81-1357`）把 `DataTable` 轉為 INSERT placeholders + `DynamicParameters`，呼叫 `FileProcess.ExecuteInsert`（`:1376`）→ `DatabaseService.ExecuteSqlAsync`（`DbApi/DatabaseService.cs:18`）→ `DBmysql.Excute_mysql_cmd`（`MySQL_api/DBmysql.cs:51`）。
 6. `DbAccess.UpdateDbKeyImportStatus`（`DbApi/DbAccess.cs:163-247`）比對 `importResult == check_status`，相符設 `import_status=1`，否則 `import_status=2` + `mail=1` 並 `WriteToMailTemp`。
@@ -37,7 +37,7 @@
 | Layer or module | Owns | Must not own | Evidence |
 |-----------------|------|--------------|----------|
 | `Program.cs` | 環境偵測、執行緒監督、依 bitmask 派工 | 解析、SQL | `Program.cs:15-26` |
-| `ReadAndImport/*` | FTP 下載、格式驗證、解析、清理、回傳 `ImportResult` | 連線字串、Dapper | `ReadAndImport/RawData.cs:16`、`ImportData.cs:274` |
+| `ReadAndImport/*` | FTP/Local 來源讀取、格式驗證、解析、清理、回傳 `ImportResult` | 連線字串、Dapper | `ReadAndImport/RawData.cs:16`、`ImportData.cs:274`、`ImportFileSource.cs:78` |
 | `FileAccess/FileProcess.cs` | DataTable→參數化 INSERT、分批、級聯刪除 | FTP 存取 | `FileProcess.cs:81-1660` |
 | `FileAccess/FileContentFormat.cs` | 6 種 CSV 欄位契約 + 驗證 | DB / FTP | `FileContentFormat.cs:6,79,138,204,233,277` |
 | `DbApi/DatabaseService.cs` | 連線參數驗證、執行 SQL、DB/table 存在性檢查 | 業務語意 | `DatabaseService.cs:18,62,95` |

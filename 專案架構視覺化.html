@@ -151,7 +151,7 @@
 <!-- ============ NAV ============ -->
 <nav>
   <div style="font-weight:700;font-size:15px;color:var(--txt)">DCT_data_import</div>
-  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.1.0</div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.1.1</div>
   <h2>導覽</h2>
   <a href="#overview">① 系統概觀</a>
   <a href="#stack">② 技術棧</a>
@@ -175,6 +175,7 @@
   <p class="lead" style="margin-top:8px">半導體 DCT 測試資料自動匯入 MySQL 的常駐背景服務 · 給接手者的一頁式導覽</p>
   <div class="meta">
     <span class="pill"><b>.NET</b> net462 + net8.0-windows</span>
+    <span class="pill"><b>資料來源</b> FTP / Local</span>
     <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
     <span class="pill"><b>原始碼</b> 24 檔 / 5 層</span>
     <span class="pill"><b>對應</b> fix/s2-sql-injection @ e70e94a</span>
@@ -188,12 +189,15 @@
 <!-- ① OVERVIEW -->
 <section id="overview">
   <h2 class="sec"><span class="num">1</span> 系統概觀</h2>
-  <p>一支長時間運行的背景服務,把半導體 <b>DCT(Direct Circuit Test)</b>測試結果檔從 FTP 自動匯入 MySQL。啟動後進入<b>無限迴圈</b>,常駐三條工作執行緒,每約 <b>7.2 分鐘</b>輪詢一次待匯入資料。</p>
+  <p>一支長時間運行的背景服務,把半導體 <b>DCT(Direct Circuit Test)</b>測試結果檔從 FTP 或 LocalImportRoot 自動匯入 MySQL。啟動後進入<b>無限迴圈</b>,常駐三條工作執行緒,每約 <b>7.2 分鐘</b>輪詢一次待匯入資料。</p>
   <div class="grid g4" style="margin-top:14px">
-    <div class="card"><h4>🎯 核心目的</h4><p>FTP 測試檔 → 解析 → 驗證 → 批次寫入 MySQL</p></div>
+    <div class="card"><h4>🎯 核心目的</h4><p>FTP / Local 測試檔 → 解析 → 驗證 → 批次寫入 MySQL</p></div>
     <div class="card"><h4>🔁 運行模式</h4><p>無限迴圈 + 三常駐執行緒(死亡自我復活)</p></div>
     <div class="card"><h4>🚩 完整性判定</h4><p>4-bit <code>check_status</code> 旗標,逐子項加權比對</p></div>
     <div class="card"><h4>📧 失敗處置</h4><p>回寫 <code>mail=1</code> + 下輪重做 + 寄通知信</p></div>
+  </div>
+  <div class="note" style="margin-top:14px">
+    資料來源由 <code>ImportSource</code> 決定:預設 FTP;<code>Local</code> 時從 <code>LocalImportRoot</code> 讀同一套相對路徑,成功後 Delete 或 Archive。
   </div>
 </section>
 
@@ -266,7 +270,7 @@
 <section id="flow">
   <h2 class="sec"><span class="num">4</span> 資料流</h2>
   <div class="pipe">
-    <div class="pstep"><div class="ic">📡</div><h4>FTP 抓檔</h4><p>big5 編碼<br>Dev/Prod 不同根目錄</p></div>
+    <div class="pstep"><div class="ic">📡</div><h4>取得檔案</h4><p>FTP 或 Local<br>big5 編碼</p></div>
     <div class="arrow">→</div>
     <div class="pstep"><div class="ic">🔍</div><h4>解析</h4><p>依格式選處理器<br>CSV / 固定寬度</p></div>
     <div class="arrow">→</div>

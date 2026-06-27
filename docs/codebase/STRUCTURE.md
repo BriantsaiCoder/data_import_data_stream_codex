@@ -9,7 +9,7 @@
 | `DCT_data_import.sln` | Visual Studio 方案檔（單一專案） | `DCT_data_import.sln` |
 | `DCT_data_import/` | 主專案根目錄 | `.csproj` 位置 |
 | `DCT_data_import/Program.cs` | 程式進入點；環境偵測 + 3 執行緒監督迴圈 | `Program.cs:15,27` |
-| `DCT_data_import/ReadAndImport/` | 各資料格式 importer（業務邏輯層） | `ReadAndImport/*.cs`（7 個 importer + `ImportData` 基底） |
+| `DCT_data_import/ReadAndImport/` | 各資料格式 importer 與 FTP/Local 檔案來源抽象 | `ReadAndImport/*.cs`（7 個 importer + `ImportData` / `ImportFileSource`） |
 | `DCT_data_import/FileAccess/` | 檔案↔DB 橋接、CSV 格式契約、INI 讀寫 | `FileAccess/FileProcess.cs`、`FileContentFormat.cs`、`ReadWriteINIfile.cs` |
 | `DCT_data_import/DbApi/` | DB 服務介面與資料物件 | `DbApi/DatabaseService.cs`、`DbAccess.cs`、`DbObject.cs` |
 | `DCT_data_import/MySQL_api/` | MySQL 直連與 SQL 執行（Dapper） | `MySQL_api/DBmysql.cs` |
