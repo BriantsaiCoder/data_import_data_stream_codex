@@ -43,6 +43,23 @@ namespace DCT_data_import
                     return false;
                 }
             }
+            // 寄件人外部化至 App.config(S4)。net462 無 MailAddress.TryParse,故以小範圍 try 預先建立並驗證,
+            // 與上方伺服器位址守衛對稱:位址 null/空/格式錯、顯示名 null/空都回一致的明確設定錯誤訊息,
+            // 不落到主 try 的通用 catch 被誤標為「未預期的錯誤」,也避免與收件人位址解析錯誤混淆。
+            MailAddress fromAddress;
+            try
+            {
+                fromAddress = new MailAddress(
+                    ConfigurationManager.AppSettings["SmtpFromAddress"],
+                    ConfigurationManager.AppSettings["SmtpFromDisplayName"],
+                    Encoding.UTF8);
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is FormatException)
+            {
+                SendResult = "寄件人設定未設定或格式錯誤(App.config SmtpFromAddress / SmtpFromDisplayName)";
+                Console.WriteLine($"[EmailModels] 寄件人設定錯誤: {ex.Message}");
+                return false;
+            }
             try
             {
                 using (MailMessage mailObj = new MailMessage())
