@@ -20,16 +20,29 @@
 
 ---
 
+## 後續已合併（PR #6–#9，**不要重做**）
+
+| 項 | 證據 |
+|---|---|
+| **B / R5** check_status 加權和溢位修（`ComputeImportResult` 正規化 `Result == 1 ? 1 : 0`） | PR #6 `0a3ab92` |
+| **A0** cutover 前置：RID/SelfContained、CI net8 capture + golden-master fail-on-diff（`golden_master_diff.py`）、rollback runbook L2/L3、dct.sql 影子 schema wiring | PR #7 `11305eb` |
+| **C / S4** SMTP IP/sender → App.config（ConfigurationManager TryParse 雙 TFM） | PR #8 `7e6d6ba` |
+| **NI-3** 收件人空清單回明確設定錯誤 | PR #9 `f15eb8e` |
+
+> A0 註：「golden-master 期望值固化成 committed const」子項由**跨 TFM 即時逐值 diff gate** 取代（net462↔net8 capture + `golden_master_diff.py`，殘餘差異 exit 1），不再需要固化常數；rollback runbook 的「乾演練一次」併入 A1（需環境）。
+
+---
+
 ## Stream A — Cutover 收尾（受治理序列，**需 Windows runtime**）
 
 > 這是把服務真正切到 net8 上線、再砍 net462 的序列。**強治理**：A4（砍 TFM + 文件同步）刻意延後到 cutover 後穩定觀察期，在此之前 net462 是 L1 rollback。**不要提早做 A4。**
 
-### A0 — Cutover 前置（**可現在開始，不需 Windows**）
-- [ ] **self-contained publish 設定**（critic gap）：把 `RuntimeIdentifier=win-x64` / `SelfContained` / `.pubxml` 落 commit，讓 cutover step 6 有可重現的發佈產物。目前散在 runbook 文字、未進版控。
-- [ ] **CI net8 capture + fail-on-diff（P1-1b）**：`ci.yml` 目前只有 net462 capture（emit-only）。補 net8 端 capture step + 跨框架逐列比對、有差異就 fail，讓 golden-master 變成 CI 自動守護而非一次性人工判定。
-- [ ] **golden-master 期望值固化**：capture 測試現為 emit-only，把 net462 基準值寫成 committed Assert 常數（搭配 A0 的 CI 比對）。
-- [ ] **rollback runbook L2/L3 撰寫 + 演練一次**：L2＝產物資料夾切換（app_net8\ ↔ net462）、L3＝DB snapshot/binlog 還原。runbook 在 [phase-1-migration.md:333-345] 有骨架，需補可執行步驟並乾跑一次。
-- [ ] **shadow schema init 接 dct.sql**（critic gap）：`DCT_data_import/sql/dct.sql`（commit `90c05d6`，db_key/db_key_ui_status DDL）目前沒被任何 runbook 引用。把它接進影子環境 schema 初始化步驟並記錄。
+### A0 — Cutover 前置 ✅ **已完成（PR #7 `11305eb`，不需 Windows）**
+- [x] **self-contained publish**：csproj `RuntimeIdentifier=win-x64` / `SelfContained`（取代散落 runbook 文字）。
+- [x] **CI net8 capture + fail-on-diff（P1-1b）**：`golden_master_diff.py` + `ci.yml:44-51` 雙 TFM capture、殘餘差異 exit 1，golden-master 已成 CI 自動守護。
+- [~] **golden-master 期望值固化**：**由上方跨 TFM 即時 diff gate 取代**，不再需要固化 committed const。
+- [x] **rollback runbook L2/L3**：[phase-1-migration.md] 已補可執行步驟（「乾演練一次」併入 A1，需環境）。
+- [x] **shadow schema init 接 dct.sql**：[phase-1-migration.md:449] step 5 已引 `sql/dct.sql` 建影子 schema。
 
 ### A1 — Q4 dry-run 影子驗證（**需 Windows + 非 prod 環境 + 與 net462 prod 平行資料**）
 - [ ] 影子跑 **≥1 個完整營運週期**（Tester / UiStatus / TSMC 三條 thread 都至少輪一圈），全程 DryRun=true，DB 留 snapshot/binlog。
@@ -58,11 +71,11 @@
 
 ---
 
-## Stream C — 安全債（S2/S4；S1 維持不動、S3 已完成；**可獨立並行**）
+## Stream C — 安全債（**僅剩 S2**；S4 已完成 PR #8、S1 維持不動、S3 已完成）
 
-- ~~**S1**：App.config 明文 DB/FTP 帳密~~ → **用戶決定（2026-06-27）：維持不動**，既有已知債明確不處理。**不得新增/擴大/搬移**該段帳密（連 env var 化也不做）。Stream C 範圍縮為 S2 + S4。
-- [ ] **S2（HIGH）**：SQL 全字串串接零參數化（`FileProcess`/`DbAccess`/`TsmcIeda`）→ 改參數化（Dapper 具名參數）。**高扇入共用檔，動前先 `deps-check`**。沿用既有風格、新寫 SQL 優先參數化。
-- [ ] **S4（MEDIUM）**：SMTP 無驗證 + hardcoded IP `10.12.10.31` / sender `CTRD5900@aseglobal.com` → 移到 config、評估 auth/TLS。（注意：SMTP 無密碼，不涉 App.config 帳密，與 S1 決定不衝突。）
+- ~~**S1**：App.config 明文 DB/FTP 帳密~~ → **用戶決定（2026-06-27）：維持不動**，既有已知債明確不處理。**不得新增/擴大/搬移**該段帳密（連 env var 化也不做）。
+- [ ] **S2（HIGH，唯一待動主線）**：SQL 全字串串接零參數化（`FileProcess`/`DbAccess`/`TsmcIeda`）→ 改參數化（Dapper 具名參數）。**高扇入共用檔，動前先 `deps-check`**。沿用既有風格、新寫 SQL 優先參數化。完整計畫見 [S2-SQL-PARAMETERIZATION-PLAN.md](S2-SQL-PARAMETERIZATION-PLAN.md)、交接見 [HANDOFF-S2.md](HANDOFF-S2.md)。
+- [x] ~~**S4（MEDIUM）**~~ → **✅ 已完成 PR #8 `7e6d6ba`**：SMTP IP/sender 已移到 App.config（ConfigurationManager TryParse 雙 TFM）；內網 relay 暫不需 auth/TLS、理由已記錄。
 
 ---
 
@@ -97,6 +110,7 @@
 
 > 規劃紀律：每項先用 **ponytail 階梯**（要不要存在 → 重用既有 → stdlib/native → 既裝依賴 → 一行 → 才到最小新 code）取最高可行 rung，蓄意簡化標 `ponytail:` 註記。
 > **不可偷懶區（最小改動不得鬆綁）**：修 bug 先寫 failing regression test；高風險（auth/migration/security）附 rollback；SQL 參數化（injection）；改高扇入共用檔前 `deps-check`；部署前 `*-release-verification` + `dependency-security-scan`。
+> **完成狀態以上方各 Stream 章節 + 「後續已合併」為準**（A0 / B / S4 已合併）；本表為當初「兩案」決策的理由存檔，非 live 清單。仍待動的只有 **C / S2**。
 
 | 項 | 最小改動案（建議預設 ★ 多在此） | 原始設計案 | 建議 + trade-off |
 |---|---|---|---|
