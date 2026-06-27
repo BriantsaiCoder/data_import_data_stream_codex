@@ -42,5 +42,20 @@ namespace DCT_data_import.Tests
             Assert.Contains("收件人", model.SendResult);
             Assert.DoesNotContain("未預期", model.SendResult);
         }
+
+        [Fact]
+        public void SendEmail_WhenToListAllBlank_ReturnsConfigError_WithoutNetwork()
+        {
+            RuntimeMode.SetDryRunOverrideForTests(false);
+
+            // Program.cs 的 legacy caller 只做 Split(',') 未過濾,mail_to=","/",," 會得到含空字串
+            // 的 list(Count>0);守衛須把全空白視為無收件人,否則空位址送到 SmtpClient.To.Add 會丟例外。
+            var model = new EmailModels { Subject = "t", Body = "b", ToList = new List<string> { "", "  " } };
+            bool ok = model.SendEmail();
+
+            Assert.False(ok, "收件人全為空白應回 false");
+            Assert.Contains("收件人", model.SendResult);
+            Assert.DoesNotContain("未預期", model.SendResult);
+        }
     }
 }

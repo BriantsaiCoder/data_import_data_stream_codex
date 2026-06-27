@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net;
+using System.Linq;
 using System.Net.Mail;
 using System.Net.NetworkInformation;
 using System.Text;
@@ -26,10 +27,12 @@ namespace DCT_data_import
                 SendResult = "DryRun: email send skipped";
                 return true;
             }
-            // 收件人清單為部署設定(INI mail_to);為 null(mail_to 未設定)或空(只含逗號被濾光)皆屬設定錯誤。
-            // 在 Ping 前明確攔下並回明確訊息(對齊 S4 設定錯誤模式),不落到下方主 try 的通用 catch 被誤標
-            // 「未預期的錯誤」(null 會在 ToList.Count 丟 NullReferenceException),也省去無收件人時的無謂連網。
-            if (ToList == null || ToList.Count == 0)
+            // 收件人清單為部署設定(INI mail_to);null(未設定)/空/全為空白皆屬設定錯誤。先濾掉空白項:
+            // 部分 caller(Program.cs 的 legacy SendMailModel)只做 Split(',') 未過濾,mail_to=","/",," 會
+            // 產生含空字串的 list(Count>0),不濾會在下方 mailObj.To.Add("") 丟例外、落到主 try 的 catch 被誤標。
+            // 在 Ping 前以濾後清單明確攔下並回明確訊息(對齊 S4 設定錯誤模式),也省去無收件人時的無謂連網。
+            List<string> toRecipients = ToList?.Where(addr => !string.IsNullOrWhiteSpace(addr)).ToList();
+            if (toRecipients == null || toRecipients.Count == 0)
             {
                 SendResult = "收件人清單為空(dct_import_mail_list.ini mail_list/mail_to)";
                 Console.WriteLine($"[EmailModels] {SendResult}");
@@ -91,10 +94,10 @@ namespace DCT_data_import
                     mailObj.Body = Body;
                     //設定寄件人(已於上方守衛預先驗證,見 fromAddress)
                     mailObj.From = fromAddress;
-                    //設定to名單
-                    for (int i = 0; i < ToList.Count; i++)
+                    //設定to名單(已於上方守衛濾除空白項,見 toRecipients)
+                    for (int i = 0; i < toRecipients.Count; i++)
                     {
-                        mailObj.To.Add(ToList[i]);
+                        mailObj.To.Add(toRecipients[i]);
                     }
                     //設定cc名單
                     if (CCList != null)
