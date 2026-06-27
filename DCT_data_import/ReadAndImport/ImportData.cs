@@ -21,12 +21,12 @@ namespace DCT_data_import.ReadAndImport
         internal IImportFileSource FileSource => _fileSource ?? (_fileSource = ImportFileSourceFactory.Create());
 
         /// <summary>
-        /// 在FTP目錄中搜尋符合模式的檔案
+        /// 在目前檔案來源目錄中搜尋符合模式的檔案
         /// </summary>
-        /// <param name="ftpDirectoryPath">FTP目錄路徑</param>
+        /// <param name="ftpDirectoryPath">來源目錄路徑，可能是 FTP URL 或 Local 路徑</param>
         /// <param name="filePattern">檔案名稱模式</param>
-        /// <param name="ftpUser">FTP使用者</param>
-        /// <param name="ftpPassword">FTP密碼</param>
+        /// <param name="ftpUser">保留相容性，實際認證由檔案來源設定處理</param>
+        /// <param name="ftpPassword">保留相容性，實際認證由檔案來源設定處理</param>
         /// <returns>符合模式的檔案名稱列表</returns>
         protected List<string> SearchFilesInFtpDirectory(string ftpDirectoryPath, string filePattern, string ftpUser, string ftpPassword)
         {
