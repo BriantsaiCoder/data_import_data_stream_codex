@@ -1,12 +1,7 @@
 name: CI
 
-# .NET Framework 4.6.2(SDK-style, PackageReference) console + SDK-style net462 xUnit 測試專案。
-# P1-1 起主專案改 SDK-style + PackageReference,故全鏈改用 dotnet(restore/build/test),不再需 nuget+msbuild。
-#   build-only 的 Microsoft.NETFramework.ReferenceAssemblies 提供 net462 參考組件,windows-latest 無須裝 targeting pack。
-# R5 的 2 條測試是 by-design RED(釘住未修的加權和 bug),以 Category!=ByDesignRed 排除,避免 CI 假紅。
-# CaptureBaseline 為 net8 升級前的「遷移敏感」特性化測試(big5/特殊浮點/double→string/DateTime 漂移):
-#   只印 net462 實跑值當基準、不硬斷言,亦從綠燈門檻排除,改由專屬 capture step 以 detailed logger 收集。
-# 本 workflow 由無 Windows 環境的開發機撰寫,需於 GitHub Actions(windows-latest)實跑驗證 build + test 綠燈。
+# net8.0-windows console + SDK-style xUnit 測試專案。
+# 全鏈使用 dotnet restore/build/test；runner 維持 windows-latest 以覆蓋 Windows-only runtime 相依。
 
 on:
   push:
@@ -25,8 +20,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # 依賴 CVE 阻擋 gate:SDK 內建 NuGetAudit(零新依賴)。Mode=all 連 transitive 一起查
-      # (net8/net462 預設僅 direct);只 moderate+(NU1902/1903/1904)視為 error 阻擋、low(NU1901)留警示、
+      # 依賴 CVE 阻擋 gate:SDK 內建 NuGetAudit(零新依賴)。Mode=all 連 transitive 一起查；
+      # 只 moderate+(NU1902/1903/1904)視為 error 阻擋、low(NU1901)留警示、
       # NU1900/1905(來源/DB 不可達)不阻擋免暫時性誤紅;不適用的 advisory 以 csproj <NuGetAuditSuppress Include="url"/>+理由放行。
       - name: Restore (含 NuGetAudit 依賴 CVE 阻擋 gate)
         run: dotnet restore DCT_data_import.sln -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=low "-warnaserror:NU1902;NU1903;NU1904"
@@ -34,18 +29,5 @@ jobs:
       - name: Build (Release)
         run: dotnet build DCT_data_import.sln --configuration Release --no-restore
 
-      - name: Test (綠燈門檻:排除 by-design RED 與 CaptureBaseline)
-        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --filter "Category!=ByDesignRed&Category!=CaptureBaseline" --logger "console;verbosity=normal"
-
-      # golden-master 逐值 diff(P1-8):同一套 CaptureBaseline 測試在 net462 / net8.0-windows 各跑一次、
-      # 各產一份 capture log,再由 golden_master_diff.py 逐列比對。容忍清單(Family A double.ToString 位數 ×4、
-      # Family B "1E400" 溢位 ×4)與 DateTimeParser 的 Now fallback 非決定性列在 diff 時排除;殘餘任何差異 = 回歸 → exit 1。
-      # 兩步以 -f 明確指定單一 TFM(取代原先不帶 -f 的合併 capture);--no-build 沿用前面 Build step 的雙 TFM 產物。
-      - name: Capture net462 baseline (CaptureBaseline,逐值 diff 左腿)
-        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj -f net462 --configuration Release --no-build --filter "Category=CaptureBaseline" --logger "console;verbosity=detailed" > net462-capture.log
-
-      - name: Capture net8 baseline (CaptureBaseline,逐值 diff 右腿)
-        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj -f net8.0-windows --configuration Release --no-build --filter "Category=CaptureBaseline" --logger "console;verbosity=detailed" > net8-capture.log
-
-      - name: Golden-master fail-on-diff (net462 ↔ net8,排除 8 條良性 divergence + Now fallback)
-        run: python .github/scripts/golden_master_diff.py net462-capture.log net8-capture.log
+      - name: Test (Release)
+        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"

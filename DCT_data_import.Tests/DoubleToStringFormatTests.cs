@@ -1,11 +1,10 @@
 using System.Globalization;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace DCT_data_import.Tests
 {
     /// <summary>
-    /// Root cause C(double→string 預設格式化規則改變)的特性化 capture。
+    /// Root cause C(double→string 預設格式化規則)的 net8 特性化測試。
     ///
     /// net462 的 <c>double.ToString()</c>(無格式)用 "G15"——最多 15 位有效數字;net8(netcoreapp3.0+)
     /// 改用 IEEE-754「最短可往返(shortest round-trippable)」表示。例:<c>(1.0/3.0).ToString()</c>
@@ -20,46 +19,33 @@ namespace DCT_data_import.Tests
     /// decimal(<c>Math.Round(decimal,9)</c>)→string 屬格式穩定、非本風險點;只有 avg_2
     /// (decimal→double→string)落入 C。
     ///
-    /// 全屬 capture-don't-assert(<c>[Trait("Category","CaptureBaseline")]</c>):印出 net462 實跑字串
-    /// + 不變的 bit pattern(證明底層 double 值兩框架一致、差異純在格式化)當基準,**不硬斷言**;
-    /// 真實值待 CI capture step 回填。綠燈門檻濾除本類。
+    /// A4 後專案只保留 net8.0-windows;這裡固定斷言 net8 格式化語意。
     /// </summary>
     public class DoubleToStringFormatTests
     {
-        private readonly ITestOutputHelper output;
-
-        public DoubleToStringFormatTests(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
         public static System.Collections.Generic.IEnumerable<object[]> RepresentativeDoubles()
         {
             // 涵蓋:無限小數(1/3 系列)、二進位無法精確表示的小數(0.1/0.3)、
             // 經 Math.Round(9) 的值、大整數小數、極大/極小指數、邊界小數。
-            yield return new object[] { 1.0 / 3.0 };
-            yield return new object[] { 2.0 / 3.0 };
-            yield return new object[] { -1.0 / 3.0 };
-            yield return new object[] { 0.1 };
-            yield return new object[] { 0.3 };
-            yield return new object[] { System.Math.Round(1.0 / 3.0, 9) };
-            yield return new object[] { 123456789.123456789 };
-            yield return new object[] { 1e21 };
-            yield return new object[] { 1e-7 };
-            yield return new object[] { 0.0001 };
+            yield return new object[] { 1.0 / 3.0, "3FD5555555555555", "0.3333333333333333" };
+            yield return new object[] { 2.0 / 3.0, "3FE5555555555555", "0.6666666666666666" };
+            yield return new object[] { -1.0 / 3.0, "BFD5555555555555", "-0.3333333333333333" };
+            yield return new object[] { 0.1, "3FB999999999999A", "0.1" };
+            yield return new object[] { 0.3, "3FD3333333333333", "0.3" };
+            yield return new object[] { System.Math.Round(1.0 / 3.0, 9), "3FD5555554F9B516", "0.333333333" };
+            yield return new object[] { 123456789.123456789, "419D6F34547E6B75", "123456789.12345679" };
+            yield return new object[] { 1e21, "444B1AE4D6E2EF50", "1E+21" };
+            yield return new object[] { 1e-7, "3E7AD7F29ABCAF48", "1E-07" };
+            yield return new object[] { 0.0001, "3F1A36E2EB1C432D", "0.0001" };
         }
 
         [Theory]
         [MemberData(nameof(RepresentativeDoubles))]
-        [Trait("Category", "CaptureBaseline")]
-        public void DoubleToString_CaptureNet462Format(double value)
+        public void DoubleToString_ReturnsExpectedNet8Format(double value, string expectedBits, string expectedText)
         {
-            // 預設 ToString()(吃 CurrentCulture,等同 FileProcess 路徑)+ Invariant(排除 culture 雜訊)
-            // + bit pattern(底層值錨,證明差異純在格式化而非數值本身)。
-            output.WriteLine(
-                $"bits=0x{System.BitConverter.DoubleToInt64Bits(value):X16} " +
-                $"default=\"{value.ToString()}\" " +
-                $"invariant=\"{value.ToString(CultureInfo.InvariantCulture)}\"");
+            Assert.Equal(expectedBits, System.BitConverter.DoubleToInt64Bits(value).ToString("X16"));
+            Assert.Equal(expectedText, value.ToString());
+            Assert.Equal(expectedText, value.ToString(CultureInfo.InvariantCulture));
         }
     }
 }

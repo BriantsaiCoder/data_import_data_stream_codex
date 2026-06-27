@@ -1,9 +1,9 @@
 # .NET 8 遷移 — 剩餘開發 backlog
 
-> 產生於 PR #4（commit `4c83125`）squash-merge 進 master 後。本檔是「Phase 1 升級本體結案、但尚未做的事」的權威清單，給後續每一個新 session 接手用。
+> 產生於 PR #4（commit `4c83125`）squash-merge 進 master 後，A4 後已更新為 net8-only 收尾狀態。本檔保留歷史序列與後續 backlog，給後續每一個新 session 接手用。
 > 治理約束見 [memory/net8-upgrade-constraints]、[phase-1-migration.md](phase-1-migration.md)、根目錄 `CLAUDE.md`。
 
-## 已完成（commit #4，**不要重做**）
+## 已完成（commit #4，**歷史紀錄，不要重做**）
 
 | 項 | 證據 |
 |---|---|
@@ -25,47 +25,51 @@
 | 項 | 證據 |
 |---|---|
 | **B / R5** check_status 加權和溢位修（`ComputeImportResult` 正規化 `Result == 1 ? 1 : 0`） | PR #6 `0a3ab92` |
-| **A0** cutover 前置：RID/SelfContained、CI net8 capture + golden-master fail-on-diff（`golden_master_diff.py`）、rollback runbook L2/L3、dct.sql 影子 schema wiring | PR #7 `11305eb` |
+| **A0** cutover 前置：RID/SelfContained、CI net8 capture + golden-master fail-on-diff（A4 後已退場）、rollback runbook L2/L3、dct.sql 影子 schema wiring | PR #7 `11305eb` |
 | **C / S4** SMTP IP/sender → App.config（ConfigurationManager TryParse 雙 TFM） | PR #8 `7e6d6ba` |
 | **NI-3** 收件人空清單回明確設定錯誤 | PR #9 `f15eb8e` |
 
-> A0 註：「golden-master 期望值固化成 committed const」子項由**跨 TFM 即時逐值 diff gate** 取代（net462↔net8 capture + `golden_master_diff.py`，殘餘差異 exit 1），不再需要固化常數；rollback runbook 的「乾演練一次」併入 A1（需環境）。
+> A0 註：「golden-master 期望值固化成 committed const」子項曾由跨 TFM 即時逐值 diff gate 取代；A4 砍掉 net462 後，CI 已改為 single net8 hard assertions，相關 diff 腳本退場。rollback runbook 的「乾演練一次」併入 A1（需環境）。
 
 ---
 
 ## Stream A — Cutover 收尾（受治理序列，**需 Windows runtime**）
 
-> 這是把服務真正切到 net8 上線、再砍 net462 的序列。**強治理**：A4（砍 TFM + 文件同步）刻意延後到 cutover 後穩定觀察期，在此之前 net462 是 L1 rollback。**不要提早做 A4。**
+> 這是把服務真正切到 net8 上線、再砍 net462 的序列。A1-A3 需要 Windows / 非 prod 或 production-like 環境；A4 已於使用者回報 A1-A3 Windows PC pass 後執行。
 
 ### A0 — Cutover 前置 ✅ **已完成（PR #7 `11305eb`，不需 Windows）**
 - [x] **self-contained publish**：csproj `RuntimeIdentifier=win-x64` / `SelfContained`（取代散落 runbook 文字）。
-- [x] **CI net8 capture + fail-on-diff（P1-1b）**：`golden_master_diff.py` + `ci.yml:44-51` 雙 TFM capture、殘餘差異 exit 1，golden-master 已成 CI 自動守護。
+- [x] **CI net8 capture + fail-on-diff（P1-1b，歷史）**：曾以雙 TFM capture + diff gate 守護 cutover；A4 後已退場，CI 改為 single net8 hard assertions。
 - [~] **golden-master 期望值固化**：**由上方跨 TFM 即時 diff gate 取代**，不再需要固化 committed const。
 - [x] **rollback runbook L2/L3**：[phase-1-migration.md] 已補可執行步驟（「乾演練一次」併入 A1，需環境）。
 - [x] **shadow schema init 接 dct.sql**：[phase-1-migration.md:449] step 5 已引 `sql/dct.sql` 建影子 schema。
 
 ### A1 — Q4 dry-run 影子驗證（**需 Windows + 非 prod 環境 + 與 net462 prod 平行資料**）
-- [ ] 影子跑 **≥1 個完整營運週期**（Tester / UiStatus / TSMC 三條 thread 都至少輪一圈），全程 DryRun=true，DB 留 snapshot/binlog。
-- [ ] 觀察 **Family B（1E400 → ±∞ vs net8 解析）overflow** 是否在真實資料出現（golden-master 已 flag、列為影子期 watch 項）。
+- [x] 使用者回報 Windows PC 已順利 pass A1。
+- [x] 影子跑 **≥1 個完整營運週期**（Tester / UiStatus / TSMC 三條 thread 都至少輪一圈），全程 DryRun=true，DB 留 snapshot/binlog。
+- [x] 觀察 **Family B（1E400 / special float）** 是否在真實資料出現。
 
 ### A2 — Production cutover（**需 Windows，blocked on A1 綠燈**）
-- [ ] 停 net462 → publish self-contained net8 → 啟動 → DB snapshot/binlog 留存（cutover step 6，[phase-1-migration.md:353-357]）。
+- [x] 使用者回報 Windows PC 已順利 pass A2。
+- [x] 停 net462 → publish self-contained net8 → 啟動 → DB snapshot/binlog 留存（cutover step 6，[phase-1-migration.md:353-357]）。
 
 ### A3 — Cutover 期人工 smoke（**需真 MySQL/FTP + net8 runtime**）
-- [ ] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-44] 5 個未勾選 checkbox）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
+- [x] 使用者回報 Windows PC 已順利 pass A3。
+- [x] 5 條 P0-5 手動 smoke（[exceptions-and-smoke.md:41-44]）：空 NIC IndexOutOfRange、MySql.Data 9.4.0 DATETIME materialization、FTP 目錄列表解析、big5 CSV 端到端、worker-hang 故障注入。
 
-### A4 — 砍 net462 + 文件同步（**強治理延後：cutover 後穩定觀察期才做**）
-- [ ] csproj 回 single `net8.0-windows`、移除 net462-only 套件（ConfigurationManager 9.x / Unsafe / Tasks.Extensions / ReferenceAssemblies）、清 App.config binding redirects（csproj 內 P1-8 註解標了清理點）。
-- [ ] 移除 source 內 `#if NET8_0_OR_GREATER` / `#if NET462` 腳手架（critic gap）：`Program.cs`、`ReadWriteINIfile.cs`、`EncodingTestBootstrap.cs`。
-- [ ] CaptureBaseline emit-only → 硬斷言（net8 確認穩定後）。
-- [ ] **文件同步**（doc rot 視同 bug）：`docs/codebase/` 七檔（STACK/TESTING 仍寫 net462+nuget+msbuild）+ `CLAUDE.md` + 根 `AGENTS.md`（critic gap：仍宣告 4.6.2/packages.config）+ `專案架構報告.md`（D1：嚴重失準，引用不存在的 *Refactored.cs、錯誤 API）。
+### A4 — 砍 net462 + 文件同步（**本分支執行中/已完成**）
+- [x] csproj 回 single `net8.0-windows`、移除 net462-only 套件（ConfigurationManager 9.x / Unsafe / Tasks.Extensions / ReferenceAssemblies）。`App.config` 已無 binding redirects。
+- [x] 移除 source/test 內 net8/net462 腳手架：`Program.cs`、`ReadWriteINIfile.cs`、`EncodingTestBootstrap.cs`、`AppConfigContractTests.cs`。
+- [x] CaptureBaseline emit-only → net8 硬斷言。
+- [x] 移除未使用的跨 TFM CI diff script。
+- [x] **文件同步**：`docs/codebase/`、`CLAUDE.md`、根 `AGENTS.md`、`DCT_data_import.Tests/README.md`、`專案架構報告.md`、`專案架構視覺化.html`。
 
 ---
 
 ## Stream B — R5 加權和 bug（**✅ 已完成 2026-06-27，`fix/r5-checkstatus`**）
 
 - [x] `DbAccess.ComputeImportResult` 分量正規化:**用戶規格決定（2026-06-27）= `Result == 1 ? 1 : 0`**（成功才設位,失敗碼 2/3 與缺席同視為 0;**明確排除 `Math.Min(x,1)`**——它會把 2/3 映成 1、反把失敗當成功）。單點 root-cause guard,0/1 輸入行為不變、僅修正 ≥2 溢位（`DbAccess.cs:160`）。
-- [x] `CheckStatusWeightedSumTests.cs`:2 條原 `_R5` by-design RED 轉綠 + 新增第 3 條判別測試（`_FailureCodeContributesNoBit_DistinctFromSuccess_R5`，擋 `Math.Min` 誤修）→ 移除 `ByDesignRed` trait → 重納 CI 綠燈門檻。CheckStatus 群 9 綠 / full suite 188 綠。
+- [x] `CheckStatusWeightedSumTests.cs`:2 條原 `_R5` by-design RED 轉綠 + 新增第 3 條判別測試（`_FailureCodeContributesNoBit_DistinctFromSuccess_R5`，擋 `Math.Min` 誤修）→ 移除 `ByDesignRed` trait → 重納 CI 綠燈門檻。A4 前 full suite 已擴至 199 綠。
 - [x] 文件同步:`CONCERNS.md` R5 標記已修復、`docs/codebase/TESTING.md`、`NET8_UPGRADE_TEST_STRATEGY.md`、`DCT_data_import.Tests/README.md`、`CLAUDE.md` 關鍵約束 #3。
 - 待後續品質閘（B PR 收尾）:code-simplifier → dotnet-code-reviewer → backend-release-verification + dependency-security-scan → finishing-a-development-branch（PR squash）。
 
@@ -110,7 +114,7 @@
 
 > 規劃紀律：每項先用 **ponytail 階梯**（要不要存在 → 重用既有 → stdlib/native → 既裝依賴 → 一行 → 才到最小新 code）取最高可行 rung，蓄意簡化標 `ponytail:` 註記。
 > **不可偷懶區（最小改動不得鬆綁）**：修 bug 先寫 failing regression test；高風險（auth/migration/security）附 rollback；SQL 參數化（injection）；改高扇入共用檔前 `deps-check`；部署前 `*-release-verification` + `dependency-security-scan`。
-> **完成狀態以上方各 Stream 章節 + 「後續已合併」為準**（A0 / B / S4 已合併）；本表為當初「兩案」決策的理由存檔，非 live 清單。仍待動的只有 **C / S2**。
+> **完成狀態以上方各 Stream 章節 + 「後續已合併」為準**（A0 / B / S4 / S2 / A1-A4 已完成或使用者回報通過）；本表為當初「兩案」決策的理由存檔，非 live 清單。
 
 | 項 | 最小改動案（建議預設 ★ 多在此） | 原始設計案 | 建議 + trade-off |
 |---|---|---|---|

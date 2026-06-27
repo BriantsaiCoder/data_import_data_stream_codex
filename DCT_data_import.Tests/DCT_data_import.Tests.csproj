@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- 雙 TFM:同一套測試在 net462 / net8.0-windows 各跑一次,產兩份 capture log 直接 diff(golden-master)。 -->
-    <TargetFrameworks>net462;net8.0-windows</TargetFrameworks>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>false</IsPackable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
@@ -16,17 +15,9 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- 提供完整 net462 參考組件(含 System.Runtime facade),讓非 Windows 機器能 dotnet build/compile net462 半;
-       Windows CI(已內含 targeting pack)上為無害冗餘。build-only,不進輸出。net8 半不需。 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <!-- net8 半:Big5DecodeTests 在測試行程直接 GetEncoding("big5"),不經 Program.Main,故測試行程需自行
-       註冊 CodePagesEncodingProvider(見 EncodingTestBootstrap),需此套件;net462 內建 950 不需。 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+  <!-- Big5DecodeTests 在測試行程直接 GetEncoding("big5"),不經 Program.Main,故測試行程需自行
+       註冊 CodePagesEncodingProvider(見 EncodingTestBootstrap)。 -->
+  <ItemGroup>
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
 

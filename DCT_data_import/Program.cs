@@ -26,12 +26,9 @@ namespace DCT_data_import
         public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"].ConnectionString;
         static void Main(string[] args)
         {
-#if NET8_0_OR_GREATER
             // net8 預設編碼 provider 不含 codepage 950(big5);全 importer 的 FTP CSV 都以 big5 解碼。
             // 須在任何 Encoding.GetEncoding("big5") 與 worker thread 啟動前(Main 第一行)註冊一次,否則首次解碼擲例外。
-            // net462 內建 950 不需,整段以 #if 隔離(雙 TFM 腳手架,P1-8 砍 net462 後收為無條件)。
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-#endif
             WriteToLog writeToLog = new WriteToLog();
             try
             {

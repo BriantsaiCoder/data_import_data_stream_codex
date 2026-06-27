@@ -52,7 +52,7 @@ namespace DCT_data_import.Tests
         /// 只列 <c>SecurityException</c>(對照 <c>Thread.Join</c> 明列「thread has not been started」的
         /// ThreadStateException),故對 unstarted thread 呼叫 Interrupt 是 no-op(設 pending interrupt 旗標,
         /// thread 從未 block 故永不觸發),不擲例外 → 一定走到 <c>fresh.Start()</c>。本測試把此契約轉成可執行
-        /// 證據,雙 TFM(net462/net8)CI 皆應綠。</para>
+        /// 證據,net8 CI 應維持綠燈。</para>
         /// </summary>
         [Fact]
         public void RestartWorker_UnstartedThread_StillCreatesAndStartsNewThread()

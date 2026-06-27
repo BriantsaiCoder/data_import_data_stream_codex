@@ -10,7 +10,7 @@
 |---------|------|----------|------|----------|
 | MySQL DB | 主資料儲存（讀 `db_key` 待辦、寫各 import table） | `MySqlConnection` 直連 + Dapper | 帳密來自 `App.config`（`{Env}User`/`{Env}Password`） | `MySQL_api/DBmysql.cs:71`、`Program.cs:19-23` |
 | FTP server | CSV 原始檔來源（下載 + 成功後刪除/改名） | `System.Net.FtpWebRequest`，big5 編碼 | 帳密來自 `App.config` ConnectionStrings | `ReadAndImport/ImportData.cs`（FTP 工具）、`Program.cs:24-26` |
-| SMTP server | 寄送週報/錯誤/缺資料通知 | `SmtpClient`，**hardcoded IP `10.12.10.31`**，**無認證**（無 Credentials/Port/SSL） | 無 | `Common/EmailModels.cs:21,44`、`Common/NotificationService.cs` |
+| SMTP server | 寄送週報/錯誤/缺資料通知 | `SmtpClient`，server/from 由 `App.config` 指定；目前為內網匿名 relay（無 Credentials/Port/SSL） | 無 | `Common/EmailModels.cs`、`App.config`、`Common/NotificationService.cs` |
 | ~~HTTP API（ApiUrl/ApiUser/ApiPassword）~~ | **已移除** — 曾為 DEAD CONFIG（`.cs` 零引用），DB 存取純走直連 MySQL;4 個死鍵已自 `App.config` 刪除 | N/A | git 歷史；現 `App.config` 已無此鍵 |
 
 > 早期透過 Web API 存取的殘留:`ExecuteInsertWithAPI` 方法、API dead config 與「Web API body」誤導註解已清理（改名為 `ExecuteInsert`、刪 dead config 與註解）。`Execute_query`/`Execute_query_response` 型別名仍為歷史殘留（未改名,blast radius 較大），實際走 MySQL 直連（見 ARCHITECTURE/CONCERNS）。
@@ -28,7 +28,7 @@
   - `lot_mapping`（TSMC IEDA 經 `lot_mapping.csv` 快取查詢）
   - Evidence：`FileAccess/FileProcess.cs:81-1336`、`ReadAndImport/TsmcIeda.cs`
 - 連線池：`server=...;Pooling=true;Min Pool Size=5;Max Pool Size=100;...;Charset=utf8mb4;`（`DBmysql.cs` `MySqlConnectionManager.Initialize`）。
-- Migration：[TODO] 無 migration 工具/檔（schema 由外部維護，程式僅 INSERT/SELECT/DELETE）。
+- Migration：無 migration 工具；`DCT_data_import/sql/dct.sql` 可作影子 schema 初始化參考，正式 schema 仍由外部維護。
 - Local file 儲存：
   - log → `C:\temp\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（`WriteToLog.cs:29`）
   - `mail_temp.txt` → exe 目錄
