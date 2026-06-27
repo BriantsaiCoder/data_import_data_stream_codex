@@ -16,8 +16,8 @@
 | `DCT_data_import/Common/` | 共用工具：log、寄信、SPC 統計、email 模型 | `Common/WriteToLog.cs`、`NotificationService.cs`、`EmailModels.cs`、`CalculateSPC.cs` |
 | `DCT_data_import/Properties/AssemblyInfo.cs` | Assembly 中繼資料（版本 `2026.2.5.0`） | `Properties/AssemblyInfo.cs:30` |
 | `DCT_data_import/App.config` | 執行期設定（DB/FTP 連線、binding redirect） | `App.config` |
-| `DCT_data_import/packages.config` | NuGet 套件清單 | `packages.config` |
-| `專案架構報告.md` | 既有架構報告（**已與實際程式碼脫節**，見 CONCERNS） | repo 根目錄 |
+| `DCT_data_import/DCT_data_import.csproj` | SDK-style 雙 TFM + PackageReference 套件清單 | `DCT_data_import.csproj` |
+| `專案架構報告.md` / `專案架構視覺化.html` | 已刷新至 S2 SQL 參數化後的 root 架構導覽 | repo 根目錄 |
 
 ### 2) Entry Points
 

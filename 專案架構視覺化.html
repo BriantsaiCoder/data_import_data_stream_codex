@@ -151,7 +151,7 @@
 <!-- ============ NAV ============ -->
 <nav>
   <div style="font-weight:700;font-size:15px;color:var(--txt)">DCT_data_import</div>
-  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.0.0</div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.1.0</div>
   <h2>導覽</h2>
   <a href="#overview">① 系統概觀</a>
   <a href="#stack">② 技術棧</a>
@@ -174,11 +174,11 @@
   <h1>DCT_data_import 專案架構</h1>
   <p class="lead" style="margin-top:8px">半導體 DCT 測試資料自動匯入 MySQL 的常駐背景服務 · 給接手者的一頁式導覽</p>
   <div class="meta">
-    <span class="pill"><b>.NET Framework</b> 4.6.2 Console</span>
-    <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper 2.1.66</span>
-    <span class="pill"><b>原始碼</b> 21 檔 / 5 層</span>
-    <span class="pill"><b>對應</b> master @ 15621ef</span>
-    <span class="pill"><b>更新</b> 2026-06-26</span>
+    <span class="pill"><b>.NET</b> net462 + net8.0-windows</span>
+    <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
+    <span class="pill"><b>原始碼</b> 24 檔 / 5 層</span>
+    <span class="pill"><b>對應</b> fix/s2-sql-injection @ e70e94a</span>
+    <span class="pill"><b>更新</b> 2026-06-27</span>
   </div>
   <div class="note" style="margin-top:18px;margin-bottom:0">
     📎 本頁為 <a href="專案架構報告.md">專案架構報告.md</a> 的視覺化版本。詳細的 <code>檔案:行</code> 與 commit 佐證請看報告全文。
@@ -201,15 +201,15 @@
 <section id="stack">
   <h2 class="sec"><span class="num">2</span> 技術棧</h2>
   <div class="grid g3">
-    <div class="card"><h4>Runtime</h4><p>.NET Framework 4.6.2 · Console (Exe) · 單一專案 (VS 2017)</p></div>
-    <div class="card"><h4>資料存取</h4><p>MySql.Data 9.4.0 + Dapper 2.1.66,Dapper 直連 MySQL</p></div>
-    <div class="card"><h4>專案格式</h4><p>舊式 non-SDK csproj:顯式 <code>&lt;Compile Include&gt;</code> + packages.config</p></div>
+    <div class="card"><h4>Runtime</h4><p>net462 + net8.0-windows · Console (Exe) · 雙 TFM 過渡</p></div>
+    <div class="card"><h4>資料存取</h4><p>MySql.Data 9.4.0 + Dapper 2.1.66,Dapper 直連 MySQL + parameters</p></div>
+    <div class="card"><h4>專案格式</h4><p>SDK-style csproj + PackageReference;新增 <code>.cs</code> 自動納入</p></div>
+  </div>
+  <div class="note">
+    ✅ SDK-style 專案已不需要手動維護 <span class="kbd">&lt;Compile Include&gt;</span>;新增原始碼檔會由 SDK glob 納入。
   </div>
   <div class="note warn">
-    ⚠️ <b>新增 .cs 檔必須手動加 <span class="kbd">&lt;Compile Include&gt;</span> 到 csproj</b>,否則不會被編譯(舊式專案常見踩坑)。
-  </div>
-  <div class="note warn">
-    ⚠️ MySql.Data 9.4.0 拉進大量 transitive 依賴(Protobuf / ZstdSharp / Bcl.AsyncInterfaces…),靠 <code>App.config</code> 內 <b>50+ 條 assemblyBinding redirect</b> 才能在 net4.6.2 載入。執行期 <code>FileLoadException</code> → 先查 App.config。
+    ⚠️ MySql.Data 9.4.0 在 net462 仍會拉進大量 transitive 依賴(Protobuf / ZstdSharp / Bcl.AsyncInterfaces…),舊框架執行期 <code>FileLoadException</code> → 先查輸出 config 的 assemblyBinding redirect。
   </div>
 </section>
 
@@ -272,7 +272,7 @@
     <div class="arrow">→</div>
     <div class="pstep"><div class="ic">✅</div><h4>驗證</h4><p>Compare* 子集驗證<br>統計異常值清洗</p></div>
     <div class="arrow">→</div>
-    <div class="pstep"><div class="ic">🗄️</div><h4>批次寫入</h4><p>FileProcess<br>SQL 串接+批次切割</p></div>
+    <div class="pstep"><div class="ic">🗄️</div><h4>批次寫入</h4><p>FileProcess<br>Dapper 參數化+批次切割</p></div>
     <div class="arrow">→</div>
     <div class="pstep"><div class="ic">🚩</div><h4>判定 check_status</h4><p>importResult==check_status<br>→ import_status=1</p></div>
   </div>
@@ -396,15 +396,15 @@
     </div>
     <div class="card">
       <h4>DatabaseService.cs <span class="tag" style="background:#d2992233;color:var(--amber)">假async</span></h4>
-      <p><code>ExecuteSqlAsync</code> = Task.Run 包同步。<code>CheckDatabaseAndTableExists</code> 用 INFORMATION_SCHEMA <b>只檢查存在性、不自動建表</b>。</p>
+      <p><code>ExecuteSqlAsync</code> = Task.Run 包同步,並傳遞 <code>Execute_query.Parameters</code>。<code>CheckDatabaseAndTableExists</code> 用 INFORMATION_SCHEMA <b>只檢查存在性、不自動建表</b>。</p>
     </div>
     <div class="card">
       <h4>DBmysql.cs <span class="tag" style="background:#3fb95033;color:var(--green)">0a9c2ae</span></h4>
-      <p>Dapper Query/Execute;<code>FilterSqlCommand</code> regex 過濾雙引號;SELECT→JArray;連線單例 volatile+lock 單次初始化,Pooling Min5/Max100。</p>
+      <p>Dapper Query/Execute + parameters;<code>FilterSqlCommand</code> 為 S2 前殘留防線;SELECT→JArray;連線單例 volatile+lock 單次初始化,Pooling Min5/Max100。</p>
     </div>
     <div class="card">
       <h4>DbObject.cs <span class="tag" style="background:#bc8cff33;color:var(--purple)">回應契約</span></h4>
-      <p><code>Execute_query_response</code> = JArray Data + string Error。<b>錯誤靠 Error 字串非例外</b>,呼叫端須主動檢查。JArray 形狀是 Web API 時代殘留。</p>
+      <p><code>Execute_query</code> = Query + Parameters;<code>Execute_query_response</code> = JArray Data + string Error。<b>錯誤靠 Error 字串非例外</b>,呼叫端須主動檢查。</p>
     </div>
   </div>
   <div class="note">
@@ -444,6 +444,8 @@
   <h2 class="sec"><span class="num">10</span> 變更時間軸</h2>
   <p class="legend"><span><span class="dot" style="background:var(--green)"></span>新能力</span><span><span class="dot" style="background:var(--accent)"></span>修正/基建</span></p>
   <div class="tl" style="margin-top:14px">
+    <div class="tl-item"><span class="tl-hash">e70e94a</span> FileProcess 批次 INSERT 改用 DynamicParameters + identifier guard</div>
+    <div class="tl-item"><span class="tl-hash">df90eee</span> DbAccess / TsmcIeda / DB 執行路徑低風險 SQL 參數化</div>
     <div class="tl-item cap"><span class="tl-hash">15621ef</span> Tester 新增 SWT_result / SWT_response 欄位,兼容新舊 CSV</div>
     <div class="tl-item cap"><span class="tl-hash">e195008</span> FailPin 新增 SN Num 欄位,兼容新舊 CSV</div>
     <div class="tl-item"><span class="tl-hash">0a9c2ae</span> DBmysql 新增雙引號 SQL 過濾</div>
@@ -464,14 +466,14 @@
   <h2 class="sec"><span class="num">11</span> 已知風險與技術債</h2>
   <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">明文密碼進版控</div><div class="rk-d">Prod DB <code>TID_5910!</code>、FTP <code>5900</code> 都在 App.config。應移至 env / secret manager,只留 .env.example。</div></div></div>
   <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">啟動時 Console 印出 HOST/USER/PASSWORD 明文</div><div class="rk-d">Program.cs 除錯殘留。</div></div></div>
-  <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">SQL 全字串串接、無參數化</div><div class="rk-d">FileProcess.cs。FilterSqlCommand 僅部分緩解,非完整防護。</div></div></div>
+  <div class="risk"><span class="lv md">中</span><div><div class="rk-t">殘餘動態 SQL 組裝需維持 guard</div><div class="rk-d">S2 已將值參數化;FileProcess 仍組 table / columns / placeholders,新增路徑不得繞過 ExecuteInsert。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">無真實 DB transaction</div><div class="rk-d">best-effort cascade DELETE:lots_result 失敗留 orphan;MultiSpec 多 site 失敗 partial import。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">假 async + .GetAwaiter().GetResult() 阻塞</div><div class="rk-d">DB 層宣告 async 但同步阻塞執行,async 只是形式。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">環境靠本機 IP 硬編碼判定</div><div class="rk-d">10.16.92.67/68 → Prod。換機 / 換 IP 即失效。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">SMTP 主機 IP / 寄件人硬編碼</div><div class="rk-d">EmailModels.cs。搬遷郵件主機須改 code 重編譯。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Thread.Sleep(432000) 註解誤標「2H」(實 7.2 分)</div><div class="rk-d">Program.cs。認知陷阱。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">ui_status 失敗通知被註解停用</div><div class="rk-d">NotificationService.cs。</div></div></div>
-  <div class="note danger">高風險 1–3 屬<b>既有設計</b>。修改(密碼移 secret manager、SQL 參數化)前須與維運確認,避免改壞線上生產。</div>
+  <div class="note danger">高風險 1–2 仍屬<b>既有設計</b>。SQL 值注入已由 S2 參數化收斂;後續新增 SQL 須沿用 <code>Execute_query.Parameters</code> / <code>ExecuteInsert</code>。</div>
 </section>
 
 <!-- ⑫ QUICKSTART -->
@@ -480,15 +482,15 @@
   <div class="grid g2">
     <div class="card"><h4>1️⃣ 先讀三節</h4><p>三執行緒(⑤)+ CheckStatus(⑦)+ 回滾真相(⑪)是理解系統行為的關鍵。</p></div>
     <div class="card"><h4>2️⃣ 環境判定</h4><p>本機 IP 在 10.16.92.67/68 → Prod,否則 Dev(localhost)。開發機預設走 Dev。</p></div>
-    <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/、<b>手動加 &lt;Compile Include&gt; 到 csproj</b>。</p></div>
+    <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/;新增 DB 寫入走 Execute_query.Parameters / ExecuteInsert。</p></div>
     <div class="card"><h4>4️⃣ 動共用檔前</h4><p>WriteToLog / FileProcess / DbAccess 扇入極高,先確認所有呼叫端。</p></div>
-    <div class="card"><h4>5️⃣ FileLoadException</h4><p>查 App.config 的 assemblyBinding redirect。</p></div>
+    <div class="card"><h4>5️⃣ FileLoadException</h4><p>net462 查輸出 config 的 assemblyBinding redirect。</p></div>
     <div class="card"><h4>6️⃣ Debug 日誌</h4><p><code>C:\temp\DCT_data_import\data_import_logs\</code></p></div>
   </div>
 </section>
 
 <footer>
-  本頁由實際原始碼掃描產生,對應 <code>master @ 15621ef</code>(2026-06-26)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
+  本頁由實際原始碼掃描產生,對應 <code>fix/s2-sql-injection @ e70e94a</code>(2026-06-27)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
 </footer>
 
 </main>
