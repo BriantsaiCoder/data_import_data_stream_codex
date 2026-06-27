@@ -235,7 +235,7 @@ namespace DCT_data_import.ReadAndImport
             // 對於 multiSpecRawdata，返回目錄路徑用於搜尋
             if (fileType == "multiSpecRawdata")
             {
-                return GetSourcePath(pathMap[fileType]);
+                return EnsureTrailingDirectorySeparator(GetSourcePath(pathMap[fileType]));
             }
             return GetSourcePath(pathMap[fileType] + dbKey + ".csv");
         }
@@ -263,7 +263,7 @@ namespace DCT_data_import.ReadAndImport
             // 對於 multiSpecRawdata，返回目錄路徑，因為檔案名稱是動態的
             if (fileType == "multiSpecRawdata")
             {
-                return GetSourcePath(pathMap[fileType]);
+                return EnsureTrailingDirectorySeparator(GetSourcePath(pathMap[fileType]));
             }
             return GetSourcePath(pathMap[fileType] + dbKey + ".csv");
         }
@@ -289,6 +289,18 @@ namespace DCT_data_import.ReadAndImport
         protected string GetSourcePath(string relativePath)
         {
             return FileSource.GetPath(relativePath);
+        }
+
+        private static string EnsureTrailingDirectorySeparator(string path)
+        {
+            if (path.EndsWith("/", StringComparison.Ordinal) || path.EndsWith("\\", StringComparison.Ordinal))
+            {
+                return path;
+            }
+
+            return path.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase)
+                ? path + "/"
+                : path + Path.DirectorySeparatorChar;
         }
 
         protected bool FileExists(string path)

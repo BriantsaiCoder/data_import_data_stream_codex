@@ -103,9 +103,19 @@ namespace DCT_data_import.Tests
 
             var files = source.ListFiles(directory, "test_result_site*_DB001.csv");
 
-            Assert.EndsWith(Path.DirectorySeparatorChar.ToString(), directory);
-            Assert.True(File.Exists(directory + "test_result_site1_DB001.csv"));
             Assert.Equal(new[] { "test_result_site1_DB001.csv" }, files.OrderBy(x => x).ToArray());
+        }
+
+        [Fact]
+        public void GetFilePath_WhenLocalMultiSpec_ReturnsDirectoryPathWithSeparator()
+        {
+            var source = new LocalImportFileSource(_root, LocalSuccessAction.Delete);
+            var importData = new TestImportData(source);
+
+            string directory = importData.GetFilePathForTests("multiSpecRawdata", "DB001");
+
+            Assert.EndsWith(Path.DirectorySeparatorChar.ToString(), directory);
+            Assert.Equal(Path.Combine(_root, "Data_Cloud_CSV_MultiSpec") + Path.DirectorySeparatorChar, directory);
         }
 
         [Fact]
@@ -188,6 +198,19 @@ namespace DCT_data_import.Tests
             Assert.True(File.Exists(successPath));
             Assert.True(File.Exists(errorSourcePath));
             Assert.False(File.Exists(errorPath));
+        }
+
+        private sealed class TestImportData : ImportData
+        {
+            internal TestImportData(IImportFileSource fileSource)
+                : base(fileSource)
+            {
+            }
+
+            public string GetFilePathForTests(string fileType, string dbKey)
+            {
+                return GetFilePath(fileType, dbKey);
+            }
         }
     }
 }

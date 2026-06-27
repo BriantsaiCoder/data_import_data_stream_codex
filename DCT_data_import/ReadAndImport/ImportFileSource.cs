@@ -262,13 +262,7 @@ namespace DCT_data_import.ReadAndImport
         public string GetPath(string relativePath)
         {
             string localRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-            string path = NormalizeUnderRoot(Path.Combine(_root, localRelativePath));
-            if (EndsWithDirectorySeparator(relativePath) && !EndsWithDirectorySeparator(path))
-            {
-                return path + Path.DirectorySeparatorChar;
-            }
-
-            return path;
+            return NormalizeUnderRoot(Path.Combine(_root, localRelativePath));
         }
 
         public bool Exists(string path)
@@ -391,11 +385,6 @@ namespace DCT_data_import.ReadAndImport
             }
 
             return candidate;
-        }
-
-        private static bool EndsWithDirectorySeparator(string path)
-        {
-            return path.EndsWith("/", StringComparison.Ordinal) || path.EndsWith("\\", StringComparison.Ordinal);
         }
     }
 
