@@ -99,20 +99,27 @@ namespace DCT_data_import
                     {
                         mailObj.To.Add(toRecipients[i]);
                     }
-                    //設定cc名單
+                    //設定cc名單(逐項濾空白:cc 屬 optional,空/全空白即不設定;未過濾的 caller(Program.cs
+                    //SendMailModel)mail_cc 含空字串時,CC.Add("") 會丟 ArgumentException 讓整封信失敗)
                     if (CCList != null)
                     {
                         for (int i = 0; i < CCList.Count; i++)
                         {
-                            mailObj.CC.Add(CCList[i]);
+                            if (!string.IsNullOrWhiteSpace(CCList[i]))
+                            {
+                                mailObj.CC.Add(CCList[i]);
+                            }
                         }
                     }
-                    //設定bcc名單
+                    //設定bcc名單(同 cc:逐項濾空白,空/全空白即不設定,不讓 Bcc.Add("") 丟例外)
                     if (BccList != null)
                     {
                         for (int i = 0; i < BccList.Count; i++)
                         {
-                            mailObj.Bcc.Add(BccList[i]);
+                            if (!string.IsNullOrWhiteSpace(BccList[i]))
+                            {
+                                mailObj.Bcc.Add(BccList[i]);
+                            }
                         }
                     }
                     //設定夾檔
