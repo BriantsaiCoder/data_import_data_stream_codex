@@ -39,7 +39,7 @@
 | R2 | Medium | **SPC 負號根值無 NaN 防護**：遇 `sum_sq/N - avg² < 0` 只 `Console` 警告「發現根號負值!」，未阻斷 | `Common/CalculateSPC.cs:90` | 加防護/釐清業務預期 |
 | R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、hardcoded `C:\temp` log 路徑 | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:29` | 路徑改設定；跨平台需求才重構 INI |
 | R4 | Low | **log 無 rotation/上限**：每日分檔但無大小限制與清理 | `WriteToLog.cs` | 視磁碟壓力決定是否加 |
-| R5 | **High**（已釘住,修法待規格） | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:205`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:161,205,218`、各 importer `Result` 0/1/2/3、`Program.cs:501`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | 改 bitwise 旗標（成功才 set 該 bit）或將 component 結果正規化為 0/1；先 [ASK USER] 確認規格意圖。**已抽純函式 `ComputeImportResult`（`DbAccess.cs:159-162`,行為不變）+ `DCT_data_import.Tests` 2 條 by-design RED 測試釘住**,修法待規格確認 |
+| R5 | ~~High~~ **已修復（2026-06-27，`fix/r5-checkstatus`）** | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:211`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:160,179,211`、各 importer `Result` 0/1/2/3、`Program.cs:501`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | **規格決定（用戶 2026-06-27）：分量正規化規則 = `Result == 1 ? 1 : 0`（成功才設位；明確排除 `Math.Min(x,1)`——後者會把失敗碼 2/3 也映成 1、反把失敗當成功）。** 已於純函式 `ComputeImportResult`（`DbAccess.cs:160`）單點套用此正規化，0/1 輸入行為不變、僅修正 ≥2 溢位。`CheckStatusWeightedSumTests` 3 條 `_R5` 測試（含一條判別 `Math.Min` 誤修的 pin）轉綠、移除 `ByDesignRed` trait 重納 CI gate。 |
 
 ### 5) Evidence
 

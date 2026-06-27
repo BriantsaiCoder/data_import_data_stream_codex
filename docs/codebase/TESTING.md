@@ -27,8 +27,8 @@
 ### 4) Coverage and CI
 
 - Coverage 工具/門檻：[TODO] 無。
-- CI/CD：GitHub Actions（`.github/workflows/ci.yml`）— windows-latest 上 `nuget restore` → `msbuild` build → `dotnet test`（以 `Category!=ByDesignRed` 排除 R5 by-design 紅樁），push / PR to master 觸發（見 STACK.md §3）。
-- 建置驗證：主專案（net462）已實測可在 macOS 以 `dotnet build` + `FrameworkPathOverride`→Mono `4.6.2-api` 參考組件**零錯誤編譯**（`./packages` 經 NuGet 還原）；genuinely Windows-only 的是**執行期**（P/Invoke / `C:\temp` / FTP / MySQL）。測試專案在該 override 下尚有 `System.Runtime` facade 小坑（CS0012）未解，實跑 net462 測試以 Windows / Mono 為準；R5 紅綠燈另以 net8.0 + xUnit 重現（6 綠 / 2 紅）。
+- CI/CD：GitHub Actions（`.github/workflows/ci.yml`）— windows-latest 上 `nuget restore` → `msbuild` build → `dotnet test`，push / PR to master 觸發（見 STACK.md §3）。CI test filter 為 `Category!=ByDesignRed&Category!=CaptureBaseline`：`CaptureBaseline` 是 emit-only golden-master 基準（不進綠燈門檻）；`ByDesignRed` 在 **R5 已修復（2026-06-27）** 後**已無對應測試**（3 條 `_R5` 已轉綠並移除 trait、重納綠燈門檻），filter 保留供未來 net8 by-design 框架差異測試沿用同機制。
+- 建置驗證：主專案（net462）已實測可在 macOS 以 `dotnet build` + `FrameworkPathOverride`→Mono `4.6.2-api` 參考組件**零錯誤編譯**（`./packages` 經 NuGet 還原）；genuinely Windows-only 的是**執行期**（P/Invoke / `C:\temp` / FTP / MySQL）。測試專案在該 override 下尚有 `System.Runtime` facade 小坑（CS0012）未解，實跑 net462 測試以 Windows / Mono 為準；R5 修復後以 net8.0 + xUnit 跑同套加權和邏輯為 **9 綠 / 0 紅**（6 happy-path Theory + 3 條 `_R5`，全綠代表 R5 已修），full suite 188 綠。
 
 ### 5) Evidence
 

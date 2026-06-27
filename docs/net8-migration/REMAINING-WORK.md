@@ -49,12 +49,12 @@
 
 ---
 
-## Stream B — R5 加權和 bug（**HIGH，blocked on 規格確認**）
+## Stream B — R5 加權和 bug（**✅ 已完成 2026-06-27，`fix/r5-checkstatus`**）
 
-- [ ] `DbAccess.ComputeImportResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各分量 0/1，實際回 0/1/2/3 → 溢位污染高位 bit → 誤判失敗+寄信。
-- **blocker**：需先 [ASK USER] 確認 `check_status` bitmask 各分量語意（修法待規格）。
-- 修完：`CheckStatusWeightedSumTests.cs` 2 條 `_R5` by-design RED（:39, :53）轉綠 → 移除 `ByDesignRed` trait → 重納 CI gate。
-- 紀律：先確認規格 → 既有 RED 測試已是 failing regression test，直接讓它轉綠（test-first 已就位）。讀 [CONCERNS.md R5] + Tests README。
+- [x] `DbAccess.ComputeImportResult` 分量正規化:**用戶規格決定（2026-06-27）= `Result == 1 ? 1 : 0`**（成功才設位,失敗碼 2/3 與缺席同視為 0;**明確排除 `Math.Min(x,1)`**——它會把 2/3 映成 1、反把失敗當成功）。單點 root-cause guard,0/1 輸入行為不變、僅修正 ≥2 溢位（`DbAccess.cs:160`）。
+- [x] `CheckStatusWeightedSumTests.cs`:2 條原 `_R5` by-design RED 轉綠 + 新增第 3 條判別測試（`_FailureCodeContributesNoBit_DistinctFromSuccess_R5`，擋 `Math.Min` 誤修）→ 移除 `ByDesignRed` trait → 重納 CI 綠燈門檻。CheckStatus 群 9 綠 / full suite 188 綠。
+- [x] 文件同步:`CONCERNS.md` R5 標記已修復、`docs/codebase/TESTING.md`、`NET8_UPGRADE_TEST_STRATEGY.md`、`DCT_data_import.Tests/README.md`、`CLAUDE.md` 關鍵約束 #3。
+- 待後續品質閘（B PR 收尾）:code-simplifier → dotnet-code-reviewer → backend-release-verification + dependency-security-scan → finishing-a-development-branch（PR squash）。
 
 ---
 
@@ -107,7 +107,7 @@
 | **A0 dct.sql wiring** | runbook 加一行「影子環境先跑 sql/dct.sql 建 schema」+ 連結。 | 建 migration 工具管 schema 版本 | ★最小。一次性影子環境；migration 工具屬 Stream E LOW，別在此引。 |
 | **A1-A3 影子/cutover/smoke** | 用既有 DryRun 機制 + 既有 capture 跑，不新增工具。流程紀律題，非選型。 | — | 沿用既有機制；無兩案。 |
 | **A4 砍 TFM + #if + 文件** | csproj 刪 net462 分支 + 對應 `#if`；文件就地改字串。機械式。 | 加 single-file/trim/AOT 評估 + 文件重寫 | ★最小。A4 是清理非再設計；現代化評估屬 Stream E，別混入。 |
-| **B R5 加權和** | 共用 `ComputeImportResult` 一處把分量正規化為 0/1（依規格 `Math.Min(x,1)` 或 `x==1?1:0`）再加權；2 條 RED 轉綠。單點 root-cause guard。 | 重設計 check_status：enum/flags 型別取代裸 int 加權和、各分量明確語意、改所有讀寫點 | **先等規格**。若規格＝「分量該 0/1」→★最小單點正規化。若揭露加權和本身是錯抽象 → 才考慮原始設計（屬 `mp-improve-codebase-architecture`，另立項）。 |
+| **B R5 加權和** ✅ | **已採最小改動案（2026-06-27）**:`ComputeImportResult` 一處正規化 `Result == 1 ? 1 : 0`（**非 `Math.Min`**——它會把失敗碼 2/3 當成功）再加權;3 條 `_R5` 轉綠。單點 root-cause guard。 | 重設計 check_status：enum/flags 型別取代裸 int 加權和、各分量明確語意、改所有讀寫點 | 規格確認＝「分量該 0/1」→ 採★最小單點正規化（已完成）。原始設計（enum/flags 重設計）若日後揭露加權和是錯抽象,屬 `mp-improve-codebase-architecture` 另立項。 |
 | **C / S1 明文帳密** | ~~（已descope）~~ | ~~（已descope）~~ | **用戶決定：維持不動，不處理。** App.config 帳密為接受的既有債；不得新增/擴大/搬移。 |
 | **C / S2 SQL 參數化** | 既裝 **Dapper 具名參數**逐一改現有 INSERT/SELECT/UPDATE，簽名不變、字串改 `@param`。 | 抽 repository 層 + 參數化 + 整合測試 | ★最小（Dapper 已在用）。抽 repository 屬現代化、非本債目標。**安全區：參數化不可省；動 DBmysql/FileProcess/TsmcIeda 前 `deps-check`。** |
 | **C / S4 SMTP** | IP/sender 移到 App.config key；評估是否需 auth（內網 relay 不需則記錄理由）。 | 認證 SMTP + TLS + 重試 | ★最小先消 hardcode；auth/TLS 視環境。 |

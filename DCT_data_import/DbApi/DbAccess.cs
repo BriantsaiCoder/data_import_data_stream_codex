@@ -144,20 +144,27 @@ namespace DCT_data_import
             return dbKeyList;
         }
         /// <summary>
-        /// 由各匯入分量回傳碼組出與 <c>db_key.check_status</c> 比對用的 bitmask。
+        /// 由各匯入分量回傳碼組出與 <c>db_key.check_status</c> 比對用的 4-bit bitmask。
         /// </summary>
-        /// <param name="recoveryRate">RecoveryRate 分量結果,佔 bit3(8)。</param>
-        /// <param name="tester">Tester 分量結果,佔 bit2(4)。</param>
-        /// <param name="testResult">RawData/TestResult 分量結果,佔 bit1(2)。</param>
-        /// <param name="failPin">FailPin 分量結果,佔 bit0(1)。</param>
-        /// <returns>加權和 <c>8*recoveryRate + 4*tester + 2*testResult + failPin</c>。</returns>
+        /// <param name="recoveryRate">RecoveryRate 分量回傳碼,成功(1)時佔 bit3(8)。</param>
+        /// <param name="tester">Tester 分量回傳碼,成功(1)時佔 bit2(4)。</param>
+        /// <param name="testResult">RawData/TestResult 分量回傳碼,成功(1)時佔 bit1(2)。</param>
+        /// <param name="failPin">FailPin 分量回傳碼,成功(1)時佔 bit0(1)。</param>
+        /// <returns>各分量「是否成功」的 bitmask,恆落在 0..15。</returns>
         /// <remarks>
-        /// 公式假設每個分量只回 0/1。任一分量回 2/3(匯入函式實際值域)會使加權和溢位、污染高位 bit,
-        /// 使 <c>importResult == check_status</c> 恆 false 而誤判失敗(見 docs/codebase/CONCERNS.md R5)。
+        /// 分量回傳碼值域為 0/1/2/3(<c>ImportResult.Result</c>:0=檔案不存在、1=成功、2=驗證/讀檔失敗、3=重複或匯入失敗),
+        /// 唯有成功(1)代表該檢查通過、應設對應 bit;其餘(含失敗碼 2/3)一律視為未設位(0)。
+        /// 故先把每個分量正規化為 0/1 再加權,避免失敗碼直接進加權和而溢位、污染高位 bit,
+        /// 使 <c>importResult == check_status</c> 誤判失敗+寄信(見 docs/codebase/CONCERNS.md R5)。
         /// </remarks>
         public static int ComputeImportResult(int recoveryRate, int tester, int testResult, int failPin)
         {
-            return 8 * recoveryRate + 4 * tester + 2 * testResult + failPin;
+            // ponytail: 單點 root-cause guard——分量只認「成功==1」才設位,失敗碼 2/3 與缺席同視為 0。
+            // 用 ==1?1:0 而非 Math.Min(x,1):後者會把失敗碼 2/3 也映成 1、反把失敗當成功(R5 pin #3 鎖定此差異)。
+            return 8 * (recoveryRate == 1 ? 1 : 0)
+                 + 4 * (tester == 1 ? 1 : 0)
+                 + 2 * (testResult == 1 ? 1 : 0)
+                 + (failPin == 1 ? 1 : 0);
         }
         public string UpdateDbKeyImportStatus(DatabaseService DatabaseService, string dbKey, int recoveryRate, int tester, int testResult, int failPin, string remark)
         {
