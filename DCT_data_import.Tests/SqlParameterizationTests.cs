@@ -34,6 +34,54 @@ namespace DCT_data_import.Tests
             Assert.Equal(Payload, AnonymousParameterValue(query.Parameters, "dbKey"));
         }
 
+        [Theory]
+        [InlineData("tester", "`db_key`")]
+        [InlineData("ui_status", "`db_key_ui_status`")]
+        public void BuildDataCountInDaysQuery_UsesThresholdParameter(string mode, string expectedTable)
+        {
+            const long threshold = 987654321;
+
+            Execute_query query = DbAccess.BuildDataCountInDaysQuery(mode, threshold);
+
+            Assert.Contains(expectedTable, query.Query);
+            Assert.Contains("@threshold", query.Query);
+            Assert.DoesNotContain(threshold.ToString(), query.Query);
+            Assert.Equal(threshold, AnonymousParameterValue(query.Parameters, "threshold"));
+        }
+
+        [Fact]
+        public void BuildDataCountInDaysQuery_RejectsUnsupportedMode()
+        {
+            ArgumentException ex = Assert.Throws<ArgumentException>(() =>
+                DbAccess.BuildDataCountInDaysQuery("unknown", 987654321));
+
+            Assert.Equal("mode", ex.ParamName);
+        }
+
+        [Theory]
+        [InlineData("tester", "`db_key`")]
+        [InlineData("ui_status", "`db_key_ui_status`")]
+        public void BuildFailDbKeyResultQuery_UsesSharedThresholdParameter(string mode, string expectedTable)
+        {
+            const long threshold = 987654321;
+
+            Execute_query query = DbAccess.BuildFailDbKeyResultQuery(mode, threshold);
+
+            Assert.Contains(expectedTable, query.Query);
+            Assert.Equal(2, query.Query.Split("@threshold").Length - 1);
+            Assert.DoesNotContain(threshold.ToString(), query.Query);
+            Assert.Equal(threshold, AnonymousParameterValue(query.Parameters, "threshold"));
+        }
+
+        [Fact]
+        public void BuildFailDbKeyResultQuery_RejectsUnsupportedMode()
+        {
+            ArgumentException ex = Assert.Throws<ArgumentException>(() =>
+                DbAccess.BuildFailDbKeyResultQuery("unknown", 987654321));
+
+            Assert.Equal("mode", ex.ParamName);
+        }
+
         [Fact]
         public void BuildTableExistsQuery_KeepsTableNameOutOfSqlText()
         {
@@ -79,6 +127,40 @@ namespace DCT_data_import.Tests
             Assert.Contains("@batch_0),(@batch_1", query.Query);
             Assert.DoesNotContain(csvPayload, query.Query);
             Assert.True(DynamicParametersContain((DynamicParameters)query.Parameters, csvPayload));
+        }
+
+        [Fact]
+        public void BuildDeleteRawDataQuery_UsesLotIdParameter()
+        {
+            Execute_query query = FileProcess.BuildDeleteRawDataQuery(Payload);
+
+            Assert.Contains("@lotId", query.Query);
+            Assert.DoesNotContain(Payload, query.Query);
+            Assert.Equal(Payload, AnonymousParameterValue(query.Parameters, "lotId"));
+        }
+
+        [Fact]
+        public void BuildDeleteTesterStatusQuery_UsesDeviceInfoIdParameter()
+        {
+            Execute_query query = FileProcess.BuildDeleteTesterStatusQuery(Payload);
+
+            Assert.Contains("@deviceInfoId", query.Query);
+            Assert.DoesNotContain(Payload, query.Query);
+            Assert.Equal(Payload, AnonymousParameterValue(query.Parameters, "deviceInfoId"));
+        }
+
+        [Fact]
+        public void BuildDeleteFailPinLogQueries_UseFailPinIdParameter()
+        {
+            Execute_query[] queries = FileProcess.BuildDeleteFailPinLogQueries(Payload);
+
+            Assert.Equal(3, queries.Length);
+            foreach (Execute_query query in queries)
+            {
+                Assert.Contains("@failPinId", query.Query);
+                Assert.DoesNotContain(Payload, query.Query);
+                Assert.Equal(Payload, AnonymousParameterValue(query.Parameters, "failPinId"));
+            }
         }
 
         [Fact]

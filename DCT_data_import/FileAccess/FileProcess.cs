@@ -1516,14 +1516,7 @@ namespace DCT_data_import
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            Execute_query execute_query = new Execute_query
-            {
-                Query = @"DELETE t1, t2, t3
-										  FROM lots_info t1
-										  LEFT JOIN lots_statistic t2 ON t1.id = t2.lot_id
-										  LEFT JOIN lots_result t3 ON t1.id = t3.lot_id
-									WHERE t1.id = " + lot_id + "; "
-            };
+            Execute_query execute_query = BuildDeleteRawDataQuery(lot_id);
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1533,6 +1526,20 @@ namespace DCT_data_import
             }
             return response;
         }
+
+        internal static Execute_query BuildDeleteRawDataQuery(string lotId)
+        {
+            return new Execute_query
+            {
+                Query = @"DELETE t1, t2, t3
+										  FROM lots_info t1
+										  LEFT JOIN lots_statistic t2 ON t1.id = t2.lot_id
+										  LEFT JOIN lots_result t3 ON t1.id = t3.lot_id
+									WHERE t1.id = @lotId; ",
+                Parameters = new { lotId }
+            };
+        }
+
         private Execute_query_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
         {
             // 檢查資料庫和相關資料表是否存在
@@ -1545,15 +1552,7 @@ namespace DCT_data_import
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            Execute_query execute_query = new Execute_query
-            {
-                Query = @"DELETE t1, t2, t3, t4
-										  FROM tester_device_info t1
-										  LEFT JOIN tester_status t2 ON t1.id = t2.device_info_id
-										  LEFT JOIN tester_sw_version t3 ON t1.id = t3.device_info_id
-										  LEFT JOIN tester_production_analysis t4 ON t1.id = t4.device_info_id
-									 WHERE t1.id = " + device_info_id + "; "
-            };
+            Execute_query execute_query = BuildDeleteTesterStatusQuery(device_info_id);
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1563,6 +1562,21 @@ namespace DCT_data_import
             }
             return response;
         }
+
+        internal static Execute_query BuildDeleteTesterStatusQuery(string deviceInfoId)
+        {
+            return new Execute_query
+            {
+                Query = @"DELETE t1, t2, t3, t4
+										  FROM tester_device_info t1
+										  LEFT JOIN tester_status t2 ON t1.id = t2.device_info_id
+										  LEFT JOIN tester_sw_version t3 ON t1.id = t3.device_info_id
+										  LEFT JOIN tester_production_analysis t4 ON t1.id = t4.device_info_id
+									 WHERE t1.id = @deviceInfoId; ",
+                Parameters = new { deviceInfoId }
+            };
+        }
+
         private Execute_query_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
         {
             // 檢查資料庫和相關資料表是否存在
@@ -1575,13 +1589,8 @@ namespace DCT_data_import
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
             }
-            Execute_query execute_query = new Execute_query
-            {
-                Query = @"DELETE t3
-										FROM fail_pin_rate_list_pin_ball t3
-										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
-									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
-            };
+            Execute_query[] deleteQueries = BuildDeleteFailPinLogQueries(fail_pin_id);
+            Execute_query execute_query = deleteQueries[0];
             Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1589,13 +1598,7 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list_pin_ball error");
             }
-            execute_query = new Execute_query
-            {
-                Query = @"DELETE t4
-										FROM fail_pin_rate_test_result t4
-										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
-									WHERE t2.fail_pin_rate_info_id = " + fail_pin_id + "; "
-            };
+            execute_query = deleteQueries[1];
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1603,13 +1606,7 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_test_result error ");
             }
-            execute_query = new Execute_query
-            {
-                Query = @"DELETE t1, t2
-										  FROM fail_pin_rate_list t2
-										  LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
-									WHERE t1.id = " + fail_pin_id + "; "
-            };
+            execute_query = deleteQueries[2];
             response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
             if (!string.IsNullOrEmpty(response.Error))
             {
@@ -1619,6 +1616,38 @@ namespace DCT_data_import
             }
             return response;
         }
+
+        internal static Execute_query[] BuildDeleteFailPinLogQueries(string failPinId)
+        {
+            return new[]
+            {
+                new Execute_query
+                {
+                    Query = @"DELETE t3
+										FROM fail_pin_rate_list_pin_ball t3
+										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t3.fail_pin_rate_list_id
+									WHERE t2.fail_pin_rate_info_id = @failPinId; ",
+                    Parameters = new { failPinId }
+                },
+                new Execute_query
+                {
+                    Query = @"DELETE t4
+										FROM fail_pin_rate_test_result t4
+										LEFT JOIN fail_pin_rate_list t2 ON t2.id = t4.fail_pin_rate_list_id
+									WHERE t2.fail_pin_rate_info_id = @failPinId; ",
+                    Parameters = new { failPinId }
+                },
+                new Execute_query
+                {
+                    Query = @"DELETE t1, t2
+										  FROM fail_pin_rate_list t2
+										  LEFT JOIN fail_pin_rate_info t1 ON t1.id = t2.fail_pin_rate_info_id
+									WHERE t1.id = @failPinId; ",
+                    Parameters = new { failPinId }
+                }
+            };
+        }
+
         public void AddColumnForDataset(DataSet ds_lot_statistic, List<StatisticItem> values)
         {
             for (int i = 0; i < ds_lot_statistic.Tables.Count; i++)
