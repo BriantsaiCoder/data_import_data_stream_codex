@@ -118,6 +118,19 @@
 
 ---
 
+## Stream F — DB result contract split（PR #27 已合併；caller migration 待做）
+
+- [x] `DbQueryResult` / `DbCommandResult` typed contracts 已新增。
+- [x] `DatabaseService.ExecuteQuery` / `ExecuteCommand` 與 `DBmysql.ExecuteQuery` / `ExecuteCommand` 已新增。
+- [x] `Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 保留為 legacy compatibility adapters。
+- [x] `mode == null` guard 已補，避免 legacy adapter 空 mode path 例外。
+- [ ] **Task 2 INSERT caller migration**：`response.Data[0]["insertId"]` → `DbCommandResult.InsertId`。
+- [ ] **Task 3 SELECT caller migration**：`ExecuteSql(..., "select")` → `ExecuteQuery(...)`，caller 直接吃 `DbQueryResult`。
+- [ ] **Task 4 UPDATE/DELETE caller migration**：`ExecuteSql(..., "update/delete")` → `ExecuteCommand(...)`，caller 直接吃 `DbCommandResult.AffectedRows`。
+- [ ] **Task 5 legacy rename decision**：等 callers 遷完後再決定是否 rename / remove legacy adapter；不得與 D5 namespace/folder rename、CSV contract、log cleanup、observability 或 DB migration tooling 混做。
+
+---
+
 ## 實作規劃 — 每項「最小改動 / 原始設計」兩案（待用戶逐項確認）
 
 > 規劃紀律：每項先用 **ponytail 階梯**（要不要存在 → 重用既有 → stdlib/native → 既裝依賴 → 一行 → 才到最小新 code）取最高可行 rung，蓄意簡化標 `ponytail:` 註記。
