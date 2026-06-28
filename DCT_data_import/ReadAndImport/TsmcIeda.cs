@@ -4,7 +4,6 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using Dapper;
@@ -19,6 +18,14 @@ namespace DCT_data_import.ReadAndImport
             // 設定全域變數中的DataTable _lotMappingDt
             GetLotMapping();
         }
+
+        internal TsmcIeda(IImportFileSource fileSource)
+            : base(fileSource)
+        {
+            // 設定全域變數中的DataTable _lotMappingDt
+            GetLotMapping();
+        }
+
         public ImportResult ReadAndImportIeda(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             string ftpserver = string.Empty;
@@ -134,32 +141,7 @@ namespace DCT_data_import.ReadAndImport
             //Console.ReadLine();
             return iedaDataFormat;
         }
-        #region GetAseLot()
-        //public string GetAseLot(string DbKey)
-        //{
-        //    String ftpserver;
-        //    FtpWebRequest reqFTP;
-        //    FtpWebResponse response;
-        //    Stream responseStream;
-        //    StreamReader reader;
-        //    try
-        //    {
-        //        string filename = DbKey+".txt";
-        //        ftpserver = "ftp://" + Program.FTP_IP + "/DCT_Log/DCT_DB_DATA/TSMC_DATA/LotID/" + filename;
-        //        reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(ftpserver));
-        //        reqFTP.Credentials = new NetworkCredential(Program.FTP_USER, Program.FTP_PASSWORD);
-        //        response = (FtpWebResponse)reqFTP.GetResponse();
-        //        responseStream = response.GetResponseStream();
-        //        reader = new StreamReader(responseStream, Encoding.GetEncoding("big5"));
-        //        string lines = reader.ReadToEnd();
-        //        return lines.Split(',')[0];
-        //    }
-        //    catch(Exception ex)
-        //    {
-        //        return "";
-        //    }
-        //}
-        #endregion GetAseLot() end
+
         public List<string> GetNetNameList(string aseLot, int recursive = 0)
         {
             string ftpserver = string.Empty;

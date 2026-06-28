@@ -32,7 +32,8 @@
 - Local file 儲存：
   - log → `C:\temp\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（`WriteToLog.cs:29`）
   - `mail_temp.txt` → exe 目錄
-  - `lot_mapping.csv`、`dct_import_mail_list.ini` → exe 目錄/設定路徑
+  - `lot_mapping.csv` → `ImportSource` / `LocalImportRoot` 或 FTP 對應的 `TSMC_DATA/LotID/lot_mapping.csv`
+  - `dct_import_mail_list.ini` → exe 目錄/設定路徑
 
 ### 3) Auth and Identity
 
