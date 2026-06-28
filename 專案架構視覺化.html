@@ -151,7 +151,7 @@
 <!-- ============ NAV ============ -->
 <nav>
   <div style="font-weight:700;font-size:15px;color:var(--txt)">DCT_data_import</div>
-  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.4.0</div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.5.0</div>
   <h2>導覽</h2>
   <a href="#overview">① 系統概觀</a>
   <a href="#stack">② 技術棧</a>
@@ -178,7 +178,7 @@
     <span class="pill"><b>資料來源</b> FTP / Local</span>
     <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
     <span class="pill"><b>原始碼</b> 24 檔 / 5 層</span>
-    <span class="pill"><b>對應</b> master @ 06d90fe</span>
+    <span class="pill"><b>對應</b> master @ 1d9e7f9</span>
     <span class="pill"><b>更新</b> 2026-06-28</span>
   </div>
   <div class="note" style="margin-top:18px;margin-bottom:0">
@@ -250,9 +250,9 @@
     <div class="layer-head">🟩 資料庫存取層 · DbApi/ + MySQL_api/</div>
     <div class="layer-body">
       <span class="chip">DbAccess <small>check_status</small></span>
-      <span class="chip">DatabaseService <small>同步SQL/存在性檢查</small></span>
-      <span class="chip">DbObject <small>DTO</small></span>
-      <span class="chip">DBmysql <small>Dapper+連線單例</small></span>
+      <span class="chip">DatabaseService <small>typed API + legacy ExecuteSql</small></span>
+      <span class="chip">DbObject <small>typed + legacy DTO</small></span>
+      <span class="chip">DBmysql <small>Dapper+typed result</small></span>
     </div>
   </div>
   <div class="layer L5">
@@ -399,20 +399,20 @@
       <p>控制表 <code>db_key</code> / <code>db_key_ui_status</code>;計算 check_status 公式;失敗通知清單由 <code>mail_temp.txt</code> 經 <code>SelectFailDbKeyFromFile()</code> 讀回。</p>
     </div>
     <div class="card">
-      <h4>DatabaseService.cs <span class="tag" style="background:#3fb95033;color:var(--green)">同步SQL</span></h4>
-      <p><code>ExecuteSql</code> 直接呼叫同步 DBmysql,並傳遞 <code>Execute_query.Parameters</code>。<code>CheckDatabaseAndTableExists</code> 用 INFORMATION_SCHEMA <b>只檢查存在性、不自動建表</b>。</p>
+      <h4>DatabaseService.cs <span class="tag" style="background:#3fb95033;color:var(--green)">typed + legacy</span></h4>
+      <p><code>ExecuteQuery</code> 回 <code>DbQueryResult</code>;<code>ExecuteCommand</code> 回 <code>DbCommandResult</code>。<code>ExecuteSql</code> 保留為 legacy adapter。<code>CheckDatabaseAndTableExists</code> 只檢查存在性、不自動建表。</p>
     </div>
     <div class="card">
-      <h4>DBmysql.cs <span class="tag" style="background:#3fb95033;color:var(--green)">0a9c2ae</span></h4>
-      <p>Dapper Query/Execute + parameters;<code>FilterSqlCommand</code> 為 S2 前殘留防線;SELECT→JArray;連線單例 volatile+lock 單次初始化,Pooling Min5/Max100。</p>
+      <h4>DBmysql.cs <span class="tag" style="background:#3fb95033;color:var(--green)">1d9e7f9</span></h4>
+      <p>Dapper Query/Execute + parameters;<code>ExecuteQuery</code> / <code>ExecuteCommand</code> 回 typed results;<code>Excute_mysql_cmd</code> 保留為 legacy adapter。</p>
     </div>
     <div class="card">
       <h4>DbObject.cs <span class="tag" style="background:#bc8cff33;color:var(--purple)">回應契約</span></h4>
-      <p><code>Execute_query</code> = Query + Parameters;<code>Execute_query_response</code> = JArray Data + string Error。<b>錯誤靠 Error 字串非例外</b>,呼叫端須主動檢查。</p>
+      <p><code>Execute_query</code> = Query + Parameters;<code>DbQueryResult</code> = JArray Data + Error;<code>DbCommandResult</code> = AffectedRows + InsertId + Error。<code>Execute_query_response</code> 是 legacy adapter。</p>
     </div>
   </div>
   <div class="note">
-    📌 <b>歷史殘留</b>:<code>Execute_query</code> 型別名與 JArray+Error 形狀,是早期透過 Web API 存取的殘留。<b>現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service</b>(舊報告的「HTTP API Service」已不存在)。原 <code>ExecuteInsertWithAPI</code> / <code>ExecuteSqlAsync</code> 命名、App.config 的 API 設定與「Web API body」註解已清除。
+    📌 <b>歷史殘留</b>:<code>Execute_query_response</code>、<code>ExecuteSql</code>、<code>Excute_mysql_cmd</code> 仍刻意保留為 compatibility adapters。第三階段 caller migration 尚未完成:SELECT callers 尚未全面改吃 <code>DbQueryResult</code>;INSERT callers 尚未全面改吃 <code>DbCommandResult.InsertId</code>;UPDATE/DELETE callers 尚未全面改吃 <code>DbCommandResult.AffectedRows</code>。現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service。
   </div>
 </section>
 
@@ -448,6 +448,7 @@
   <h2 class="sec"><span class="num">10</span> 變更時間軸</h2>
   <p class="legend"><span><span class="dot" style="background:var(--green)"></span>新能力</span><span><span class="dot" style="background:var(--accent)"></span>修正/基建</span></p>
   <div class="tl" style="margin-top:14px">
+    <div class="tl-item"><span class="tl-hash">1d9e7f9</span> 拆分 DbQueryResult / DbCommandResult,保留 legacy adapter,caller migration 待後續階段</div>
     <div class="tl-item"><span class="tl-hash">06d90fe</span> 移除 forced GC,清完 fake async,文件同步至 P2/P3 清理後現況</div>
     <div class="tl-item"><span class="tl-hash">c972047</span> WriteToLog 新增 DataImportLogRetentionDays retention cleanup</div>
     <div class="tl-item"><span class="tl-hash">da1f9b3</span> TsmcIeda 匯入路徑收斂到 ImportData / IImportFileSource helper</div>
@@ -487,7 +488,8 @@
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Thread.Sleep(432000) 註解誤標「2H」(實 7.2 分)</div><div class="rk-d">Program.cs。認知陷阱。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">ui_status 失敗通知被註解停用</div><div class="rk-d">NotificationService.cs。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Log retention 只依天數清理</div><div class="rk-d">WriteToLog.cs。已有 90 天預設 retention,但尚無 size-based rotation。</div></div></div>
-  <div class="note danger">高風險 1 仍屬<b>既有設計</b>。SQL 值注入已由 S2 參數化收斂;後續新增 SQL 須沿用 <code>Execute_query.Parameters</code> / <code>ExecuteInsert</code>。</div>
+  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">DB typed result caller migration 尚未完成</div><div class="rk-d"><code>Execute_query_response</code> / <code>ExecuteSql</code> / <code>Excute_mysql_cmd</code> 仍作為 legacy adapters。</div></div></div>
+  <div class="note danger">高風險 1 仍屬<b>既有設計</b>。SQL 值注入已由 S2 參數化收斂;後續新增 SQL 須沿用 <code>Execute_query.Parameters</code> / <code>ExecuteInsert</code>,並優先使用 <code>DbQueryResult</code> / <code>DbCommandResult</code> typed results。</div>
 </section>
 
 <!-- ⑫ QUICKSTART -->
@@ -496,7 +498,7 @@
   <div class="grid g2">
     <div class="card"><h4>1️⃣ 先讀三節</h4><p>三執行緒(⑤)+ CheckStatus(⑦)+ 回滾真相(⑪)是理解系統行為的關鍵。</p></div>
     <div class="card"><h4>2️⃣ 環境判定</h4><p>本機 IP 在 10.16.92.67/68 → Prod,否則 Dev(localhost)。開發機預設走 Dev。</p></div>
-    <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/;新增 DB 寫入走 Execute_query.Parameters / ExecuteInsert。</p></div>
+    <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/;新增 DB 寫入走 Execute_query.Parameters / ExecuteInsert,caller 優先吃 typed results。</p></div>
     <div class="card"><h4>4️⃣ 動共用檔前</h4><p>WriteToLog / FileProcess / DbAccess 扇入極高,先確認所有呼叫端。</p></div>
     <div class="card"><h4>5️⃣ Build / test</h4><p>single <code>net8.0-windows</code> restore/build/test;runtime smoke 需 Windows + MySQL/FTP。</p></div>
     <div class="card"><h4>6️⃣ Debug 日誌</h4><p><code>C:\temp\DCT_data_import\data_import_logs\</code><br>成功紀錄:<code>DCT_data_import_Success_Log_yyyy_MM_dd.txt</code></p></div>
@@ -504,7 +506,7 @@
 </section>
 
 <footer>
-  本頁由實際原始碼掃描產生,對應 <code>master @ 06d90fe</code>(2026-06-28)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
+  本頁由實際原始碼掃描產生,對應 <code>master @ 1d9e7f9</code>(2026-06-28)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
 </footer>
 
 </main>

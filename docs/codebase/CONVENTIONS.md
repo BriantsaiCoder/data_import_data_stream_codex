@@ -10,10 +10,10 @@
 |------|------|---------|----------|
 | Files | PascalCase，一檔一主類別 | `FailPin.cs`、`DatabaseService.cs` | 全 `ReadAndImport/`、`DbApi/` |
 | Classes | PascalCase | `class FileProcess`、`class DBmysql` | `FileProcess.cs:10`、`DBmysql.cs:10` |
-| Methods | PascalCase | `ReadAndImportRawData`、`ExecuteSql` | `RawData.cs:16`、`DatabaseService.cs:18` |
+| Methods | PascalCase | `ReadAndImportRawData`、`ExecuteSql` | `RawData.cs:16`、`DatabaseService.cs:17` |
 | 區域變數 | camelCase（但常見區域變數沿用型別名，如 `DatabaseService DatabaseService`） | `var writeToLog`、`DatabaseService DatabaseService` | `DbAccess.cs:69`、`DatabaseService.cs:45` |
 | 靜態全域設定 | 全大寫 | `HOST`、`USER`、`FTP_IP` | `Program.cs:19-26` |
-| DB 物件型別 | 蛇底線混 Pascal（外部 API 殘留） | `Execute_query`、`Execute_query_response` | `DbObject.cs:58,62` |
+| DB 物件型別 | 新 typed contract 用 PascalCase;legacy compatibility adapter 保留蛇底線混 Pascal | `DbQueryResult`、`DbCommandResult`、`Execute_query_response` | `DbObject.cs:63,68,74` |
 | MySQL table/欄位 | snake_case | `db_key`、`import_status`、`lots_info` | `DbAccess.cs:84`、`FileProcess.cs:211` |
 
 ### 2) Formatting and Linting
@@ -32,7 +32,7 @@
 ### 4) Error and Logging Conventions
 
 - 錯誤策略：每個 importer 以一個大 `try/catch(Exception)` 包住整段流程，catch 內 `WriteToLog.WriteErrorLog(...)` + `Console.WriteLine(...)`，回傳 `ImportResult(code, message)`。`ImportResult.Result` 慣例：`0`=檔案不存在、`1`=成功、`2`=驗證/讀檔失敗、`3`=重複或匯入失敗（`RawData.cs`、`Tester.cs` 等一致）。
-- DB 層錯誤：`DBmysql.Excute_mysql_cmd` 對 `MySqlException` 依錯誤碼補中文說明（`FormatMySqlError`，`DBmysql.cs:245-272`）；`DatabaseService.GetSafeErrorMessage` 只回 `ex.Message`、不含 StackTrace（脫敏，`DatabaseService.cs:126-138`）。
+- DB 層錯誤：primary API 回 `DbQueryResult` / `DbCommandResult`，錯誤仍放 `Error` 字串；`Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 保留為 legacy compatibility adapter。`DBmysql` 對 `MySqlException` 依錯誤碼補中文說明（`FormatMySqlError`）；`DatabaseService.GetSafeErrorMessage` 只回 `ex.Message`、不含 StackTrace（脫敏）。
 - Logging 樣式：`{yyyy/MM/dd HH:mm:ss} [INFO|ERROR] {message}`（`WriteToLog.WriteToDataImportLog`）。多執行緒以命名 `Mutex` 保護寫檔，逾時 30 秒（`WriteToLog` 的 data / success / check log 寫入路徑一致）。log 寫到 `DataImportLogRoot\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（預設 `C:\temp`，每日分檔，UTF-8 BOM）；`DataImportLogRetentionDays` 預設 90 天，0/負數可關閉過期檔清理。
 - 敏感資料脫敏：啟動輸出已遮罩 PASSWORD，只印 set/unset；`App.config` 仍含既有明文 DB/FTP 設定（見 CONCERNS S1）。
 - 慣例不一致：log 方法混用 `WriteErrorLog` / `WriteToDataImportLog` / `WriteInfoLog` / `WriteToCheckLog`，同類事件在不同 importer 用不同方法（如 `RecoveryRate`/`UiStatus` 偏好 `WriteToDataImportLog`，其餘偏 `WriteErrorLog`）。
@@ -46,8 +46,8 @@
 ### 6) Evidence
 
 - `DCT_data_import/Common/WriteToLog.cs`
-- `DCT_data_import/DbApi/DatabaseService.cs:12-138`
-- `DCT_data_import/MySQL_api/DBmysql.cs:245-272`
+- `DCT_data_import/DbApi/DatabaseService.cs:17-211`
+- `DCT_data_import/MySQL_api/DBmysql.cs:51-368`
 - `DCT_data_import/ReadAndImport/RawData.cs`、`Tester.cs`（`ImportResult` 回傳碼樣式）
 - `DCT_data_import/Program.cs:19-34`
 
@@ -57,3 +57,4 @@
 - `db_key` 欄位名在不同格式不一致：RawData 用 `"DB_Key"`、FailPin/RecoveryRate 用 `"DB Key"`（含空格），造成 CSV 欄位比對對大小寫/空格敏感（`RawData.cs:91`、`FailPin.cs:75`、`RecoveryRate.cs:98`）。
 - active importer / DB 呼叫已是明確同步模型;`Program.cs` TEST CASE 註解區塊仍保留舊呼叫範例。
 - 大量被註解掉的測試案例與舊邏輯留存於 `Program.cs:40-` 與各 `DbAccess` 方法內（dead code）。
+- DB result caller migration 尚未完成：SELECT callers 尚未全面改吃 `DbQueryResult`;INSERT callers 尚未全面改吃 `DbCommandResult.InsertId`;UPDATE/DELETE callers 尚未全面改吃 `DbCommandResult.AffectedRows`。
