@@ -20,6 +20,24 @@ namespace DCT_data_import
             //DatabaseService  = new DatabaseService ();
             writeToLog = new WriteToLog();
         }
+        internal static bool TryGetRequiredInsertId(DbCommandResult response, string operationName, out string insertId, out string error)
+        {
+            insertId = string.Empty;
+            if (response == null)
+            {
+                error = operationName + " insertId is missing";
+                return false;
+            }
+            if (response.InsertId <= 0)
+            {
+                error = operationName + " insertId is invalid: " + response.InsertId.ToString(CultureInfo.InvariantCulture);
+                return false;
+            }
+
+            insertId = response.InsertId.ToString(CultureInfo.InvariantCulture);
+            error = string.Empty;
+            return true;
+        }
         public bool IsDBKeyExistInDB(string db_table_name, string db_key, DatabaseService DatabaseService)
         {
             // 檢查資料庫和資料表是否存在
@@ -230,15 +248,9 @@ namespace DCT_data_import
             }
             #endregion
             string lotId = string.Empty;
-            try
+            if (!TryGetRequiredInsertId(response2, "lots_info", out lotId, out string lotIdError))
             {
-                // 取得當前 lot id 值
-                lotId = response2.InsertId.ToString(CultureInfo.InvariantCulture);
-            }
-            catch (Exception ex)
-            {
-                writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + ex.Message);
-                Console.WriteLine(ex.ToString());
+                writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + lotIdError);
                 return false;
             }
             #region 驗證和轉換統計數據中的數字欄位
@@ -540,18 +552,14 @@ namespace DCT_data_import
                     writeToLog.WriteErrorLog("'INSERT INTO lots_info' error:" + ex.Message);
                     return false;
                 }
-                try
+                if (!TryGetRequiredInsertId(response2, "lots_info", out string multiSiteLotId, out string lotIdError))
                 {
-                    // 取得當前 lot id 值
-                    MultiSiteRawDataLotInfoIsImported = true;
-                    MultiSiteRawDataLotInfoInsertId = response2.InsertId.ToString(CultureInfo.InvariantCulture);
-                }
-                catch (Exception ex)
-                {
-                    writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + ex.Message);
-                    Console.WriteLine(ex.ToString());
+                    writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + lotIdError);
                     return false;
                 }
+                // 取得當前 lot id 值
+                MultiSiteRawDataLotInfoIsImported = true;
+                MultiSiteRawDataLotInfoInsertId = multiSiteLotId;
             }
             #endregion
             // 取得當前 lot id 值
@@ -875,13 +883,9 @@ namespace DCT_data_import
             }
             #endregion
             string device_info_Id = string.Empty;
-            try
+            if (!TryGetRequiredInsertId(response, "tester_device_info", out device_info_Id, out string deviceInfoIdError))
             {
-                device_info_Id = response.InsertId.ToString(CultureInfo.InvariantCulture);
-            }
-            catch (Exception ex)
-            {
-                writeToLog.WriteErrorLog("get tester_device_info insertId error:" + ex.Message);
+                writeToLog.WriteErrorLog("get tester_device_info insertId error:" + deviceInfoIdError);
                 return false;
             }
             #region insert `tester_status`
@@ -1165,7 +1169,11 @@ namespace DCT_data_import
                 return false;
             }
             #endregion
-            string fail_pin_rate_info_Id = response.InsertId.ToString(CultureInfo.InvariantCulture);
+            if (!TryGetRequiredInsertId(response, "fail_pin_rate_info", out string fail_pin_rate_info_Id, out string failPinRateInfoIdError))
+            {
+                writeToLog.WriteErrorLog("get fail_pin_rate_info insertId error:" + failPinRateInfoIdError);
+                return false;
+            }
             List<string> fail_pin_rate_list_Id = new List<string>();
             #region insert `fail_pin_rate_list`
             columns = "`fail_pin_rate_info_Id`,"; values = string.Empty;
@@ -1212,7 +1220,13 @@ namespace DCT_data_import
                         return false;
                     }
                     // 將此筆insert的fail_pin_rate_list_id保存至陣列
-                    fail_pin_rate_list_Id.Add(response.InsertId.ToString(CultureInfo.InvariantCulture));
+                    if (!TryGetRequiredInsertId(response, "fail_pin_rate_list", out string failPinRateListId, out string failPinRateListIdError))
+                    {
+                        writeToLog.WriteErrorLog("get fail_pin_rate_list insertId error:" + failPinRateListIdError);
+                        DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                        return false;
+                    }
+                    fail_pin_rate_list_Id.Add(failPinRateListId);
                 }
             }
             catch (Exception ex)

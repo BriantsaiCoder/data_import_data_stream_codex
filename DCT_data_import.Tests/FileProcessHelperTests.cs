@@ -64,6 +64,50 @@ namespace DCT_data_import.Tests
             Assert.Empty(table.Rows);
         }
 
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(0)]
+        public void TryGetRequiredInsertId_WhenInsertIdIsNotPositive_ReturnsFalse(long insertIdValue)
+        {
+            bool ok = FileProcess.TryGetRequiredInsertId(
+                new DbObject.DbCommandResult { InsertId = insertIdValue },
+                "lots_info",
+                out string insertId,
+                out string error);
+
+            Assert.False(ok);
+            Assert.Equal(string.Empty, insertId);
+            Assert.Contains("lots_info", error);
+        }
+
+        [Fact]
+        public void TryGetRequiredInsertId_WhenResponseIsNull_ReturnsFalse()
+        {
+            bool ok = FileProcess.TryGetRequiredInsertId(
+                null,
+                "lots_info",
+                out string insertId,
+                out string error);
+
+            Assert.False(ok);
+            Assert.Equal(string.Empty, insertId);
+            Assert.Contains("lots_info", error);
+        }
+
+        [Fact]
+        public void TryGetRequiredInsertId_WhenInsertIdIsPositive_ReturnsInvariantString()
+        {
+            bool ok = FileProcess.TryGetRequiredInsertId(
+                new DbObject.DbCommandResult { InsertId = 42 },
+                "lots_info",
+                out string insertId,
+                out string error);
+
+            Assert.True(ok);
+            Assert.Equal("42", insertId);
+            Assert.Equal(string.Empty, error);
+        }
+
         private static DataTable StatisticTableWithRow()
         {
             DataTable table = StatisticTable();

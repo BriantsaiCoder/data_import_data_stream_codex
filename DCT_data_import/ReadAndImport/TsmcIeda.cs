@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -266,14 +265,9 @@ namespace DCT_data_import.ReadAndImport
             #endregion
             #region  取得當前 title id 值
             string titleId = string.Empty;
-            try
+            if (!FileProcess.TryGetRequiredInsertId(response2, "ieda_title", out titleId, out string titleIdError))
             {
-                titleId = response2.InsertId.ToString(CultureInfo.InvariantCulture);
-            }
-            catch (Exception ex)
-            {
-                writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + ex.Message);
-                Console.WriteLine(ex.Message);
+                writeToLog.WriteErrorLog("'取得當前 title id 值 error:" + titleIdError);
                 return false;
             }
             #endregion
