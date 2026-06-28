@@ -244,7 +244,7 @@ namespace DCT_data_import.ReadAndImport
         public bool ImportIeda(IedaDataFormat content, DatabaseService DatabaseService)
         {
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
-            Execute_query_response response2;
+            DbCommandResult response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
             #region insert ieda 的 title 表格
@@ -265,14 +265,9 @@ namespace DCT_data_import.ReadAndImport
             #endregion
             #region  取得當前 title id 值
             string titleId = string.Empty;
-            try
+            if (!FileProcess.TryGetRequiredInsertId(response2, "ieda_title", out titleId, out string titleIdError))
             {
-                titleId = response2.Data[0]["insertId"].ToString();
-            }
-            catch (Exception ex)
-            {
-                writeToLog.WriteErrorLog("'取得當前 lot id 值 error:" + ex.Message);
-                Console.WriteLine(ex.Message);
+                writeToLog.WriteErrorLog("'取得當前 title id 值 error:" + titleIdError);
                 return false;
             }
             #endregion
