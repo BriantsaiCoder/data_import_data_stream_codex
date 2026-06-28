@@ -16,14 +16,81 @@ namespace DCT_data_import
         /// <returns>查詢結果</returns>
         public Execute_query_response ExecuteSql(Execute_query Execute_query, string mode = "select")
         {
-            // 輸入驗證 - 完全相同於原始程式碼
-            if (Execute_query == null)
+            if (mode == null)
             {
-                return new Execute_query_response { Error = "查詢物件不能為空" };
+                return new Execute_query_response { Error = "操作模式不能為空" };
             }
-            if (string.IsNullOrWhiteSpace(Execute_query.Query))
+
+            if (string.Equals(mode, "select", StringComparison.OrdinalIgnoreCase))
             {
-                return new Execute_query_response { Error = "查詢指令不能為空" };
+                return DBmysql.ToLegacyResponse(ExecuteQuery(Execute_query));
+            }
+
+            DbCommandResult commandResult = ExecuteCommand(Execute_query);
+            // 保留舊契約:DryRun 非 select 回 no-op 成功,且 Data 為空。
+            if (RuntimeMode.IsDryRun && string.IsNullOrEmpty(commandResult.Error))
+            {
+                return new Execute_query_response { Error = string.Empty };
+            }
+
+            return DBmysql.ToLegacyResponse(commandResult);
+        }
+
+        public DbQueryResult ExecuteQuery(Execute_query executeQuery)
+        {
+            // 輸入驗證 - 完全相同於原始程式碼
+            string validationError = ValidateSqlRequest(executeQuery);
+            if (!string.IsNullOrEmpty(validationError))
+            {
+                return new DbQueryResult { Error = validationError };
+            }
+
+            try
+            {
+                var DB = CreateConnectedDb();
+                return DB.ExecuteQuery(executeQuery.Query, executeQuery.Parameters);
+            }
+            catch (Exception ex)
+            {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[DatabaseService.ExecuteQuery] 資料庫查詢失敗: {ex.Message}");
+                Console.WriteLine($"[DatabaseService] 資料庫查詢失敗: {ex.Message}");
+                return new DbQueryResult { Error = GetSafeErrorMessage(ex) };
+            }
+        }
+
+        public DbCommandResult ExecuteCommand(Execute_query executeQuery)
+        {
+            // 輸入驗證 - 完全相同於原始程式碼
+            string validationError = ValidateSqlRequest(executeQuery);
+            if (!string.IsNullOrEmpty(validationError))
+            {
+                return new DbCommandResult { Error = validationError };
+            }
+
+            try
+            {
+                var DB = CreateConnectedDb();
+                return DB.ExecuteCommand(executeQuery.Query, executeQuery.Parameters);
+            }
+            catch (Exception ex)
+            {
+                var writeToLog = new WriteToLog();
+                writeToLog.WriteErrorLog($"[DatabaseService.ExecuteCommand] 資料庫操作失敗: {ex.Message}");
+                Console.WriteLine($"[DatabaseService] 資料庫操作失敗: {ex.Message}");
+                return new DbCommandResult { Error = GetSafeErrorMessage(ex) };
+            }
+        }
+
+        private string ValidateSqlRequest(Execute_query executeQuery)
+        {
+            if (executeQuery == null)
+            {
+                return "查詢物件不能為空";
+            }
+            if (string.IsNullOrWhiteSpace(executeQuery.Query))
+            {
+                return "查詢指令不能為空";
             }
             // 驗證連線參數 - 完全相同於原始程式碼
             string server = Program.HOST;
@@ -34,21 +101,17 @@ namespace DCT_data_import
             if (string.IsNullOrWhiteSpace(server) || string.IsNullOrWhiteSpace(user) ||
                 string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(database))
             {
-                return new Execute_query_response { Error = "資料庫連線參數不完整" };
+                return "資料庫連線參數不完整";
             }
-            try
-            {
-                var DB = new DBmysql();
-                DB.Connect(server, port, user, password, database);
-                return DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters);
-            }
-            catch (Exception ex)
-            {
-                var writeToLog = new WriteToLog();
-                writeToLog.WriteErrorLog($"[DatabaseService.ExecuteSql] 資料庫操作失敗: {ex.Message}");
-                Console.WriteLine($"[DatabaseService] 資料庫操作失敗: {ex.Message}");
-                return new Execute_query_response { Error = GetSafeErrorMessage(ex) };
-            }
+
+            return string.Empty;
+        }
+
+        private DBmysql CreateConnectedDb()
+        {
+            var DB = new DBmysql();
+            DB.Connect(Program.HOST, Program.PORT, Program.USER, Program.PASSWORD, Program.DATABASE);
+            return DB;
         }
         /// <summary>
         /// 驗證資料庫連線是否正常
@@ -70,7 +133,7 @@ namespace DCT_data_import
                 }
                 var DB = new DBmysql();
                 DB.Connect(server, port, user, password, database);
-                var testResult = DB.Excute_mysql_cmd("SELECT 1 as test", "select");
+                var testResult = DB.ExecuteQuery("SELECT 1 as test");
                 return string.IsNullOrEmpty(testResult.Error);
             }
             catch (Exception ex)
@@ -92,13 +155,13 @@ namespace DCT_data_import
             try
             {
                 // 檢查資料庫
-                var dbResult = ExecuteSql(BuildDatabaseExistsQuery(Program.DATABASE), "select");
+                var dbResult = ExecuteQuery(BuildDatabaseExistsQuery(Program.DATABASE));
 
                 if (!string.IsNullOrEmpty(dbResult.Error) || dbResult.Data == null || dbResult.Data.Count == 0)
                     return false;
 
                 // 檢查資料表
-                var tableResult = ExecuteSql(BuildTableExistsQuery(Program.DATABASE, tableName), "select");
+                var tableResult = ExecuteQuery(BuildTableExistsQuery(Program.DATABASE, tableName));
 
                 return string.IsNullOrEmpty(tableResult.Error) && tableResult.Data != null && tableResult.Data.Count > 0;
             }

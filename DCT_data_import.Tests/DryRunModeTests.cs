@@ -28,6 +28,59 @@ namespace DCT_data_import.Tests
 
             Assert.True(string.IsNullOrEmpty(response.Error),
                 $"DryRun 非 select 應回 no-op 成功(Error 空),實際 Error='{response.Error}'");
+            Assert.Empty(response.Data);
+        }
+
+        [Fact]
+        public void ExecuteCommand_WhenDryRun_ReturnsTypedNoOpSuccess_WithoutConnection()
+        {
+            RuntimeMode.SetDryRunOverrideForTests(true);
+
+            var response = new DBmysql().ExecuteCommand("INSERT INTO dummy(x) VALUES(1)");
+
+            Assert.True(string.IsNullOrEmpty(response.Error),
+                $"DryRun command 應回 no-op 成功(Error 空),實際 Error='{response.Error}'");
+            Assert.Equal(0, response.AffectedRows);
+            Assert.Equal(0, response.InsertId);
+        }
+
+        [Fact]
+        public void ToLegacyResponse_WhenCommandSucceeds_PreservesCommandMetadata()
+        {
+            var response = DBmysql.ToLegacyResponse(new DbObject.DbCommandResult
+            {
+                AffectedRows = 3,
+                InsertId = 42
+            });
+
+            Assert.True(string.IsNullOrEmpty(response.Error));
+            Assert.Equal(3, response.AffectedRows);
+            Assert.Equal(42, response.InsertId);
+            Assert.Single(response.Data);
+            Assert.Equal(3, response.Data[0].Value<int>("affectedRows"));
+            Assert.Equal(42, response.Data[0].Value<long>("insertId"));
+        }
+
+        [Fact]
+        public void ExcuteMysqlCmd_WhenModeIsNull_ReturnsModeError_InsteadOfCommandNoOp()
+        {
+            RuntimeMode.SetDryRunOverrideForTests(true);
+
+            var response = new DBmysql().Excute_mysql_cmd("INSERT INTO dummy(x) VALUES(1)", null);
+
+            Assert.Equal("操作模式不能為空", response.Error);
+            Assert.Empty(response.Data);
+        }
+
+        [Fact]
+        public void ExecuteSql_WhenModeIsNull_ReturnsModeError_BeforeConnectionValidation()
+        {
+            var response = new DatabaseService().ExecuteSql(
+                new DbObject.Execute_query { Query = "INSERT INTO dummy(x) VALUES(1)" },
+                null);
+
+            Assert.Equal("操作模式不能為空", response.Error);
+            Assert.Empty(response.Data);
         }
 
         [Fact]

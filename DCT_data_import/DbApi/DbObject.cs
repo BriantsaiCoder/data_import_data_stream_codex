@@ -60,10 +60,21 @@ namespace DCT_data_import
             public string Query { get; set; }
             public object Parameters { get; set; }
         }
-        public class Execute_query_response
+        public class DbQueryResult
         {
-            public JArray Data { get; set; }
-            public string Error { get; set; }
+            public JArray Data { get; set; } = new JArray();
+            public string Error { get; set; } = string.Empty;
+        }
+        public class DbCommandResult
+        {
+            public int AffectedRows { get; set; }
+            public long InsertId { get; set; }
+            public string Error { get; set; } = string.Empty;
+        }
+        public class Execute_query_response : DbQueryResult
+        {
+            public int AffectedRows { get; set; }
+            public long InsertId { get; set; }
         }
     }
 }
