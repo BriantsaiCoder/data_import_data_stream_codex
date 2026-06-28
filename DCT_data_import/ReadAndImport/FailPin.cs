@@ -6,13 +6,12 @@ using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class FailPin : ImportData
     {
-        public async Task<ImportResult> ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
+        public ImportResult ReadAndImportFailPinLog(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             bool import_result = false, isDBKeyExist = false;
             WriteToLog writeToLog = new WriteToLog();
@@ -73,10 +72,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     stopWatch.Reset();
                     stopWatch.Start();
-                    await Task.Run(() =>
-                    {
-                        import_result = fileAccess.ImportFailPinLog(failPinLogContent, DatabaseService);
-                    }).ConfigureAwait(false);
+                    import_result = fileAccess.ImportFailPinLog(failPinLogContent, DatabaseService);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -107,7 +103,6 @@ namespace DCT_data_import.ReadAndImport
                 MoveToError(ftpFilePath, errorPath);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
-            GC.Collect();
             //Console.WriteLine("Fail pin log end~");
             return new ImportResult(1, string.Empty);
         }

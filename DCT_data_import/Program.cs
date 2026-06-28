@@ -383,7 +383,7 @@ namespace DCT_data_import
                         {
                             if (ImportDecision.IsRecoveryRateCheckStatus(dbKeyList[i].CheckStatus) && dbKeyList[i].RecoveryRate == 0)
                             {
-                                importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                importResult = recoveryRate.ReadAndImportRecoveryRateData(fileAccess, DatabaseService, dbKeyList[i].DbKey);
                             }
                             else
                             {
@@ -403,11 +403,11 @@ namespace DCT_data_import
                             {
                                 if (dbKeyList[i].TestResult == 0)
                                 {
-                                    importResult2 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                    importResult2 = rawData.ReadAndImportRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey);
                                     if (ImportDecision.ShouldFallbackToMultiSpec(importResult2.Result))
                                     {
                                         // File not found
-                                        importResult2 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                        importResult2 = multiSpecRawData.ReadAndImportMultiSpecRawData(fileAccess, DatabaseService, dbKeyList[i].DbKey);
                                     }
                                 }
                                 else
@@ -431,7 +431,7 @@ namespace DCT_data_import
                         {
                             if (ImportDecision.IsTesterCheckStatus(dbKeyList[i].CheckStatus) && dbKeyList[i].Tester == 0)
                             {
-                                importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                importResult1 = tester.ReadAndImportTesterStatus(fileAccess, DatabaseService, dbKeyList[i].DbKey);
                             }
                             else
                             {
@@ -451,7 +451,7 @@ namespace DCT_data_import
                             {
                                 if (dbKeyList[i].FailPin == 0)
                                 {
-                                    importResult3 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, dbKeyList[i].DbKey).GetAwaiter().GetResult();
+                                    importResult3 = failPin.ReadAndImportFailPinLog(fileAccess, DatabaseService, dbKeyList[i].DbKey);
                                 }
                                 else
                                 {

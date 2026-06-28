@@ -151,7 +151,7 @@
 <!-- ============ NAV ============ -->
 <nav>
   <div style="font-weight:700;font-size:15px;color:var(--txt)">DCT_data_import</div>
-  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.2.0</div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v2.3.0</div>
   <h2>導覽</h2>
   <a href="#overview">① 系統概觀</a>
   <a href="#stack">② 技術棧</a>
@@ -178,8 +178,8 @@
     <span class="pill"><b>資料來源</b> FTP / Local</span>
     <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
     <span class="pill"><b>原始碼</b> 24 檔 / 5 層</span>
-    <span class="pill"><b>對應</b> chore/a4-net8-only</span>
-    <span class="pill"><b>更新</b> 2026-06-27</span>
+    <span class="pill"><b>對應</b> codex/p3-p2-cleanup</span>
+    <span class="pill"><b>更新</b> 2026-06-28</span>
   </div>
   <div class="note" style="margin-top:18px;margin-bottom:0">
     📎 本頁為 <a href="專案架構報告.md">專案架構報告.md</a> 的視覺化版本。詳細的 <code>檔案:行</code> 與 commit 佐證請看報告全文。
@@ -250,7 +250,7 @@
     <div class="layer-head">🟩 資料庫存取層 · DbApi/ + MySQL_api/</div>
     <div class="layer-body">
       <span class="chip">DbAccess <small>check_status</small></span>
-      <span class="chip">DatabaseService <small>假async/存在性檢查</small></span>
+      <span class="chip">DatabaseService <small>同步SQL/存在性檢查</small></span>
       <span class="chip">DbObject <small>DTO</small></span>
       <span class="chip">DBmysql <small>Dapper+連線單例</small></span>
     </div>
@@ -399,8 +399,8 @@
       <p>控制表 <code>db_key</code> / <code>db_key_ui_status</code>;計算 check_status 公式;<code>SelectFailDbKeyResult</code> 用 <b>20 分鐘緩衝</b>(now-1200)避免抓到處理中資料。</p>
     </div>
     <div class="card">
-      <h4>DatabaseService.cs <span class="tag" style="background:#d2992233;color:var(--amber)">假async</span></h4>
-      <p><code>ExecuteSqlAsync</code> = Task.Run 包同步,並傳遞 <code>Execute_query.Parameters</code>。<code>CheckDatabaseAndTableExists</code> 用 INFORMATION_SCHEMA <b>只檢查存在性、不自動建表</b>。</p>
+      <h4>DatabaseService.cs <span class="tag" style="background:#3fb95033;color:var(--green)">同步SQL</span></h4>
+      <p><code>ExecuteSql</code> 直接呼叫同步 DBmysql,並傳遞 <code>Execute_query.Parameters</code>。<code>CheckDatabaseAndTableExists</code> 用 INFORMATION_SCHEMA <b>只檢查存在性、不自動建表</b>。</p>
     </div>
     <div class="card">
       <h4>DBmysql.cs <span class="tag" style="background:#3fb95033;color:var(--green)">0a9c2ae</span></h4>
@@ -412,7 +412,7 @@
     </div>
   </div>
   <div class="note">
-    📌 <b>歷史殘留</b>:<code>ExecuteSqlAsync</code> 命名、JArray+Error 形狀,是早期透過 Web API 存取的殘留。<b>現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service</b>(舊報告的「HTTP API Service」已不存在)。原 <code>ExecuteInsertWithAPI</code> 已改名 <code>ExecuteInsert</code>、App.config 的 API 設定與「Web API body」註解已清除。
+    📌 <b>歷史殘留</b>:<code>Execute_query</code> 型別名與 JArray+Error 形狀,是早期透過 Web API 存取的殘留。<b>現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service</b>(舊報告的「HTTP API Service」已不存在)。原 <code>ExecuteInsertWithAPI</code> / <code>ExecuteSqlAsync</code> 命名、App.config 的 API 設定與「Web API body」註解已清除。
   </div>
 </section>
 
@@ -473,7 +473,7 @@
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">啟動輸出需維持 secret 遮罩</div><div class="rk-d">目前 PASSWORD 只印 set/unset;新增輸出不得回退成明文。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">殘餘動態 SQL 組裝需維持 guard</div><div class="rk-d">S2 已將值參數化;FileProcess 仍組 table / columns / placeholders,新增路徑不得繞過 ExecuteInsert。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">無真實 DB transaction</div><div class="rk-d">best-effort cascade DELETE:lots_result 失敗留 orphan;MultiSpec 多 site 失敗 partial import。</div></div></div>
-  <div class="risk"><span class="lv md">中</span><div><div class="rk-t">假 async + .GetAwaiter().GetResult() 阻塞</div><div class="rk-d">DB 層宣告 async 但同步阻塞執行,async 只是形式。</div></div></div>
+  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">同步阻塞 I/O 模型</div><div class="rk-d">fake async 已移除;目前仍非真 async / 併發 I/O 設計。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">環境靠本機 IP 硬編碼判定</div><div class="rk-d">10.16.92.67/68 → Prod。換機 / 換 IP 即失效。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">SMTP 仍為內網匿名 relay</div><div class="rk-d">server/from 已在 App.config;auth/TLS 視環境決策。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Thread.Sleep(432000) 註解誤標「2H」(實 7.2 分)</div><div class="rk-d">Program.cs。認知陷阱。</div></div></div>
@@ -495,7 +495,7 @@
 </section>
 
 <footer>
-  本頁由實際原始碼掃描產生,對應 <code>chore/a4-net8-only</code>(2026-06-27)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
+  本頁由實際原始碼掃描產生,對應 <code>codex/p3-p2-cleanup</code>(2026-06-28)。完整 <code>檔案:行</code> 與 commit 佐證見 <a href="專案架構報告.md">專案架構報告.md</a>。程式碼變更時請同步更新本頁與報告。
 </footer>
 
 </main>

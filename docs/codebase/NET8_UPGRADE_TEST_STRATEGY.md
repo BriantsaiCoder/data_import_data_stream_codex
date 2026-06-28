@@ -23,7 +23,7 @@
 **非範圍（本階段不做）**：
 - 不執行 net8 migration 本身（`TargetFramework` 切換、`packages.config`→`PackageReference`、`Thread.Abort` / INI P/Invoke / `C:\temp` log path 等 runtime 相容性問題屬遷移階段）。
 - 不引入 Moq / FluentAssertions / Testcontainers / DB container（避免為測試先改架構）。
-- 不主動現代化（不改 fake async、不重排 namespace、不改既有 SQL 串接風格）——對齊專案 [CLAUDE.md](../../CLAUDE.md) 「.NET Framework 維運」守則。
+- 不主動現代化（不擅自把同步模型改真 async、不重排 namespace、不改既有 SQL 串接風格）——對齊專案 [CLAUDE.md](../../CLAUDE.md) 「.NET 8 維運」守則。
 - fixtures 不含真實憑證 / 內部主機 / 正式 lot 資料；DB/FTP/SMTP 副作用一律不觸發。
 
 ---

@@ -1,5 +1,7 @@
 # 任務交接 — DCT_data_import / C/S2 SQL 參數化(HIGH 安全債)
 
+> **歷史交接文件**：S2 已完成。本檔保留 S2 當時的執行脈絡;新工作請以 `REMAINING-WORK.md`、`docs/codebase/CONCERNS.md`、`專案架構報告.md` 為 live 權威。P2 後 active code 已改為明確同步模型:`DatabaseService.ExecuteSql` 取代舊 `ExecuteSqlAsync`;`Program.cs` TEST CASE 註解區塊仍刻意保留舊 snippets。
+>
 > 給新 session 或 codex 用。**整份貼進去即可開工**;需要全細節時讀本檔 §「先讀這些」列的權威來源。
 > 產生時 master HEAD = `afdc7c4`。執行前先 `git log --oneline -3` 確認 HEAD 未漂移。
 
@@ -17,7 +19,7 @@
 4. `DCT_data_import.Tests/README.md`(R5 已示範「先寫 failing test 再修」模式)
 
 ## 綁定決策(不可推翻,違反屬 bug)
-- **最小改動案**(用戶全域選擇):用既裝 Dapper 2.1.66 具名參數逐站把 `'"+v+"'` 改 `@param`,簽名不變、不抽 repository、不動 fake-async 風格。原始設計案(抽 repo 層)不取。
+- **最小改動案**(用戶全域選擇):用既裝 Dapper 2.1.66 具名參數逐站把 `'"+v+"'` 改 `@param`,簽名不變、不抽 repository。S2 當時不改 async 風格;P2 後 active code 已改為明確同步模型。原始設計案(抽 repo 層)不取。
 - **S1 維持不動**:App.config 明文 DB/FTP 帳密是接受的既有債,不處理、不搬移、不 env-var 化。S2 過程**不得新增/擴大/擴散**該段帳密。
 - **安全紅線**:絕不把 DB/FTP 帳密或 SQL 全文印到 console/log;DryRun guard 訊息只能說 skipped,不印 SQL/帳密;新 config key 只進範例(key name)、值走外部。
 - **NEVER force-push master**;只在 feature 分支用 `--force-with-lease`。
@@ -25,7 +27,7 @@
 ## S2 致能改動(計畫 §1,已驗證乾淨)
 參數化管線其實**已存在於** `DBmysql.Excute_mysql_cmd(cmd, mode, object parameters)`(把 parameters 傳給 Dapper),只是被上層截斷。三步打通:
 1. `DbApi/DbObject.cs:58` — `Execute_query` DTO 加 `public object Parameters { get; set; }`
-2. `DbApi/DatabaseService.cs:47` — 改成 `DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters)`
+2. `DbApi/DatabaseService.cs:47` — 現況為 `DatabaseService.ExecuteSql` 呼叫 `DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters)`
 3. 逐站:`'"+v+"'` → `@p` + `Parameters = new { p = v }`;批次 INSERT 站已用 `DynamicParameters` 逐列具名
 
 ## 三種注入機制(別混用)
@@ -48,10 +50,10 @@
 - **C 逐站最小步 3+ PR**(最保守最慢)。
 
 ## 約定/風格
-Conventional Commits zh-TW(commit 首行中 ≤30);4 空格縮排、Allman 大括號;繁中註解為主;namespace 與資料夾不對齊是既有現象勿「修正」;async 全 `.GetAwaiter().GetResult()` 勿改真 async。
+Conventional Commits zh-TW(commit 首行中 ≤30);4 空格縮排、Allman 大括號;繁中註解為主;namespace 與資料夾不對齊是既有現象勿「修正」;目前 active code 為明確同步模型,勿擅自改真 async。
 
 ## 已完成,**不要重做**
 雙 TFM 升級本體(PR #4)、A0 cutover 前置(PR #7=`11305eb`)、R5 加權和溢位修(PR #6=`0a3ab92`)、S3 帳密遮罩、S4 SMTP→App.config(PR #8=`7e6d6ba`)、NI-3 收件人空清單明確錯誤(PR #9=`f15eb8e`)。
 
 ## 其餘 backlog(本次不做,僅供脈絡)
-A1-A4 cutover 需 Windows runtime + 影子/prod 環境,A4 強治理延後;Stream D 測試廣度網與 Stream E(R2/R3/D2-D5/P1-P3 + 現代化)延後,現代化動前需決策者確認。完整清單見 `REMAINING-WORK.md`。
+A1-A4 cutover 已由後續工作完成;Stream E 中 P2/P3 也已完成。剩餘 live backlog 見 `REMAINING-WORK.md`。

@@ -7,13 +7,12 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class RawData : ImportData
     {
-        public async Task<ImportResult> ReadAndImportRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
+        public ImportResult ReadAndImportRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             WriteToLog writeToLog = new WriteToLog();
             bool compareResult = false;
@@ -99,10 +98,7 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Reset();
                     stopWatch.Start();
                     // 開始匯入
-                    await Task.Run(() =>
-                    {
-                        import_result = fileAccess.ImportRawData(rawDataContentFormat, DatabaseService);
-                    }).ConfigureAwait(false);
+                    import_result = fileAccess.ImportRawData(rawDataContentFormat, DatabaseService);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -133,7 +129,6 @@ namespace DCT_data_import.ReadAndImport
                 MoveToError(ftpFilePath, errorPath);
                 return new ImportResult(3, "Exception error occurred during import.");
             }
-            GC.Collect();
             //Console.WriteLine("Raw data end~");
             return new ImportResult(1, string.Empty);
         }

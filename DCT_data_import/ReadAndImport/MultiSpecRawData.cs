@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {/// <summary>
@@ -103,7 +102,7 @@ namespace DCT_data_import.ReadAndImport
             }
             return new FileCheckResult(false);
         }
-        public async Task<ImportResult> ReadAndImportMultiSpecRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
+        public ImportResult ReadAndImportMultiSpecRawData(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             WriteToLog writeToLog = new WriteToLog();
             bool compareResult = false;
@@ -206,10 +205,7 @@ namespace DCT_data_import.ReadAndImport
                     stopWatch.Reset();
                     stopWatch.Start();
                     // 開始匯入
-                    await Task.Run(() =>
-                    {
-                        import_result = fileAccess.ImportMultiSpecRawData(rawDataContentFormat, DatabaseService, siteNumber);
-                    }).ConfigureAwait(false);
+                    import_result = fileAccess.ImportMultiSpecRawData(rawDataContentFormat, DatabaseService, siteNumber);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -238,12 +234,6 @@ namespace DCT_data_import.ReadAndImport
                     Console.WriteLine($"RawData MultiSpec 匯入處理發生例外錯誤: {ftpFilePath}, 檔案: {filename}, 錯誤: {ex.Message}");
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "Exception error occurred during import.");
-                }
-                finally
-                {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect(); // 二次回收，確保徹底清理
                 }
             }
             return new ImportResult(1, string.Empty);

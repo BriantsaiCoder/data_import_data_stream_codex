@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import
 {
@@ -10,12 +9,12 @@ namespace DCT_data_import
         }
 
         /// <summary>
-        /// 執行資料庫查詢操作（保持原有 API 完全相容）
+        /// 執行資料庫查詢操作
         /// </summary>
         /// <param name="Execute_query">查詢物件</param>
         /// <param name="mode">操作模式，預設為 "select"</param>
         /// <returns>查詢結果</returns>
-        public async Task<Execute_query_response> ExecuteSqlAsync(Execute_query Execute_query, string mode = "select")
+        public Execute_query_response ExecuteSql(Execute_query Execute_query, string mode = "select")
         {
             // 輸入驗證 - 完全相同於原始程式碼
             if (Execute_query == null)
@@ -39,18 +38,14 @@ namespace DCT_data_import
             }
             try
             {
-                // 使用 Task.Run 來真正實現非同步操作 - 完全相同於原始程式碼
-                return await Task.Run(() =>
-                {
-                    var DB = new DBmysql();
-                    DB.Connect(server, port, user, password, database);
-                    return DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters);
-                }).ConfigureAwait(false);
+                var DB = new DBmysql();
+                DB.Connect(server, port, user, password, database);
+                return DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters);
             }
             catch (Exception ex)
             {
                 var writeToLog = new WriteToLog();
-                writeToLog.WriteErrorLog($"[DatabaseService.ExecuteSqlAsync] 資料庫操作失敗: {ex.Message}");
+                writeToLog.WriteErrorLog($"[DatabaseService.ExecuteSql] 資料庫操作失敗: {ex.Message}");
                 Console.WriteLine($"[DatabaseService] 資料庫操作失敗: {ex.Message}");
                 return new Execute_query_response { Error = GetSafeErrorMessage(ex) };
             }
@@ -97,13 +92,13 @@ namespace DCT_data_import
             try
             {
                 // 檢查資料庫
-                var dbResult = ExecuteSqlAsync(BuildDatabaseExistsQuery(Program.DATABASE), "select").GetAwaiter().GetResult();
+                var dbResult = ExecuteSql(BuildDatabaseExistsQuery(Program.DATABASE), "select");
 
                 if (!string.IsNullOrEmpty(dbResult.Error) || dbResult.Data == null || dbResult.Data.Count == 0)
                     return false;
 
                 // 檢查資料表
-                var tableResult = ExecuteSqlAsync(BuildTableExistsQuery(Program.DATABASE, tableName), "select").GetAwaiter().GetResult();
+                var tableResult = ExecuteSql(BuildTableExistsQuery(Program.DATABASE, tableName), "select");
 
                 return string.IsNullOrEmpty(tableResult.Error) && tableResult.Data != null && tableResult.Data.Count > 0;
             }

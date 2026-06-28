@@ -28,8 +28,8 @@
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
 | P1 | Medium | **O(n²) SQL 字串累加**：`values += ...` 逐列串接，大檔記憶體/CPU 差 | `FileProcess.cs:110-156` 等 | 改 `StringBuilder` 或批次參數化 |
-| P2 | Medium | **Async-over-sync 全面阻塞**：`async` 方法以 `.GetAwaiter().GetResult()` 同步等待，喪失非同步效益且有死結風險 | `DatabaseService.cs:101,108`、`DbAccess.cs:40,98,170,221` | 全鏈改真 async 或全改同步（擇一，勿混用） |
-| P3 | Low | **每次匯入後 `GC.Collect()`**：手動觸發 full GC，通常弊大於利 | 各 importer 成功分支 | 移除，交給 runtime 管理 |
+| P2 | ~~Medium~~ ✅已修 | **Async-over-sync 全面阻塞**：active code 已全改同步;`DatabaseService.ExecuteSql` 直接呼叫同步 DB path,importer 回 `ImportResult`,`Program.cs` 不再 `.GetAwaiter().GetResult()` | `DatabaseService.cs`、`Program.cs`、`ReadAndImport/*`、`DbAccess.cs`、`FileProcess.cs` | 維持明確同步;若未來要真 async,另立完整 DB/FTP async 設計 |
+| P3 | ~~Low~~ ✅已修 | **每次匯入後 `GC.Collect()`**：各 importer 成功/finally 分支的手動 full GC 已移除,交給 runtime 管理 | `ReadAndImport/FailPin.cs`、`RawData.cs`、`RecoveryRate.cs`、`Tester.cs`、`UiStatus.cs`、`MultiSpecRawData.cs` | 維持 `using`/`Dispose` 釋放資源;不要以手動 GC 代替 cleanup |
 
 ### 4) Reliability / Correctness
 
