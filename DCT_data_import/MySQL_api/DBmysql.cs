@@ -48,22 +48,13 @@ namespace DCT_data_import
             }
             return filteredCommand;
         }
-        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select", object parameters = null)
+        public DbQueryResult ExecuteQuery(string cmd_string, object parameters = null)
         {
-            Execute_query_response response = new Execute_query_response();
-            response.Data = new JArray();
+            DbQueryResult response = new DbQueryResult();
             // 輸入驗證
             if (string.IsNullOrWhiteSpace(cmd_string))
             {
                 response.Error = "SQL 指令不能為空";
-                return response;
-            }
-            // DryRun(影子驗證):非 select(insert/update/delete)一律不寫入,回 no-op 成功(Error 空、Data 空)。
-            // gate 放在開連線前 → 影子模式零寫入連線負擔;涵蓋所有 INSERT/UPDATE/DELETE(含破壞性多表 cascade delete)。
-            // 回假成功避免上層誤判寫入失敗 → 誤觸 import_status/mail 旗標污染佇列。SELECT 不受影響、照常讀取。
-            if (RuntimeMode.IsDryRun && mode.ToLower() != "select")
-            {
-                response.Error = "";
                 return response;
             }
             if (string.IsNullOrEmpty(MySqlConnectionManager.ConnectionString))
@@ -78,47 +69,11 @@ namespace DCT_data_import
             {
                 connection = new MySqlConnection(MySqlConnectionManager.ConnectionString);
                 connection.Open();
-                if (mode.ToLower() == "select")
-                {
-                    ExecuteSelectCommand(connection, filteredCmdString, parameters, response);
-                }
-                else
-                {
-                    ExecuteNonQueryCommand(connection, filteredCmdString, parameters, response);
-                }
-            }
-            catch (MySqlException mysqlEx)
-            {
-                response.Error = FormatMySqlError(mysqlEx);
-            }
-            catch (InvalidOperationException invalidOpEx)
-            {
-                response.Error = $"資料庫操作無效: {invalidOpEx.Message}";
-            }
-            catch (TimeoutException timeoutEx)
-            {
-                response.Error = $"資料庫操作逾時: {timeoutEx.Message}";
-            }
-            catch (ArgumentException argEx)
-            {
-                response.Error = $"參數錯誤: {argEx.Message}";
-            }
-            catch (InvalidCastException castEx)
-            {
-                response.Error = $"資料類型轉換錯誤: {castEx.Message}";
-            }
-            catch (Newtonsoft.Json.JsonException jsonEx)
-            {
-                response.Error = $"JSON 序列化錯誤: {jsonEx.Message}";
+                ExecuteSelectCommand(connection, filteredCmdString, parameters, response);
             }
             catch (Exception ex)
             {
-                response.Error = $"執行資料庫操作時發生未預期錯誤: {ex.GetType().Name} - {ex.Message}";
-                // 記錄詳細錯誤資訊用於除錯
-                if (ex.InnerException != null)
-                {
-                    response.Error += $" | 內部例外: {ex.InnerException.Message}";
-                }
+                response.Error = FormatDatabaseError(ex);
             }
             finally
             {
@@ -128,7 +83,110 @@ namespace DCT_data_import
             }
             return response;
         }
-        private void ExecuteSelectCommand(MySqlConnection connection, string cmd_string, object parameters, Execute_query_response response)
+        public DbCommandResult ExecuteCommand(string cmd_string, object parameters = null)
+        {
+            DbCommandResult response = new DbCommandResult();
+            // 輸入驗證
+            if (string.IsNullOrWhiteSpace(cmd_string))
+            {
+                response.Error = "SQL 指令不能為空";
+                return response;
+            }
+            // DryRun(影子驗證):寫入一律不寫入,回 no-op 成功(Error 空、AffectedRows/InsertId 為 0)。
+            // gate 放在開連線前 → 影子模式零寫入連線負擔;涵蓋 INSERT/UPDATE/DELETE(含破壞性多表 cascade delete)。
+            if (RuntimeMode.IsDryRun)
+            {
+                response.Error = string.Empty;
+                return response;
+            }
+            if (string.IsNullOrEmpty(MySqlConnectionManager.ConnectionString))
+            {
+                response.Error = "資料庫連線尚未初始化，請先呼叫 Connect 方法";
+                return response;
+            }
+            // 過濾 SQL 命令以避免語法錯誤
+            string filteredCmdString = FilterSqlCommand(cmd_string);
+            MySqlConnection connection = null;
+            try
+            {
+                connection = new MySqlConnection(MySqlConnectionManager.ConnectionString);
+                connection.Open();
+                response = ExecuteNonQueryCommand(connection, filteredCmdString, parameters);
+            }
+            catch (Exception ex)
+            {
+                response.Error = FormatDatabaseError(ex);
+            }
+            finally
+            {
+                // 確保連線正確釋放
+                connection?.Close();
+                connection?.Dispose();
+            }
+            return response;
+        }
+        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select", object parameters = null)
+        {
+            if (mode == null)
+            {
+                return new Execute_query_response { Error = "操作模式不能為空" };
+            }
+
+            if (IsSelectMode(mode))
+            {
+                return ToLegacyResponse(ExecuteQuery(cmd_string, parameters));
+            }
+
+            DbCommandResult commandResult = ExecuteCommand(cmd_string, parameters);
+            // 保留舊契約:DryRun 非 select 回 no-op 成功,且 Data 為空。
+            if (RuntimeMode.IsDryRun && string.IsNullOrEmpty(commandResult.Error))
+            {
+                return new Execute_query_response { Error = string.Empty };
+            }
+
+            return ToLegacyResponse(commandResult);
+        }
+        internal static Execute_query_response ToLegacyResponse(DbQueryResult result)
+        {
+            return new Execute_query_response
+            {
+                Data = result?.Data ?? new JArray(),
+                Error = result?.Error ?? string.Empty
+            };
+        }
+        internal static Execute_query_response ToLegacyResponse(DbCommandResult result)
+        {
+            Execute_query_response response = new Execute_query_response
+            {
+                Error = result?.Error ?? string.Empty,
+                AffectedRows = result?.AffectedRows ?? 0,
+                InsertId = result?.InsertId ?? 0
+            };
+
+            if (string.IsNullOrEmpty(response.Error))
+            {
+                response.Data.Add(CreateLegacyCommandMetadata(response.AffectedRows, response.InsertId));
+            }
+
+            return response;
+        }
+        private static JObject CreateLegacyCommandMetadata(int affectedRows, long insertId)
+        {
+            return new JObject
+            {
+                ["fieldCount"] = 0,
+                ["affectedRows"] = affectedRows,
+                ["insertId"] = insertId,
+                ["info"] = string.Empty,
+                ["serverStatus"] = 2,
+                ["warningStatus"] = 0
+            };
+        }
+        private static bool IsSelectMode(string mode)
+        {
+            return string.Equals(mode, "select", StringComparison.OrdinalIgnoreCase);
+        }
+        private void ExecuteSelectCommand(MySqlConnection connection, string cmd_string, object parameters, DbQueryResult response)
         {
             try
             {
@@ -191,7 +249,7 @@ namespace DCT_data_import
                 throw new InvalidOperationException($"執行 SELECT 查詢時發生錯誤: {ex.Message}", ex);
             }
         }
-        private void ExecuteNonQueryCommand(MySqlConnection connection, string cmd_string, object parameters, Execute_query_response response)
+        private DbCommandResult ExecuteNonQueryCommand(MySqlConnection connection, string cmd_string, object parameters)
         {
             MySqlTransaction transaction = null;
             try
@@ -216,16 +274,12 @@ namespace DCT_data_import
                     }
                 }
                 transaction.Commit();
-                JObject resultObj = new JObject
+                return new DbCommandResult
                 {
-                    ["fieldCount"] = 0,
-                    ["affectedRows"] = affectedRows,
-                    ["insertId"] = insertId,
-                    ["info"] = string.Empty,
-                    ["serverStatus"] = 2,
-                    ["warningStatus"] = 0
+                    AffectedRows = affectedRows,
+                    InsertId = insertId,
+                    Error = string.Empty
                 };
-                response.Data.Add(resultObj);
             }
             catch (Exception ex)
             {
@@ -249,6 +303,41 @@ namespace DCT_data_import
             {
                 transaction?.Dispose();
             }
+        }
+        private string FormatDatabaseError(Exception ex)
+        {
+            if (ex is MySqlException mysqlEx)
+            {
+                return FormatMySqlError(mysqlEx);
+            }
+            if (ex is InvalidOperationException invalidOpEx)
+            {
+                return $"資料庫操作無效: {invalidOpEx.Message}";
+            }
+            if (ex is TimeoutException timeoutEx)
+            {
+                return $"資料庫操作逾時: {timeoutEx.Message}";
+            }
+            if (ex is ArgumentException argEx)
+            {
+                return $"參數錯誤: {argEx.Message}";
+            }
+            if (ex is InvalidCastException castEx)
+            {
+                return $"資料類型轉換錯誤: {castEx.Message}";
+            }
+            if (ex is Newtonsoft.Json.JsonException jsonEx)
+            {
+                return $"JSON 序列化錯誤: {jsonEx.Message}";
+            }
+
+            string error = $"執行資料庫操作時發生未預期錯誤: {ex.GetType().Name} - {ex.Message}";
+            // 記錄詳細錯誤資訊用於除錯
+            if (ex.InnerException != null)
+            {
+                error += $" | 內部例外: {ex.InnerException.Message}";
+            }
+            return error;
         }
         private string FormatMySqlError(MySqlException mysqlEx)
         {
