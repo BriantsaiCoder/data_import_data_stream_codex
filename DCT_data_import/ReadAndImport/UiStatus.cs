@@ -85,7 +85,6 @@ namespace DCT_data_import.ReadAndImport
                 MoveToError(ftpFilePath, errorPath);
                 return new ImportResult(3, "Exception error occurred during import. " + ex.Message);
             }
-            GC.Collect();
             return new ImportResult(1, string.Empty);
         }
         public UIStatusContentFormat FileReadUIStatus(StreamReader reader)

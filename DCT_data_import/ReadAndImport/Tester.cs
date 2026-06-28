@@ -5,13 +5,12 @@ using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using System.Threading.Tasks;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class Tester : ImportData
     {
-        public async Task<ImportResult> ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
+        public ImportResult ReadAndImportTesterStatus(FileProcess fileAccess, DatabaseService DatabaseService, string dbKey)
         {
             bool isDBKeyExist = false, import_result = false;
             WriteToLog writeToLog = new WriteToLog();
@@ -85,10 +84,7 @@ namespace DCT_data_import.ReadAndImport
                 {
                     stopWatch.Reset();
                     stopWatch.Start();
-                    await Task.Run(() =>
-                    {
-                        import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, DatabaseService);
-                    }).ConfigureAwait(false);
+                    import_result = fileAccess.ImportTesterStatus(testStatusContentFormat, DatabaseService);
                     stopWatch.Stop();
                     ts2 = stopWatch.Elapsed;
                     importTakeTime = Math.Round(Convert.ToDouble(ts2.TotalMilliseconds / 1000), 3);
@@ -120,7 +116,6 @@ namespace DCT_data_import.ReadAndImport
                 Console.WriteLine(MoveToError(ftpFilePath, errorPath));
                 return new ImportResult(3, "Exception error occurred during reading and import. " + ex.Message);
             }
-            GC.Collect();
             return new ImportResult(1, string.Empty);
         }
         public TestStatusContentFormat FileReadTesterStatus(StreamReader reader)

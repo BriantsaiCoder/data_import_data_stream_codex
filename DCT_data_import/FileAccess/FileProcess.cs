@@ -31,7 +31,7 @@ namespace DCT_data_import
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             var execute_query = BuildDbKeyExistsQuery(db_table_name, db_key);
-            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query).GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSql(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1420,7 +1420,7 @@ namespace DCT_data_import
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                     return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
                 }
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "insert").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "insert");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Operation: INSERT {tableName}");
@@ -1517,7 +1517,7 @@ namespace DCT_data_import
                 }
             }
             Execute_query execute_query = BuildDeleteRawDataQuery(lot_id);
-            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "delete");
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1553,7 +1553,7 @@ namespace DCT_data_import
                 }
             }
             Execute_query execute_query = BuildDeleteTesterStatusQuery(device_info_id);
-            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "delete");
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1591,7 +1591,7 @@ namespace DCT_data_import
             }
             Execute_query[] deleteQueries = BuildDeleteFailPinLogQueries(fail_pin_id);
             Execute_query execute_query = deleteQueries[0];
-            Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
+            Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "delete");
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1599,7 +1599,7 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list_pin_ball error");
             }
             execute_query = deleteQueries[1];
-            response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSql(execute_query, "delete");
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1607,7 +1607,7 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_test_result error ");
             }
             execute_query = deleteQueries[2];
-            response = DatabaseService.ExecuteSqlAsync(execute_query, "delete").GetAwaiter().GetResult();
+            response = DatabaseService.ExecuteSql(execute_query, "delete");
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");

@@ -36,7 +36,7 @@ DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 
 - 沿用既有檔風格；註解以繁中為主。
 - **namespace 與資料夾不對齊**是既有現象，勿順手「修正」。
-- `async` 方法多被 `.GetAwaiter().GetResult()` 同步呼叫；現代化非本專案目標，維運沿用。
+- 匯入與 DB 存取目前是明確同步模型；現代化非本專案目標，維運沿用。
 - 完整風險清單見 [docs/codebase/CONCERNS.md](docs/codebase/CONCERNS.md)。
 
 ## 文件地圖
@@ -52,7 +52,7 @@ DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 
 ## AI 協作守則
 
-- **.NET 8 維運**：沿用既有風格，**不主動現代化**（不擅自把 fake async 改真 async、不重排 namespace、不改既有 SQL 路徑除非任務要求）。
+- **.NET 8 維運**：沿用既有風格，**不主動現代化**（不擅自把同步模型改真 async、不重排 namespace、不改既有 SQL 路徑除非任務要求）。
 - 改高扇入共用檔（`FileProcess` / `DbAccess` / `ImportData` 基底）前先列依賴方。
 - 修 bug 先寫或確認 failing regression test，再修；若沒有可測 seam，要回報替代驗證。
 - 改動 `docs/codebase/` 對應的程式碼時同步更新文件，doc rot 視同 bug。

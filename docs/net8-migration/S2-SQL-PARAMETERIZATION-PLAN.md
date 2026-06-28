@@ -1,5 +1,7 @@
 # C/S2 — SQL 參數化（HIGH）實作計畫
 
+> **歷史計畫文件**：S2 已完成。本檔保留當時的注入面盤點與決策;新工作請以 `REMAINING-WORK.md`、`docs/codebase/CONCERNS.md`、`專案架構報告.md` 為 live 權威。P2 後 active code 已改為明確同步模型:`DatabaseService.ExecuteSql` 取代舊 `ExecuteSqlAsync`;`Program.cs` TEST CASE 註解區塊仍刻意保留舊 snippets。
+>
 > 本檔把 S2 的注入面盤點 + 致能改動 + 測試紀律 + 範圍分期一次釘死，給接手 S2 的新 session/codex 用，**避免重跑證據蒐集**。
 > 權威背景：[CONCERNS.md S2](../codebase/CONCERNS.md)、[REMAINING-WORK.md Stream C](REMAINING-WORK.md)、根 `CLAUDE.md` 關鍵約束 #4。
 > 狀態：**A/PR-1 已完成**（DbAccess 4 值站 + TsmcIeda 值站/DataTable.Select + identifier chokepoint）；**A/PR-2 已完成**（FileProcess 批次 INSERT 值參數化）。
@@ -9,7 +11,7 @@
 參數化管線**其實已存在於 `DBmysql.Excute_mysql_cmd(string cmd, string mode, object parameters)`**（line 51；把 `parameters` 傳給 Dapper `connection.Query`/`connection.Execute`，line 136/201），只是被上層截斷：
 
 1. `Execute_query` DTO 加 `public object Parameters { get; set; }` — `DbApi/DbObject.cs:58`
-2. `DatabaseService.ExecuteSqlAsync` 把它接通 — `DbApi/DatabaseService.cs:47`
+2. `DatabaseService.ExecuteSql` 把它接通 — `DbApi/DatabaseService.cs:47`
    `return DB.Excute_mysql_cmd(Execute_query.Query, mode);`
    → `return DB.Excute_mysql_cmd(Execute_query.Query, mode, Execute_query.Parameters);`
 3. 逐站：`"'" + v + "'"` → `"@p"` + `Parameters = new { p = v }`；批次站用 `DynamicParameters` 逐列具名
@@ -66,7 +68,7 @@ SQL 路徑無 DB 不可端到端跑（mac 無 MySQL、net462 測試僅在 CI win
 
 ## 5. 雙案 + 範圍分期（待用戶確認）
 
-- **★ 最小改動案（用戶全域選擇、推薦）**：用既裝 Dapper 逐站改 `@param` + 致能改動；識別碼站白名單；DataTable.Select 另跳脫。不抽 repository、不動 fake-async 風格。
+- **★ 最小改動案（用戶全域選擇、推薦）**：用既裝 Dapper 逐站改 `@param` + 致能改動；識別碼站白名單；DataTable.Select 另跳脫。不抽 repository。P2 後 fake async 已另行清理為明確同步模型。
 - **原始設計案**（不取）：抽 repository 層 + 型別化查詢 + Testcontainers 整合測試 — 屬現代化、非本債目標。
 
 **範圍分期（用戶已選 A）**：

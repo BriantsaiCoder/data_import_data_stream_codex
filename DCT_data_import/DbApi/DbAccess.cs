@@ -22,7 +22,7 @@ namespace DCT_data_import
             try
             {
                 Execute_query execute_query = BuildDataCountInDaysQuery(mode, threeHourAgoTimeStamp);
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -102,7 +102,7 @@ namespace DCT_data_import
                 {
                     Query = sql
                 };
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -193,7 +193,7 @@ namespace DCT_data_import
             {
                 // 先select 出check status 比對確認結果
                 Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key", dbKey);
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -228,7 +228,7 @@ namespace DCT_data_import
                 }
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
-                response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
+                response = DatabaseService.ExecuteSql(execute_query, "update");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
@@ -258,7 +258,7 @@ namespace DCT_data_import
             {
                 // 先select 出check status 比對確認結果
                 Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key_ui_status", dbKey);
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -293,7 +293,7 @@ namespace DCT_data_import
                 }
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
-                response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
+                response = DatabaseService.ExecuteSql(execute_query, "update");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key` error! ");

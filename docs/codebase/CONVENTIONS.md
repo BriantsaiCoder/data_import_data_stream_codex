@@ -10,7 +10,7 @@
 |------|------|---------|----------|
 | Files | PascalCase，一檔一主類別 | `FailPin.cs`、`DatabaseService.cs` | 全 `ReadAndImport/`、`DbApi/` |
 | Classes | PascalCase | `class FileProcess`、`class DBmysql` | `FileProcess.cs:10`、`DBmysql.cs:10` |
-| Methods | PascalCase | `ReadAndImportRawData`、`ExecuteSqlAsync` | `RawData.cs:16`、`DatabaseService.cs:18` |
+| Methods | PascalCase | `ReadAndImportRawData`、`ExecuteSql` | `RawData.cs:16`、`DatabaseService.cs:18` |
 | 區域變數 | camelCase（但常見區域變數沿用型別名，如 `DatabaseService DatabaseService`） | `var writeToLog`、`DatabaseService DatabaseService` | `DbAccess.cs:69`、`DatabaseService.cs:45` |
 | 靜態全域設定 | 全大寫 | `HOST`、`USER`、`FTP_IP` | `Program.cs:19-26` |
 | DB 物件型別 | 蛇底線混 Pascal（外部 API 殘留） | `Execute_query`、`Execute_query_response` | `DbObject.cs:58,62` |
@@ -55,5 +55,5 @@
 
 ### 已知慣例違規（待清理）
 - `db_key` 欄位名在不同格式不一致：RawData 用 `"DB_Key"`、FailPin/RecoveryRate 用 `"DB Key"`（含空格），造成 CSV 欄位比對對大小寫/空格敏感（`RawData.cs:91`、`FailPin.cs:75`、`RecoveryRate.cs:98`）。
-- `async` 方法被 `.GetAwaiter().GetResult()` 同步呼叫（全專案）；`UiStatus`/`TsmcIeda` 進入方法本身就非 `async`，與其餘 5 個 importer 不一致。
+- active importer / DB 呼叫已是明確同步模型;`Program.cs` TEST CASE 註解區塊仍保留舊呼叫範例。
 - 大量被註解掉的測試案例與舊邏輯留存於 `Program.cs:40-` 與各 `DbAccess` 方法內（dead code）。
