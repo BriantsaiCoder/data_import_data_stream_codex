@@ -90,7 +90,7 @@
 - [x] `CalculateSPC.AverageOfSumSquare` 3 情境測試。
 - [x] `FileProcess` helper（`ConvertEmptyToDefaultString`、`AddColumnForDataset` round-9）測試。
 - [x] MySql.Data DATETIME driver round-trip golden master（需真 MySQL）→ 新增 opt-in `MySqlDataDateTimeRoundTripTests`；設定 `DCT_MYSQL_GOLDEN_MASTER_CONNECTION_STRING` 時使用 temporary table 驗證 `DATETIME` / `DATETIME(6)` / `Convert Zero Datetime=true` zero-date materialization。
-- [ ] coverage 工具（coverlet）+ 門檻。
+- [x] coverage 工具（coverlet）+ 門檻 → 新增 `coverlet.msbuild`，CI 以 total line coverage 25% 作保守 gate（目前 baseline 25.95%）。
 - [x] mac CS0012 facade 編譯問題（測試專案）→ 2026-06-28 以 `DCT_data_import.Tests` Release build 驗證不可重現（0 warnings / 0 errors）。
 
 ---
