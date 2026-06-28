@@ -104,7 +104,7 @@
 - [ ] **R4（LOW）**：log rotation（optional）。
 - [ ] **D3（MEDIUM）**：dead code 清理（`Program.cs` TEST CASE 區塊、`DbAccess` 舊邏輯）。
 - [ ] **D4（MEDIUM）**：`TsmcIeda` self-contained 路徑收斂。
-- [ ] **P1（MEDIUM）**：O(n²) SQL 字串累加 → StringBuilder/batch。
+- [x] **P1（MEDIUM）**：O(n²) SQL 字串累加 → 已將主要 multi-row batch INSERT values builder 改為 `StringBuilder`，並補 IEDA content multi-row placeholder characterization test。
 - [ ] **D2/D5/P2/P3（LOW/deferred）**：型別更名、命名不一致、fake async（非目標）、手動 GC.Collect。
 - [ ] 觀測性（metrics/tracing/APM、error tracking）、DB migration 工具（LOW，外部 owner）。
 

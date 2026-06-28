@@ -4,6 +4,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using Dapper;
 using static DCT_data_import.DbObject;
 namespace DCT_data_import
@@ -104,12 +105,12 @@ namespace DCT_data_import
             try
             {
                 // 開始逐一insert recovery rate data
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var parameters = new DynamicParameters();
                 int parameterIndex = 0;
                 for (int i = 0; i < content.FinalRecoveryRateTable.Rows.Count; i++)
                 {
-                    values += "(" + AddInsertParameter(parameters, ref parameterIndex, "recovery_rate", ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim())) + ",";
+                    valuesBuilder.Append("(").Append(AddInsertParameter(parameters, ref parameterIndex, "recovery_rate", ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][0].ToString().Trim()))).Append(",");
                     for (int j = 1; j < content.FinalRecoveryRateTable.Columns.Count; j++)
                     { // 處理日期格式
                         if (string.Equals(content.FinalRecoveryRateTable.Columns[j].ColumnName.ToLower(), "date", StringComparison.OrdinalIgnoreCase))
@@ -117,16 +118,17 @@ namespace DCT_data_import
                             // 日期格式解析正確
                             content.FinalRecoveryRateTable.Rows[i][j] = ValidateDateTime(content.FinalRecoveryRateTable.Rows[i][j].ToString());
                         }
-                        values += AddInsertParameter(parameters, ref parameterIndex, "recovery_rate", ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][j].ToString().Trim()));
+                        valuesBuilder.Append(AddInsertParameter(parameters, ref parameterIndex, "recovery_rate", ConvertEmptyToDefaultString(content.FinalRecoveryRateTable.Rows[i][j].ToString().Trim())));
                         if (j != content.FinalRecoveryRateTable.Columns.Count - 1)
                         {
-                            values += ",";
+                            valuesBuilder.Append(",");
                         }
                     }
                     // 每cut_size個row就匯入一次
-                    if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
+                    if (i != 0 && i % cut_size == 0 && valuesBuilder.Length > 0)
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
+                        values = valuesBuilder.ToString();
                         values = values.Substring(1, values.Length - 2);
                         response2 = ExecuteInsert(DatabaseService, "recovery_rate", columns, values, parameters);
                         if (!string.IsNullOrEmpty(response2.Error))
@@ -134,19 +136,21 @@ namespace DCT_data_import
                             writeToLog.WriteErrorLog("'INSERT INTO recovery_rate' error:" + response2.Error);
                             return false;
                         }
+                        valuesBuilder.Clear();
                         values = string.Empty;
                         parameters = new DynamicParameters();
                         parameterIndex = 0;
                     }
                     else if (i != content.FinalRecoveryRateTable.Rows.Count - 1)
                     {
-                        values += "),";
+                        valuesBuilder.Append("),");
                     }
                     else
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
@@ -309,18 +313,19 @@ namespace DCT_data_import
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
             try
             {
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var lotsStatisticParameters = new DynamicParameters();
                 int lotsStatisticParameterIndex = 0;
                 for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
-                    values += "(" + AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId)) + ",";
-                    values += AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString())));
+                    valuesBuilder.Append("(").Append(AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId))).Append(",");
+                    valuesBuilder.Append(AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))));
                     // 每cut_size個row就匯入一次
                     if (i != 0 && i % cut_size == 0)
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
+                        values = valuesBuilder.ToString();
                         values = values.Substring(1, values.Length - 2);
                         response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values, lotsStatisticParameters);
                         if (!string.IsNullOrEmpty(response2.Error))
@@ -329,19 +334,21 @@ namespace DCT_data_import
                             response2 = DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
+                        valuesBuilder.Clear();
                         values = string.Empty;
                         lotsStatisticParameters = new DynamicParameters();
                         lotsStatisticParameterIndex = 0;
                     }
                     else if (i != content.LotStatistic.Tables.Count - 1)
                     {
-                        values += "),";
+                        valuesBuilder.Append("),");
                     }
                     else
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
@@ -385,7 +392,7 @@ namespace DCT_data_import
             // 開始逐一insert result表
             try
             {
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var lotsResultParameters = new DynamicParameters();
                 int lotsResultParameterIndex = 0;
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
@@ -393,16 +400,16 @@ namespace DCT_data_import
                     //// 判斷 index=1 的Serial是否為空，若為空則跳過
                     if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
                     {
-                        values += "(" + AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(lotId)) + ",";
+                        valuesBuilder.Append("(").Append(AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(lotId))).Append(",");
                         for (int j = 0; j < content.LotResult.Columns.Count; j++)
                         {
                             if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
                             {
-                                values += "NULL";
+                                valuesBuilder.Append("NULL");
                             }
                             else if ((content.LotResult.Columns[j].ColumnName == "test time" || content.LotResult.Columns[j].ColumnName == "index time") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
                             {
-                                values += "0";
+                                valuesBuilder.Append("0");
                             }
                             else if (content.LotResult.Columns[j].ColumnName == "real time")
                             {
@@ -410,26 +417,27 @@ namespace DCT_data_import
                                 DateTime out_dateTime;
                                 if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
                                 {
-                                    values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
+                                    valuesBuilder.Append(AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString())));
                                 }
                                 else
                                 {
-                                    values += "NULL";
+                                    valuesBuilder.Append("NULL");
                                 }
                             }
                             else
                             {
-                                values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
+                                valuesBuilder.Append(AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString())));
                             }
                             if (j != content.LotResult.Columns.Count - 1)
                             {
-                                values += ",";
+                                valuesBuilder.Append(",");
                             }
                         }
                         // 每cut_size個row就匯入一次
-                        if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
+                        if (i != 0 && i % cut_size == 0 && valuesBuilder.Length > 0)
                         {
-                            values += ")";
+                            valuesBuilder.Append(")");
+                            values = valuesBuilder.ToString();
                             values = values.Substring(1, values.Length - 2);
                             response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values, lotsResultParameters);
                             if (!string.IsNullOrEmpty(response2.Error))
@@ -437,20 +445,22 @@ namespace DCT_data_import
                                 writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
                                 return false;
                             }
+                            valuesBuilder.Clear();
                             values = string.Empty;
                             lotsResultParameters = new DynamicParameters();
                             lotsResultParameterIndex = 0;
                         }
                         else if (i != content.LotResult.Rows.Count - 1)
                         {
-                            values += "),";
+                            valuesBuilder.Append("),");
                         }
                         else
                         {
-                            values += ")";
+                            valuesBuilder.Append(")");
                         }
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
@@ -619,19 +629,20 @@ namespace DCT_data_import
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
             try
             {
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var lotsStatisticParameters = new DynamicParameters();
                 int lotsStatisticParameterIndex = 0;
                 for (int i = 0; i < content.LotStatistic.Tables.Count; i++)
                 {
                     if (content.LotStatistic.Tables[i].Rows.Count < 1) continue;
-                    values += "(" + AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId)) + ",";
-                    values += AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(siteId.ToString())) + ",";
-                    values += AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString())));
+                    valuesBuilder.Append("(").Append(AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId))).Append(",");
+                    valuesBuilder.Append(AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(siteId.ToString()))).Append(",");
+                    valuesBuilder.Append(AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))));
                     // 每cut_size個row就匯入一次
                     if (i != 0 && i % cut_size == 0)
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
+                        values = valuesBuilder.ToString();
                         values = values.Substring(1, values.Length - 2);
                         response2 = ExecuteInsert(DatabaseService, "lots_statistic", columns, values, lotsStatisticParameters);
                         if (!string.IsNullOrEmpty(response2.Error))
@@ -640,19 +651,21 @@ namespace DCT_data_import
                             response2 = DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
+                        valuesBuilder.Clear();
                         values = string.Empty;
                         lotsStatisticParameters = new DynamicParameters();
                         lotsStatisticParameterIndex = 0;
                     }
                     else if (i != content.LotStatistic.Tables.Count - 1)
                     {
-                        values += "),";
+                        valuesBuilder.Append("),");
                     }
                     else
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (values.Length > 3)
                 {
                     values = values.Substring(1, values.Length - 2);
@@ -696,7 +709,7 @@ namespace DCT_data_import
             // 開始逐一insert result表
             try
             {
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var lotsResultParameters = new DynamicParameters();
                 int lotsResultParameterIndex = 0;
                 for (int i = 0; i < content.LotResult.Rows.Count; i++)
@@ -704,16 +717,16 @@ namespace DCT_data_import
                     //// 判斷 index=1 的Serial是否為空，若為空則跳過
                     if (!string.IsNullOrEmpty(content.LotResult.Rows[i]["Serial"].ToString()))
                     {
-                        values += "(" + AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(lotId)) + ",";
+                        valuesBuilder.Append("(").Append(AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(lotId))).Append(",");
                         for (int j = 0; j < content.LotResult.Columns.Count; j++)
                         {
                             if ((content.LotResult.Columns[j].ColumnName == "SN Num" || content.LotResult.Columns[j].ColumnName == "SiteID" || content.LotResult.Columns[j].ColumnName == "real time" || content.LotResult.Columns[j].ColumnName == "X" || content.LotResult.Columns[j].ColumnName == "Y" || content.LotResult.Columns[j].ColumnName == "P/F") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
                             {
-                                values += "NULL";
+                                valuesBuilder.Append("NULL");
                             }
                             else if ((content.LotResult.Columns[j].ColumnName == "test time" || content.LotResult.Columns[j].ColumnName == "index time") && content.LotResult.Rows[i][j].ToString().Trim() == string.Empty)
                             {
-                                values += "0";
+                                valuesBuilder.Append("0");
                             }
                             else if (content.LotResult.Columns[j].ColumnName == "real time")
                             {
@@ -721,26 +734,27 @@ namespace DCT_data_import
                                 DateTime out_dateTime;
                                 if (DateTime.TryParse(content.LotResult.Rows[i][j].ToString().Trim(), out out_dateTime))
                                 {
-                                    values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
+                                    valuesBuilder.Append(AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString())));
                                 }
                                 else
                                 {
-                                    values += "NULL";
+                                    valuesBuilder.Append("NULL");
                                 }
                             }
                             else
                             {
-                                values += AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString()));
+                                valuesBuilder.Append(AddInsertParameter(lotsResultParameters, ref lotsResultParameterIndex, "lots_result", ConvertEmptyToDefaultString(content.LotResult.Rows[i][j].ToString())));
                             }
                             if (j != content.LotResult.Columns.Count - 1)
                             {
-                                values += ",";
+                                valuesBuilder.Append(",");
                             }
                         }
                         // 每cut_size個row就匯入一次
-                        if (i != 0 && i % cut_size == 0 && !string.IsNullOrEmpty(values))
+                        if (i != 0 && i % cut_size == 0 && valuesBuilder.Length > 0)
                         {
-                            values += ")";
+                            valuesBuilder.Append(")");
+                            values = valuesBuilder.ToString();
                             values = values.Substring(1, values.Length - 2);
                             response2 = ExecuteInsert(DatabaseService, "lots_result", columns, values, lotsResultParameters);
                             if (!string.IsNullOrEmpty(response2.Error))
@@ -748,20 +762,22 @@ namespace DCT_data_import
                                 writeToLog.WriteErrorLog("'INSERT INTO lots_result' error:" + response2.Error);
                                 return false;
                             }
+                            valuesBuilder.Clear();
                             values = string.Empty;
                             lotsResultParameters = new DynamicParameters();
                             lotsResultParameterIndex = 0;
                         }
                         else if (i != content.LotResult.Rows.Count - 1)
                         {
-                            values += "),";
+                            valuesBuilder.Append("),");
                         }
                         else
                         {
-                            values += ")";
+                            valuesBuilder.Append(")");
                         }
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
@@ -1222,33 +1238,34 @@ namespace DCT_data_import
             // 開始逐一insert
             try
             {
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var failPinRatePinBallParameters = new DynamicParameters();
                 int failPinRatePinBallParameterIndex = 0;
                 for (int i = 0; i < content.Fail_pin_rate_list_pin_ball.Rows.Count; i++)
                 {
-                    values += "(";
+                    valuesBuilder.Append("(");
                     for (int j = 0; j < content.Fail_pin_rate_list_pin_ball.Columns.Count; j++)
                     {
                         string columnName = content.Fail_pin_rate_list_pin_ball.Columns[j].ColumnName;
                         if (columnName != "fail_pin_rate_list_id")
                         {
-                            values += AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString()));
+                            valuesBuilder.Append(AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString())));
                         }
                         else
                         {
                             string val = ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString());
-                            values += AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", fail_pin_rate_list_Id[int.Parse(val) - 1].ToString());
+                            valuesBuilder.Append(AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", fail_pin_rate_list_Id[int.Parse(val) - 1].ToString()));
                         }
                         if (j != content.Fail_pin_rate_list_pin_ball.Columns.Count - 1)
                         {
-                            values += ",";
+                            valuesBuilder.Append(",");
                         }
                     }
                     // 每50個row就匯入一次
                     if (i != 0 && i % 50 == 0)
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
+                        values = valuesBuilder.ToString();
                         values = values.Substring(1, values.Length - 2);
                         response = ExecuteInsert(DatabaseService, "fail_pin_rate_list_pin_ball", columns, values, failPinRatePinBallParameters);
                         if (!string.IsNullOrEmpty(response.Error))
@@ -1257,19 +1274,21 @@ namespace DCT_data_import
                             response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                             return false;
                         }
+                        valuesBuilder.Clear();
                         values = string.Empty;
                         failPinRatePinBallParameters = new DynamicParameters();
                         failPinRatePinBallParameterIndex = 0;
                     }
                     else if (i != content.Fail_pin_rate_list_pin_ball.Rows.Count - 1)
                     {
-                        values += "),";
+                        valuesBuilder.Append("),");
                     }
                     else
                     {
-                        values += ")";
+                        valuesBuilder.Append(")");
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (!string.IsNullOrEmpty(values))
                 {
                     values = values.Substring(1, values.Length - 2);
@@ -1295,33 +1314,34 @@ namespace DCT_data_import
             // 開始逐一insert
             try
             {
-                values = string.Empty;
+                var valuesBuilder = new StringBuilder();
                 var failPinRateTestResultParameters = new DynamicParameters();
                 int failPinRateTestResultParameterIndex = 0;
                 for (int table_i = 0; table_i < content.Fail_pin_rate_list_test_result.Tables.Count; table_i++)
                 {
                     for (int i = 0; i < content.Fail_pin_rate_list_test_result.Tables[table_i].Rows.Count; i++)
                     {
-                        values += "(" + AddInsertParameter(failPinRateTestResultParameters, ref failPinRateTestResultParameterIndex, "fail_pin_rate_test_result", ConvertEmptyToDefaultString(fail_pin_rate_list_Id[table_i].ToString())) + ",";
+                        valuesBuilder.Append("(").Append(AddInsertParameter(failPinRateTestResultParameters, ref failPinRateTestResultParameterIndex, "fail_pin_rate_test_result", ConvertEmptyToDefaultString(fail_pin_rate_list_Id[table_i].ToString()))).Append(",");
                         for (int j = 0; j < content.Fail_pin_rate_list_test_result.Tables[table_i].Columns.Count; j++)
                         {
                             if (j > 0 && string.IsNullOrEmpty(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()))
                             {
-                                values += "NULL";
+                                valuesBuilder.Append("NULL");
                             }
                             else
                             {
-                                values += AddInsertParameter(failPinRateTestResultParameters, ref failPinRateTestResultParameterIndex, "fail_pin_rate_test_result", ConvertEmptyToDefaultString(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString()));
+                                valuesBuilder.Append(AddInsertParameter(failPinRateTestResultParameters, ref failPinRateTestResultParameterIndex, "fail_pin_rate_test_result", ConvertEmptyToDefaultString(content.Fail_pin_rate_list_test_result.Tables[table_i].Rows[i][j].ToString())));
                             }
                             if (j != content.Fail_pin_rate_list_test_result.Tables[table_i].Columns.Count - 1)
                             {
-                                values += ",";
+                                valuesBuilder.Append(",");
                             }
                         }
                         // 每50個row就匯入一次
                         if (i != 0 && i % 50 == 0)
                         {
-                            values += ")";
+                            valuesBuilder.Append(")");
+                            values = valuesBuilder.ToString();
                             values = values.Substring(1, values.Length - 2);
                             response = ExecuteInsert(DatabaseService, "fail_pin_rate_test_result", columns, values, failPinRateTestResultParameters);
                             if (!string.IsNullOrEmpty(response.Error))
@@ -1330,20 +1350,22 @@ namespace DCT_data_import
                                 response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                                 return false;
                             }
+                            valuesBuilder.Clear();
                             values = string.Empty;
                             failPinRateTestResultParameters = new DynamicParameters();
                             failPinRateTestResultParameterIndex = 0;
                         }
                         else if (table_i != content.Fail_pin_rate_list_test_result.Tables.Count - 1)
                         {
-                            values += "),";
+                            valuesBuilder.Append("),");
                         }
                         else
                         {
-                            values += "),";
+                            valuesBuilder.Append("),");
                         }
                     }
                 }
+                values = valuesBuilder.ToString();
                 if (!string.IsNullOrEmpty(values))
                 {
                     if (values[values.Length - 1] == ',')
