@@ -85,7 +85,7 @@
 
 ## Stream D — Tier 3 測試廣度網（**可獨立開始；R1 傘下**）
 
-- [ ] 6 個 parser characterization 測試（需 `InternalsVisibleTo` 給 3 個 private `FileRead*`）。
+- [x] 6 個 parser characterization 測試（需 `InternalsVisibleTo` 給 3 個 private `FileRead*`）。
 - [x] `FileContentFormat.Compare*()` 測試。
 - [x] `CalculateSPC.AverageOfSumSquare` 3 情境測試。
 - [x] `FileProcess` helper（`ConvertEmptyToDefaultString`、`AddColumnForDataset` round-9）測試。

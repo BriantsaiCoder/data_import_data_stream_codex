@@ -145,7 +145,7 @@ namespace DCT_data_import.ReadAndImport
             //Console.WriteLine("Raw data end~");
             return new ImportResult(1, string.Empty);
         }
-        private RecoveryRateDataContentFormat FileReadRecoveryRateData(StreamReader reader)
+        internal RecoveryRateDataContentFormat FileReadRecoveryRateData(StreamReader reader)
         {
             RecoveryRateDataContentFormat fileContentFormat = new RecoveryRateDataContentFormat();
             try

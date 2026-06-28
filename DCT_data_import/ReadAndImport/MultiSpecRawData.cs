@@ -247,7 +247,7 @@ namespace DCT_data_import.ReadAndImport
             }
             return new ImportResult(1, string.Empty);
         }
-        private RawDataContentFormat FileReadRawData(StreamReader reader)
+        internal RawDataContentFormat FileReadRawData(StreamReader reader)
         {
             RawDataContentFormat fileContentFormat = new RawDataContentFormat();
             try
