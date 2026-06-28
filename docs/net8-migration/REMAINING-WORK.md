@@ -75,10 +75,16 @@
 
 ---
 
-## Stream C — 安全債（**僅剩 S2**；S4 已完成 PR #8、S1 維持不動、S3 已完成）
+## Stream C — 安全債（**S2 主線已完成，剩 residual cleanup**；S4 已完成 PR #8、S1 維持不動、S3 已完成）
 
 - ~~**S1**：App.config 明文 DB/FTP 帳密~~ → **用戶決定（2026-06-27）：維持不動**，既有已知債明確不處理。**不得新增/擴大/搬移**該段帳密（連 env var 化也不做）。
-- [x] **S2（HIGH，已完成 A/PR-1 + A/PR-2）**：SQL 全字串串接零參數化（`FileProcess`/`DbAccess`/`TsmcIeda`）→ 已改參數化（Dapper 具名參數）。已完成 `DbAccess` / `TsmcIeda` / identifier chokepoint / `FileProcess.Import*` 批次 INSERT values。完整計畫見 [S2-SQL-PARAMETERIZATION-PLAN.md](S2-SQL-PARAMETERIZATION-PLAN.md)、交接見 [HANDOFF-S2.md](HANDOFF-S2.md)。
+- [x] **S2（HIGH，已完成 A/PR-1 + A/PR-2）**：SQL 主要寫入路徑已改參數化（Dapper 具名參數）。已完成 `DbAccess` / `TsmcIeda` / identifier chokepoint / `FileProcess.Import*` 批次 INSERT values。完整計畫見 [S2-SQL-PARAMETERIZATION-PLAN.md](S2-SQL-PARAMETERIZATION-PLAN.md)、交接見 [HANDOFF-S2.md](HANDOFF-S2.md)。
+- [ ] **S2-residual（LOW，待補）**：補齊 5 個低風險殘留 SQL value interpolation；只改成 Dapper parameters，不碰 transaction / typed result / DB harness。
+  - [ ] `DbAccess.SelectDataCountInDays`: `threeHourAgoTimeStamp` → `@threshold`。
+  - [ ] `DbAccess.SelectFailDbKeyResult`: `UNION ALL` 兩段 timestamp → 共用 `@threshold`。
+  - [ ] `FileProcess.DeleteRawData`: `lot_id` → `@lotId`。
+  - [ ] `FileProcess.DeleteTesterStatus`: `device_info_id` → `@deviceInfoId`。
+  - [ ] `FileProcess.DeleteFailPinLog`: 三段 `fail_pin_id` → 共用 `@failPinId`。
 - [x] ~~**S4（MEDIUM）**~~ → **✅ 已完成 PR #8 `7e6d6ba`**：SMTP IP/sender 已移到 App.config（ConfigurationManager TryParse 雙 TFM）；內網 relay 暫不需 auth/TLS、理由已記錄。
 
 ---
@@ -104,7 +110,7 @@
 - [ ] **R4（LOW）**：log rotation（optional）。
 - [ ] **D3（MEDIUM）**：dead code 清理（`Program.cs` TEST CASE 區塊、`DbAccess` 舊邏輯）。
 - [ ] **D4（MEDIUM）**：`TsmcIeda` self-contained 路徑收斂。
-- [ ] **P1（MEDIUM）**：O(n²) SQL 字串累加 → StringBuilder/batch。
+- [x] **P1（MEDIUM）**：O(n²) SQL 字串累加 → 已將主要 multi-row batch INSERT values builder 改為 `StringBuilder`，並補 IEDA content multi-row placeholder characterization test。
 - [ ] **D2/D5/P2/P3（LOW/deferred）**：型別更名、命名不一致、fake async（非目標）、手動 GC.Collect。
 - [ ] 觀測性（metrics/tracing/APM、error tracking）、DB migration 工具（LOW，外部 owner）。
 

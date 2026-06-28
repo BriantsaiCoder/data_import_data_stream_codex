@@ -319,59 +319,60 @@ namespace DCT_data_import.ReadAndImport
 
         internal static Execute_query BuildIedaTitleInsertQuery(DataTable titleTable, FileProcess fileProcess)
         {
-            string columns = string.Empty;
-            string values = string.Empty;
+            var columnsBuilder = new StringBuilder();
+            var valuesBuilder = new StringBuilder();
             var parameters = new DynamicParameters();
             for (int i = 0; i < titleTable.Columns.Count; i++)
             {
-                columns += "`" + titleTable.Columns[i].ColumnName.Trim() + "`";
-                values += "@title_" + i;
+                columnsBuilder.Append("`").Append(titleTable.Columns[i].ColumnName.Trim()).Append("`");
+                valuesBuilder.Append("@title_").Append(i);
                 parameters.Add("title_" + i, fileProcess.ConvertEmptyToDefaultString(titleTable.Rows[0][i].ToString()));
                 if (i != titleTable.Columns.Count - 1)
                 {
-                    columns += ",";
-                    values += ",";
+                    columnsBuilder.Append(",");
+                    valuesBuilder.Append(",");
                 }
             }
 
-            return FileProcess.BuildInsertQuery("ieda_title", columns, values, parameters);
+            return FileProcess.BuildInsertQuery("ieda_title", columnsBuilder.ToString(), valuesBuilder.ToString(), parameters);
         }
 
         internal static Execute_query BuildIedaContentInsertQuery(DataTable contentTable, string titleId, FileProcess fileProcess)
         {
-            string columns = string.Empty;
+            var columnsBuilder = new StringBuilder();
             for (int i = 0; i < contentTable.Columns.Count; i++)
             {
-                columns += "`" + contentTable.Columns[i].ColumnName.Trim() + "`";
+                columnsBuilder.Append("`").Append(contentTable.Columns[i].ColumnName.Trim()).Append("`");
                 if (i != contentTable.Columns.Count - 1)
                 {
-                    columns += ",";
+                    columnsBuilder.Append(",");
                 }
             }
 
-            string values = string.Empty;
+            var valuesBuilder = new StringBuilder();
             var parameters = new DynamicParameters();
             for (int i = 0; i < contentTable.Rows.Count; i++)
             {
-                values += "(@content_" + i + "_0,";
+                valuesBuilder.Append("(@content_").Append(i).Append("_0,");
                 parameters.Add("content_" + i + "_0", fileProcess.ConvertEmptyToDefaultString(titleId));
                 for (int j = 1; j < contentTable.Columns.Count; j++)
                 {
-                    values += "@content_" + i + "_" + j;
+                    valuesBuilder.Append("@content_").Append(i).Append("_").Append(j);
                     parameters.Add("content_" + i + "_" + j, fileProcess.ConvertEmptyToDefaultString(contentTable.Rows[i][j].ToString()));
                     if (j != contentTable.Columns.Count - 1)
                     {
-                        values += ",";
+                        valuesBuilder.Append(",");
                     }
                 }
                 if (i != contentTable.Rows.Count - 1)
                 {
-                    values += "),";
+                    valuesBuilder.Append("),");
                 }
             }
+            string values = valuesBuilder.ToString();
             values = values.Substring(1, values.Length - 1);
 
-            return FileProcess.BuildInsertQuery("ieda_content", columns, values, parameters);
+            return FileProcess.BuildInsertQuery("ieda_content", columnsBuilder.ToString(), values, parameters);
         }
     }
 }

@@ -97,6 +97,31 @@ namespace DCT_data_import.Tests
         }
 
         [Fact]
+        public void BuildIedaContentInsertQuery_KeepsFileValuesOutOfSqlText_AndBuildsMultiRowPlaceholders()
+        {
+            const string titleId = "title-123";
+            var content = new IedaDataFormat();
+            int serialNumberOrdinal = content.IedaContent.Columns.IndexOf("serial_number");
+            DataRow firstRow = content.IedaContent.NewRow();
+            firstRow["serial_number"] = Payload;
+            content.IedaContent.Rows.Add(firstRow);
+            DataRow secondRow = content.IedaContent.NewRow();
+            secondRow["serial_number"] = "safe";
+            content.IedaContent.Rows.Add(secondRow);
+
+            Execute_query query = TsmcIeda.BuildIedaContentInsertQuery(content.IedaContent, titleId, new FileProcess());
+            var parameters = (DynamicParameters)query.Parameters;
+
+            Assert.True(serialNumberOrdinal > 0);
+            Assert.Contains("@content_0_0", query.Query);
+            Assert.Contains("),(@content_1_", query.Query);
+            Assert.DoesNotContain(Payload, query.Query);
+            Assert.Equal(titleId, parameters.Get<string>("content_0_0"));
+            Assert.Equal(Payload, parameters.Get<string>("content_0_" + serialNumberOrdinal));
+            Assert.Equal("safe", parameters.Get<string>("content_1_" + serialNumberOrdinal));
+        }
+
+        [Fact]
         public void EscapeDataTableFilterValue_DoublesSingleQuotes()
         {
             var table = new DataTable();

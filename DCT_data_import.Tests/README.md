@@ -11,6 +11,7 @@
 | net8 行為釘樁 | Special float parse、double formatting、DateTime parser、statistic value conversion | 必須通過 |
 | SPC 回歸 | `CalculateSpcTests` | 必須通過 |
 | Parser / helper 特性化 | Parser characterization、`FileContentFormat.Compare*()`、`FileProcess` helper | 必須通過 |
+| SQL 參數化 / query shape | `SqlParameterizationTests`、IEDA content multi-row placeholders | 必須通過 |
 | MySQL driver golden master | `MySqlDataDateTimeRoundTripTests` | 無 connection string 時 skipped；有設定時必須通過 |
 | Coverage gate | coverlet.msbuild total line coverage | CI 門檻 25% |
 
