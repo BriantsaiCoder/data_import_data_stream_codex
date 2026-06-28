@@ -115,6 +115,7 @@ namespace DCT_data_import.ReadAndImport
                         Console.WriteLine("匯入完成! Raw data    檔名:" + filename + "    耗時: " + Convert.ToInt32(ts2.TotalMilliseconds / 1000).ToString() + " 秒");
                         // 刪除已存在的的CSV檔案
                         deleteStatus = CompleteSuccess(ftpFilePath);
+                        LogImportSuccess(writeToLog, "RawData", dbKey, filename, importTakeTime, deleteStatus);
                     }
                     else
                     {

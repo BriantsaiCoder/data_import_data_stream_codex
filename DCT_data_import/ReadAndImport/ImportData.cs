@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -329,6 +330,33 @@ namespace DCT_data_import.ReadAndImport
         protected string CompleteSuccess(string path)
         {
             return FileSource.CompleteSuccess(path);
+        }
+
+        protected void LogImportSuccess(WriteToLog writeToLog, string importType, string dbKey, string fileName, double elapsedSec, string cleanupStatus)
+        {
+            writeToLog.WriteImportSuccessLog(string.Format(
+                CultureInfo.InvariantCulture,
+                "Type={0} DbKey={1} File={2} ElapsedSec={3:0.###} Cleanup={4}",
+                FormatSuccessLogValue(importType),
+                FormatSuccessLogValue(dbKey),
+                FormatSuccessLogValue(fileName),
+                elapsedSec,
+                FormatCleanupStatus(cleanupStatus)));
+        }
+
+        private static string FormatSuccessLogValue(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? "-"
+                : value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        }
+
+        private static string FormatCleanupStatus(string cleanupStatus)
+        {
+            string value = FormatSuccessLogValue(cleanupStatus);
+            return value.StartsWith("Local Archive completed:", StringComparison.OrdinalIgnoreCase)
+                ? "Local Archive completed"
+                : value;
         }
 
         protected string MoveToError(string path, string errorPath)
