@@ -29,7 +29,7 @@
 2. `DbApi/DbAccess.cs:69-150` `SelectDbKey(mode)`：以 `SELECT ... WHERE check_status>0 AND import_status=0 AND mail=0` 取得待匯入清單。
 3. importer（如 `ReadAndImport/RawData.cs:16`）依 `ImportData.GetFilePath()`（`ReadAndImport/ImportData.cs:274`）組相對路徑，透過 `ImportFileSourceFactory` 選擇 FTP 或 Local 來源，再以 `Encoding.GetEncoding("big5")` 解析。
 4. `FileContentFormat`（`FileAccess/FileContentFormat.cs`）的 `CompareInfo()`/`CompareStatistic()` 等做欄位名驗證後，importer 把資料填入 `DataTable`。
-5. `FileProcess.Import*`（`FileAccess/FileProcess.cs:81-1357`）把 `DataTable` 轉為 INSERT placeholders + `DynamicParameters`，呼叫 `FileProcess.ExecuteInsert`（`:1376`）→ `DatabaseService.ExecuteSql`（`DbApi/DatabaseService.cs:18`）→ `DBmysql.Excute_mysql_cmd`（`MySQL_api/DBmysql.cs:51`）。
+5. `FileProcess.Import*`（`FileAccess/FileProcess.cs:81-1392`）把 `DataTable` 轉為 INSERT placeholders + `DynamicParameters`，呼叫 `FileProcess.ExecuteInsert`（`:1398`）→ `DatabaseService.ExecuteSql`（`DbApi/DatabaseService.cs:18`）→ `DBmysql.Excute_mysql_cmd`（`MySQL_api/DBmysql.cs:51`）。
 6. `DbAccess.UpdateDbKeyImportStatus`（`DbApi/DbAccess.cs:163-247`）比對 `importResult == check_status`，相符設 `import_status=1`，否則 `import_status=2` + `mail=1` 並 `WriteToMailTemp`。
 
 ### 3) Layer/Module Responsibilities
@@ -38,7 +38,7 @@
 |-----------------|------|--------------|----------|
 | `Program.cs` | 環境偵測、執行緒監督、依 bitmask 派工 | 解析、SQL | `Program.cs:15-26` |
 | `ReadAndImport/*` | FTP/Local 來源讀取、格式驗證、解析、清理、回傳 `ImportResult` | 連線字串、Dapper | `ReadAndImport/RawData.cs:16`、`ImportData.cs:274`、`ImportFileSource.cs:78` |
-| `FileAccess/FileProcess.cs` | DataTable→參數化 INSERT、分批、級聯刪除 | FTP 存取 | `FileProcess.cs:81-1660` |
+| `FileAccess/FileProcess.cs` | DataTable→參數化 INSERT、分批、級聯刪除 | FTP 存取 | `FileProcess.cs:81-1711` |
 | `FileAccess/FileContentFormat.cs` | 6 種 CSV 欄位契約 + 驗證 | DB / FTP | `FileContentFormat.cs:6,79,138,204,233,277` |
 | `DbApi/DatabaseService.cs` | 連線參數驗證、執行 SQL、DB/table 存在性檢查 | 業務語意 | `DatabaseService.cs:18,62,95` |
 | `MySQL_api/DBmysql.cs` | MySqlConnection 生命週期、Dapper 執行、結果轉 JArray、錯誤碼對應 | 何時匯入 | `DBmysql.cs:51,123,186,245` |
@@ -58,8 +58,8 @@
 
 - **同步阻塞 I/O 模型**：P2 後已移除 fake async / `.GetAwaiter().GetResult()` active 呼叫;目前仍非真 async / 併發 I/O 設計。若未來要提升 I/O 併發,需另行設計 DB/FTP async path。
 - **殘餘動態 SQL 組裝**：S2 已將外部值改為 Dapper parameters；但 `FileProcess` 仍組 table / column / placeholder text，必須維持 `ExecuteInsert` 的 identifier guard，不得新增繞路 SQL。
-- **架構文件需持續同步**：根目錄 `專案架構報告.md` / `專案架構視覺化.html` 已刷新至 S2；後續 module boundary 或 data-flow 變更仍需同步更新。
-- **O(n²) placeholder 字串累加**：`FileProcess` 仍以 `values += ...` 逐列累加 placeholders（`FileProcess.cs:110-156` 等），大檔效能差（應 `StringBuilder`）。
+- **架構文件需持續同步**：根目錄 `專案架構報告.md` / `專案架構視覺化.html` 已刷新至 `master @ 06d90fe`；後續 module boundary 或 data-flow 變更仍需同步更新。
+- **殘餘 placeholder 字串累加**：大型批次路徑已改用 `StringBuilder`，但 `FileProcess` 部分小表/單筆路徑仍有 `values += ...`;若資料量放大到這些路徑,再收斂為 builder。
 - **TSMC IEDA importer 自走一套**：`TsmcIeda` 不經 `FileProcess`，但 S2 後 INSERT 與 `DataTable.Select` filter value 已做參數化/escaping；流程邊界仍與其他 importer 不一致。
 
 ### 6) Evidence
