@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 namespace DCT_data_import
@@ -16,6 +18,20 @@ namespace DCT_data_import
     }
     public class WriteToLog
     {
+        private const string LogRootAppSettingKey = "DataImportLogRoot";
+        private const string DefaultLogRoot = @"C:\temp";
+        private readonly string _logRoot;
+
+        public WriteToLog()
+            : this(ConfigurationManager.AppSettings[LogRootAppSettingKey])
+        {
+        }
+
+        internal WriteToLog(string logRoot)
+        {
+            _logRoot = string.IsNullOrWhiteSpace(logRoot) ? DefaultLogRoot : logRoot.Trim();
+        }
+
         /// <summary>
         /// 寫入資料匯入日誌，包含層級資訊
         /// </summary>
@@ -23,18 +39,13 @@ namespace DCT_data_import
         /// <param name="message">日誌訊息</param>
         public void WriteToDataImportLog(LogLevel level, string message)
         {
-            // 取得目前執行檔檔名（不含副檔名）
-            string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
-            // 組合成目標路徑（先用字串，等下轉 Uri）
-            string targetPath = $@"C:\temp\{exeName}\data_import_logs";
-            // 轉成 Uri 再取 LocalPath（保持原本風格）
-            string logDirectory = new Uri(targetPath).LocalPath;
+            string logDirectory = GetLogDirectory("data_import_logs");
             // 確保資料夾存在
             Directory.CreateDirectory(logDirectory);
             //string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
             string log_path = Path.Combine(logDirectory, $"DCT_data_import_Log_{DateTime.Now:yyyy_MM_dd}.txt");
             // 使用檔案路徑建立唯一的 Mutex 名稱
-            string mutexName = "DCT_Log_" + log_path.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+            string mutexName = GetMutexName("DCT_Log_", log_path);
             // 根據層級產生標籤
             string levelTag = level == LogLevel.Error ? "[ERROR]" : "[INFO]";
             string logMessage = $"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {levelTag} {message}";
@@ -110,7 +121,7 @@ namespace DCT_data_import
         public string WriteToMailTemp(string message)
         {
             string log_path = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");
-            string mutexName = "DCT_MailTemp_" + log_path.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+            string mutexName = GetMutexName("DCT_MailTemp_", log_path);
             using (var mutex = new Mutex(false, mutexName))
             {
                 bool hasHandle = false;
@@ -148,12 +159,7 @@ namespace DCT_data_import
         }
         public void WriteToCheckLog(string logFilename, string content)
         {
-            // 取得目前執行檔檔名（不含副檔名）
-            string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
-            // 組合路徑：C:\temp\<ExeName>\check_logs
-            string targetPath = $@"C:\temp\{exeName}\check_logs";
-            // 轉成 Uri 再取 LocalPath（保留原本風格）
-            string checkLogFolder = new Uri(targetPath).LocalPath;
+            string checkLogFolder = GetLogDirectory("check_logs");
             // 確保資料夾存在
             Directory.CreateDirectory(checkLogFolder);
             //修正路徑處理，避免 Substring(6) 的風險
@@ -168,7 +174,7 @@ namespace DCT_data_import
             //}
             //string checkLogFolder = Path.Combine(Path.GetDirectoryName(assemblyPath), "check_logs");
             string log_path = Path.Combine(checkLogFolder, logFilename);
-            string mutexName = "DCT_CheckLog_" + logFilename.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+            string mutexName = GetMutexName("DCT_CheckLog_", log_path);
             using (var mutex = new Mutex(false, mutexName))
             {
                 bool hasHandle = false;
@@ -209,6 +215,18 @@ namespace DCT_data_import
                         mutex.ReleaseMutex();
                 }
             }
+        }
+
+        private string GetLogDirectory(string folderName)
+        {
+            string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
+            return Path.Combine(_logRoot, exeName, folderName);
+        }
+
+        internal static string GetMutexName(string prefix, string path)
+        {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(path));
+            return prefix + Convert.ToHexString(hash);
         }
     }
 }
