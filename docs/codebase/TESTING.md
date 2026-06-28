@@ -13,6 +13,7 @@
   - Import decision / thread supervisor / dry-run / App.config contract.
   - Big5 provider smoke.
   - net8-specialized characterization for special floating-point parse, double formatting, DateTime parsing, and statistic value conversion.
+  - Opt-in MySql.Data DATETIME / DATETIME(6) / zero-date round-trip golden master against a real MySQL database.
   - SPC `AverageOfSumSquare` pass/fail filtering, empty-value fallback, and negative-variance guard.
   - Parser characterization, `FileContentFormat.Compare*()`, and `FileProcess` helper behavior.
 
@@ -20,7 +21,7 @@
 
 - Test files live under `DCT_data_import.Tests/`.
 - Tests are mostly focused regression or characterization tests around high-risk migration and ETL contracts.
-- Production code still has no broad importer/FTP/MySQL integration test harness; live DB/FTP validation remains manual or environment-dependent.
+- Production code still has no broad importer/FTP integration test harness; MySql.Data DATETIME round-trip has an opt-in real-DB test, while broader live DB/FTP validation remains manual or environment-dependent.
 
 ### 3) Mocking and Fixtures
 
@@ -38,7 +39,7 @@
   - `dotnet restore ... -p:NuGetAudit=true -p:NuGetAuditMode=all`
   - `dotnet build ... --configuration Release --no-restore`
   - `dotnet test ... --configuration Release --no-build`
-- Latest macOS verification after R1 parser work and CS0012 cleanup: `dotnet build DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-restore /p:UseAppHost=false` passed with 0 warnings / 0 errors, and `dotnet test ... /p:UseAppHost=false` passed `223` tests. Runtime smoke still belongs on Windows.
+- Latest macOS verification after R1 parser work, CS0012 cleanup, and MySQL DATETIME golden master work: `dotnet build DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-restore /p:UseAppHost=false` passed with 0 warnings / 0 errors, and `dotnet test ... /p:UseAppHost=false` passed `223` tests with 1 opt-in MySQL test skipped. The MySQL DATETIME golden master is opt-in via `DCT_MYSQL_GOLDEN_MASTER_CONNECTION_STRING` and covers normal `DATETIME`, `DATETIME(6)`, and `Convert Zero Datetime=true` zero-date materialization. Runtime smoke still belongs on Windows.
 
 ### 5) Evidence
 
@@ -52,5 +53,4 @@
 ### Recommended Next Test Work
 
 1. MySQL/FTP integration smoke on a controlled Windows environment.
-2. MySql.Data DATETIME round-trip golden master with a real MySQL instance.
-3. Coverage tooling only after the high-value seams above are stable.
+2. Coverage tooling only after the high-value seams above are stable.

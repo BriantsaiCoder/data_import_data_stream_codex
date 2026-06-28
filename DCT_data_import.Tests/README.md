@@ -11,6 +11,7 @@
 | net8 行為釘樁 | Special float parse、double formatting、DateTime parser、statistic value conversion | 必須通過 |
 | SPC 回歸 | `CalculateSpcTests` | 必須通過 |
 | Parser / helper 特性化 | Parser characterization、`FileContentFormat.Compare*()`、`FileProcess` helper | 必須通過 |
+| MySQL driver golden master | `MySqlDataDateTimeRoundTripTests` | 無 connection string 時 skipped；有設定時必須通過 |
 
 目前不使用 `ByDesignRed` 或 `CaptureBaseline` filter；若未來新增 by-design red 測試，需同步更新 CI 與本檔。
 
@@ -32,6 +33,7 @@ importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin
 - `SpecialFloatParseTests`: legacy float token、`NaN`、`Infinity`、`1E400` 解析語意。
 - `DoubleToStringFormatTests`: net8 shortest round-trippable double formatting。
 - `DateTimeParserCultureTests`: `CustomizeDateTimeParser` 在指定 cultures 下的 net8 結果。
+- `MySqlDataDateTimeRoundTripTests`: opt-in 真 MySQL `DATETIME` / `DATETIME(6)` / zero-date round-trip；設定 `DCT_MYSQL_GOLDEN_MASTER_CONNECTION_STRING` 後才會連線，使用 temporary table，不需匯入資料檔。
 - `ValidateAndConvertStatisticValueTests`: parse + format 合成點的 CurrentCulture 行為。
 - `CalculateSpcTests`: `AverageOfSumSquare` 的 pass/fail 篩選、無有效值 fallback、負 variance guard。
 
@@ -41,6 +43,12 @@ importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin
 dotnet restore DCT_data_import.sln
 dotnet build DCT_data_import.sln --configuration Release --no-restore
 dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build
+```
+
+MySQL DATETIME golden master 是 opt-in；本機可先建立空測試 schema，再用下列環境變數執行同一個 test command：
+
+```powershell
+$env:DCT_MYSQL_GOLDEN_MASTER_CONNECTION_STRING="Server=localhost;Port=3306;Database=dct_data_import_test;Uid=root;Pwd=***;SslMode=None;AllowPublicKeyRetrieval=True;Convert Zero Datetime=True"
 ```
 
 macOS 可作 build/test evidence；完整服務 runtime smoke 仍需 Windows + 實際或影子 MySQL/FTP 環境。
