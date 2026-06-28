@@ -26,7 +26,7 @@ namespace DCT_data_import.Tests
         [Fact]
         public void WriteLogs_UsesConfiguredRoot_ForDataAndCheckLogs()
         {
-            var writeToLog = new WriteToLog(_root);
+            var writeToLog = new WriteToLog("  " + _root + "  ");
 
             writeToLog.WriteToDataImportLog(LogLevel.Error, "R3 configurable log root");
             writeToLog.WriteToCheckLog("r3_check.csv", "sample.csv,1KB,2026/06/28,1,2");
@@ -41,6 +41,18 @@ namespace DCT_data_import.Tests
             string checkLogPath = Path.Combine(checkLogDirectory, "r3_check.csv");
             Assert.True(File.Exists(checkLogPath));
             Assert.Contains("sample.csv,1KB,2026/06/28,1,2", File.ReadAllText(checkLogPath));
+        }
+
+        [Fact]
+        public void GetMutexName_WhenPathIsLong_ReturnsBoundedStableName()
+        {
+            string longPath = Path.Combine(_root, new string('x', 512), "DCT_data_import_Log_2026_06_28.txt");
+
+            string first = WriteToLog.GetMutexName("DCT_Log_", longPath);
+            string second = WriteToLog.GetMutexName("DCT_Log_", longPath);
+
+            Assert.Equal(first, second);
+            Assert.Equal("DCT_Log_".Length + 64, first.Length);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 namespace DCT_data_import
@@ -28,7 +29,7 @@ namespace DCT_data_import
 
         internal WriteToLog(string logRoot)
         {
-            _logRoot = string.IsNullOrWhiteSpace(logRoot) ? DefaultLogRoot : logRoot;
+            _logRoot = string.IsNullOrWhiteSpace(logRoot) ? DefaultLogRoot : logRoot.Trim();
         }
 
         /// <summary>
@@ -44,7 +45,7 @@ namespace DCT_data_import
             //string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
             string log_path = Path.Combine(logDirectory, $"DCT_data_import_Log_{DateTime.Now:yyyy_MM_dd}.txt");
             // 使用檔案路徑建立唯一的 Mutex 名稱
-            string mutexName = "DCT_Log_" + log_path.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+            string mutexName = GetMutexName("DCT_Log_", log_path);
             // 根據層級產生標籤
             string levelTag = level == LogLevel.Error ? "[ERROR]" : "[INFO]";
             string logMessage = $"{DateTime.Now:yyyy/MM/dd HH:mm:ss} {levelTag} {message}";
@@ -120,7 +121,7 @@ namespace DCT_data_import
         public string WriteToMailTemp(string message)
         {
             string log_path = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");
-            string mutexName = "DCT_MailTemp_" + log_path.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+            string mutexName = GetMutexName("DCT_MailTemp_", log_path);
             using (var mutex = new Mutex(false, mutexName))
             {
                 bool hasHandle = false;
@@ -173,7 +174,7 @@ namespace DCT_data_import
             //}
             //string checkLogFolder = Path.Combine(Path.GetDirectoryName(assemblyPath), "check_logs");
             string log_path = Path.Combine(checkLogFolder, logFilename);
-            string mutexName = "DCT_CheckLog_" + logFilename.Replace("\\", "_").Replace(":", "_").Replace("/", "_");
+            string mutexName = GetMutexName("DCT_CheckLog_", log_path);
             using (var mutex = new Mutex(false, mutexName))
             {
                 bool hasHandle = false;
@@ -220,6 +221,12 @@ namespace DCT_data_import
         {
             string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
             return Path.Combine(_logRoot, exeName, folderName);
+        }
+
+        internal static string GetMutexName(string prefix, string path)
+        {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(path));
+            return prefix + Convert.ToHexString(hash);
         }
     }
 }
