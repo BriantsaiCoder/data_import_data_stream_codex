@@ -118,6 +118,46 @@ namespace DCT_data_import
         {
             WriteToDataImportLog(LogLevel.Error, message);
         }
+
+        public void WriteImportSuccessLog(string message)
+        {
+            string logDirectory = GetLogDirectory("data_import_logs");
+            Directory.CreateDirectory(logDirectory);
+            string log_path = Path.Combine(logDirectory, $"DCT_data_import_Success_Log_{DateTime.Now:yyyy_MM_dd}.txt");
+            string mutexName = GetMutexName("DCT_SuccessLog_", log_path);
+            string logMessage = $"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [SUCCESS] {message}";
+            Encoding utf8WithBom = new UTF8Encoding(true);
+            using (var mutex = new Mutex(false, mutexName))
+            {
+                bool hasHandle = false;
+                try
+                {
+                    hasHandle = mutex.WaitOne(TimeSpan.FromSeconds(30), false);
+                    if (!hasHandle)
+                    {
+                        throw new TimeoutException("無法取得檔案鎖定權限");
+                    }
+                    if (!Directory.Exists(logDirectory))
+                    {
+                        Directory.CreateDirectory(logDirectory);
+                    }
+                    using (StreamWriter writer = new StreamWriter(log_path, true, utf8WithBom))
+                    {
+                        writer.WriteLine(logMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Success log write failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (hasHandle)
+                        mutex.ReleaseMutex();
+                }
+            }
+        }
+
         public string WriteToMailTemp(string message)
         {
             string log_path = Path.Combine(AppContext.BaseDirectory, "mail_temp.txt");
