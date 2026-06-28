@@ -16,24 +16,12 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return -1;
             }
-            string sql = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             long threeHourAgoTimeStamp = nowTimeStamp - 86400 * day;  // 24小時=86400秒
             int count = 0;
-            if (mode == "tester")
-            {
-                sql = "SELECT COUNT(id) count_id FROM `db_key` WHERE datetime >= " + threeHourAgoTimeStamp;
-            }
-            else if (mode == "ui_status")
-            {
-                sql = "SELECT COUNT(id) count_id FROM `db_key_ui_status` WHERE  datetime >= " + threeHourAgoTimeStamp;
-            }
             try
             {
-                Execute_query execute_query = new Execute_query
-                {
-                    Query = sql
-                };
+                Execute_query execute_query = BuildDataCountInDaysQuery(mode, threeHourAgoTimeStamp);
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -57,6 +45,26 @@ namespace DCT_data_import
                 return -1;
             }
         }
+
+        internal static Execute_query BuildDataCountInDaysQuery(string mode, long threshold)
+        {
+            string sql = string.Empty;
+            if (mode == "tester")
+            {
+                sql = "SELECT COUNT(id) count_id FROM `db_key` WHERE datetime >= @threshold";
+            }
+            else if (mode == "ui_status")
+            {
+                sql = "SELECT COUNT(id) count_id FROM `db_key_ui_status` WHERE  datetime >= @threshold";
+            }
+
+            return new Execute_query
+            {
+                Query = sql,
+                Parameters = new { threshold }
+            };
+        }
+
         /// <summary>
         /// 透過db_key table 擷取尚未匯入資料的flag進行匯入
         /// </summary>
@@ -368,29 +376,14 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                 return new List<DbKeyObject>();
             }
-            string sql = string.Empty, remark = string.Empty;
+            string remark = string.Empty;
             long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
             //long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒  3小時前
             long threeHourAgoTimeStamp = nowTimeStamp - 1200;  // 20分鐘前
             //long threeHourAgoTimeStamp = nowTimeStamp + 10800;  // 3小時=10800秒  3小時後
-            if (mode == "tester")
-            {
-                sql = @"SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`=0 AND `import_status`=0 AND datetime <= " + threeHourAgoTimeStamp +
-                          @" union ALL
-                                SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`= 0 AND `import_status`>=2 AND datetime <= " + threeHourAgoTimeStamp;
-            }
-            else if (mode == "ui_status")
-            {
-                sql = @"SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`=0 AND `import_status`=0 AND datetime <= " + threeHourAgoTimeStamp +
-                          @" union ALL
-                                SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`= 0 AND `import_status` >=2 AND datetime <= " + threeHourAgoTimeStamp;
-            }
             try
             {
-                Execute_query execute_query = new Execute_query
-                {
-                    Query = sql
-                };
+                Execute_query execute_query = BuildFailDbKeyResultQuery(mode, threeHourAgoTimeStamp);
                 Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
                 if (!string.IsNullOrEmpty(response.Error))
                 {
@@ -419,6 +412,30 @@ namespace DCT_data_import
             }
             return dbKeyObject;
         }
+
+        internal static Execute_query BuildFailDbKeyResultQuery(string mode, long threshold)
+        {
+            string sql = string.Empty;
+            if (mode == "tester")
+            {
+                sql = @"SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`=0 AND `import_status`=0 AND datetime <= @threshold" +
+                          @" union ALL
+                                SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`= 0 AND `import_status`>=2 AND datetime <= @threshold";
+            }
+            else if (mode == "ui_status")
+            {
+                sql = @"SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`=0 AND `import_status`=0 AND datetime <= @threshold" +
+                          @" union ALL
+                                SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`= 0 AND `import_status` >=2 AND datetime <= @threshold";
+            }
+
+            return new Execute_query
+            {
+                Query = sql,
+                Parameters = new { threshold }
+            };
+        }
+
         public List<DbKeyObject> SelectFailDbKeyFromFile()
         {
             List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
