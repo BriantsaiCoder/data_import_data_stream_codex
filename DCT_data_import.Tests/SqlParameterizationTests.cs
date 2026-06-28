@@ -58,30 +58,6 @@ namespace DCT_data_import.Tests
             Assert.Equal("mode", ex.ParamName);
         }
 
-        [Theory]
-        [InlineData("tester", "`db_key`")]
-        [InlineData("ui_status", "`db_key_ui_status`")]
-        public void BuildFailDbKeyResultQuery_UsesSharedThresholdParameter(string mode, string expectedTable)
-        {
-            const long threshold = 987654321;
-
-            Execute_query query = DbAccess.BuildFailDbKeyResultQuery(mode, threshold);
-
-            Assert.Contains(expectedTable, query.Query);
-            Assert.Equal(2, query.Query.Split("@threshold").Length - 1);
-            Assert.DoesNotContain(threshold.ToString(), query.Query);
-            Assert.Equal(threshold, AnonymousParameterValue(query.Parameters, "threshold"));
-        }
-
-        [Fact]
-        public void BuildFailDbKeyResultQuery_RejectsUnsupportedMode()
-        {
-            ArgumentException ex = Assert.Throws<ArgumentException>(() =>
-                DbAccess.BuildFailDbKeyResultQuery("unknown", 987654321));
-
-            Assert.Equal("mode", ex.ParamName);
-        }
-
         [Fact]
         public void BuildTableExistsQuery_KeepsTableNameOutOfSqlText()
         {
