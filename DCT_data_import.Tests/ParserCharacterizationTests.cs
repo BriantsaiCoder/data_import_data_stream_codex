@@ -139,6 +139,18 @@ namespace DCT_data_import.Tests
             Assert.Equal("SN000001", result.IedaContent.Rows[0]["serial_number"]);
         }
 
+        [Fact]
+        public void FileReadIeda_WhenFileSourceInjected_LoadsLotMappingFromThatSource()
+        {
+            ImportSourceSettings.ClearOverridesForTests();
+
+            IedaDataFormat result = new TsmcIeda(new LocalImportFileSource(_root, LocalSuccessAction.Delete))
+                .FileReadIeda(Reader(FixedWidthTitleLine()));
+
+            Assert.Equal("LOT123", result.IedaTitle.Rows[0]["lot_id"]);
+            Assert.Equal("ASE456", result.IedaTitle.Rows[0]["ase_lot"]);
+        }
+
         private static void AssertRawDataShape(RawDataContentFormat result)
         {
             Assert.Equal("DB001", result.LotInfo.Rows[0]["DB_Key"]);
