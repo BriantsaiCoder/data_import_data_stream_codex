@@ -19,17 +19,28 @@ namespace DCT_data_import
     public class WriteToLog
     {
         private const string LogRootAppSettingKey = "DataImportLogRoot";
+        private const string LogRetentionDaysAppSettingKey = "DataImportLogRetentionDays";
         private const string DefaultLogRoot = @"C:\temp";
+        private const int DefaultLogRetentionDays = 90;
         private readonly string _logRoot;
+        private readonly int _logRetentionDays;
 
         public WriteToLog()
-            : this(ConfigurationManager.AppSettings[LogRootAppSettingKey])
+            : this(
+                ConfigurationManager.AppSettings[LogRootAppSettingKey],
+                ParseLogRetentionDays(ConfigurationManager.AppSettings[LogRetentionDaysAppSettingKey]))
         {
         }
 
         internal WriteToLog(string logRoot)
+            : this(logRoot, DefaultLogRetentionDays)
+        {
+        }
+
+        internal WriteToLog(string logRoot, int logRetentionDays)
         {
             _logRoot = string.IsNullOrWhiteSpace(logRoot) ? DefaultLogRoot : logRoot.Trim();
+            _logRetentionDays = logRetentionDays;
         }
 
         /// <summary>
@@ -42,6 +53,7 @@ namespace DCT_data_import
             string logDirectory = GetLogDirectory("data_import_logs");
             // 確保資料夾存在
             Directory.CreateDirectory(logDirectory);
+            DeleteExpiredLogFiles(logDirectory, "DCT_data_import_Log_*.txt", "DCT_data_import_Success_Log_*.txt");
             //string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
             string log_path = Path.Combine(logDirectory, $"DCT_data_import_Log_{DateTime.Now:yyyy_MM_dd}.txt");
             // 使用檔案路徑建立唯一的 Mutex 名稱
@@ -123,6 +135,7 @@ namespace DCT_data_import
         {
             string logDirectory = GetLogDirectory("data_import_logs");
             Directory.CreateDirectory(logDirectory);
+            DeleteExpiredLogFiles(logDirectory, "DCT_data_import_Log_*.txt", "DCT_data_import_Success_Log_*.txt");
             string log_path = Path.Combine(logDirectory, $"DCT_data_import_Success_Log_{DateTime.Now:yyyy_MM_dd}.txt");
             string mutexName = GetMutexName("DCT_SuccessLog_", log_path);
             string logMessage = $"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [SUCCESS] {message}";
@@ -202,6 +215,7 @@ namespace DCT_data_import
             string checkLogFolder = GetLogDirectory("check_logs");
             // 確保資料夾存在
             Directory.CreateDirectory(checkLogFolder);
+            DeleteExpiredLogFiles(checkLogFolder, "DCT_data_check_log_*.csv");
             //修正路徑處理，避免 Substring(6) 的風險
             //string assemblyPath = Assembly.GetExecutingAssembly().CodeBase;
             //if (assemblyPath.StartsWith("file:///"))
@@ -261,6 +275,39 @@ namespace DCT_data_import
         {
             string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
             return Path.Combine(_logRoot, exeName, folderName);
+        }
+
+        private static int ParseLogRetentionDays(string value)
+        {
+            return int.TryParse(value, out int days) ? days : DefaultLogRetentionDays;
+        }
+
+        // ponytail: retention cleanup only; add size-based rotation if daily files become too large.
+        private void DeleteExpiredLogFiles(string logDirectory, params string[] searchPatterns)
+        {
+            if (_logRetentionDays <= 0)
+            {
+                return;
+            }
+
+            DateTime cutoff = DateTime.Now.AddDays(-_logRetentionDays);
+            foreach (string searchPattern in searchPatterns)
+            {
+                try
+                {
+                    foreach (string path in Directory.EnumerateFiles(logDirectory, searchPattern))
+                    {
+                        if (File.GetLastWriteTime(path) < cutoff)
+                        {
+                            File.Delete(path);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Log cleanup failed: {ex.Message}");
+                }
+            }
         }
 
         internal static string GetMutexName(string prefix, string path)

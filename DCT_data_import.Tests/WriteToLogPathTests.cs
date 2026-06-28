@@ -84,6 +84,55 @@ namespace DCT_data_import.Tests
             Assert.DoesNotContain("C:\\secret", successLogContent);
         }
 
+        [Fact]
+        public void WriteLogs_WhenRetentionEnabled_DeletesOnlyExpiredKnownLogFiles()
+        {
+            var writeToLog = new WriteToLog(_root, 30);
+            string exeName = Path.GetFileNameWithoutExtension(typeof(WriteToLog).Assembly.Location);
+            string dataLogDirectory = Path.Combine(_root, exeName, "data_import_logs");
+            string checkLogDirectory = Path.Combine(_root, exeName, "check_logs");
+            Directory.CreateDirectory(dataLogDirectory);
+            Directory.CreateDirectory(checkLogDirectory);
+
+            string expiredDataLog = Path.Combine(dataLogDirectory, "DCT_data_import_Log_2026_01_01.txt");
+            string expiredSuccessLog = Path.Combine(dataLogDirectory, "DCT_data_import_Success_Log_2026_01_01.txt");
+            string freshDataLog = Path.Combine(dataLogDirectory, "DCT_data_import_Log_2099_01_01.txt");
+            string unrelatedDataFile = Path.Combine(dataLogDirectory, "operator_note.txt");
+            string expiredCheckLog = Path.Combine(checkLogDirectory, "DCT_data_check_log_rawData_20260101.csv");
+            foreach (string path in new[] { expiredDataLog, expiredSuccessLog, freshDataLog, unrelatedDataFile, expiredCheckLog })
+            {
+                File.WriteAllText(path, "sample");
+            }
+            File.SetLastWriteTime(expiredDataLog, DateTime.Now.AddDays(-31));
+            File.SetLastWriteTime(expiredSuccessLog, DateTime.Now.AddDays(-31));
+            File.SetLastWriteTime(expiredCheckLog, DateTime.Now.AddDays(-31));
+
+            writeToLog.WriteToDataImportLog("trigger data cleanup");
+            writeToLog.WriteToCheckLog("DCT_data_check_log_rawData_20990101.csv", "sample.csv,1KB,2026/06/28,1,2");
+
+            Assert.False(File.Exists(expiredDataLog));
+            Assert.False(File.Exists(expiredSuccessLog));
+            Assert.False(File.Exists(expiredCheckLog));
+            Assert.True(File.Exists(freshDataLog));
+            Assert.True(File.Exists(unrelatedDataFile));
+        }
+
+        [Fact]
+        public void WriteLogs_WhenRetentionDisabled_KeepsExpiredKnownLogFiles()
+        {
+            var writeToLog = new WriteToLog(_root, 0);
+            string exeName = Path.GetFileNameWithoutExtension(typeof(WriteToLog).Assembly.Location);
+            string dataLogDirectory = Path.Combine(_root, exeName, "data_import_logs");
+            Directory.CreateDirectory(dataLogDirectory);
+            string expiredDataLog = Path.Combine(dataLogDirectory, "DCT_data_import_Log_2026_01_01.txt");
+            File.WriteAllText(expiredDataLog, "sample");
+            File.SetLastWriteTime(expiredDataLog, DateTime.Now.AddDays(-365));
+
+            writeToLog.WriteToDataImportLog("retention disabled");
+
+            Assert.True(File.Exists(expiredDataLog));
+        }
+
         private sealed class TestImportData : ImportData
         {
             public void LogSuccess(WriteToLog writeToLog, string importType, string dbKey, string fileName, double elapsedSec, string cleanupStatus)
