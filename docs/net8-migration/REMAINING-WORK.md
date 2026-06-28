@@ -86,9 +86,9 @@
 ## Stream D — Tier 3 測試廣度網（**可獨立開始；R1 傘下**）
 
 - [ ] 6 個 parser characterization 測試（需 `InternalsVisibleTo` 給 3 個 private `FileRead*`）。
-- [ ] `FileContentFormat.Compare*()` 測試。
+- [x] `FileContentFormat.Compare*()` 測試。
 - [x] `CalculateSPC.AverageOfSumSquare` 3 情境測試。
-- [ ] `FileProcess` helper（`ConvertEmptyToDefaultString`、`AddColumnForDataset` round-9）測試。
+- [x] `FileProcess` helper（`ConvertEmptyToDefaultString`、`AddColumnForDataset` round-9）測試。
 - [ ] MySql.Data DATETIME driver round-trip golden master（需真 MySQL）。
 - [ ] coverage 工具（coverlet）+ 門檻。
 - [ ] mac CS0012 facade 編譯問題（測試專案）。
