@@ -12,6 +12,7 @@
 | SPC 回歸 | `CalculateSpcTests` | 必須通過 |
 | Parser / helper 特性化 | Parser characterization、`FileContentFormat.Compare*()`、`FileProcess` helper | 必須通過 |
 | MySQL driver golden master | `MySqlDataDateTimeRoundTripTests` | 無 connection string 時 skipped；有設定時必須通過 |
+| Coverage gate | coverlet.msbuild total line coverage | CI 門檻 25% |
 
 目前不使用 `ByDesignRed` 或 `CaptureBaseline` filter；若未來新增 by-design red 測試，需同步更新 CI 與本檔。
 
@@ -43,6 +44,12 @@ importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin
 dotnet restore DCT_data_import.sln
 dotnet build DCT_data_import.sln --configuration Release --no-restore
 dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build
+```
+
+CI 另用 coverlet.msbuild 跑 coverage gate：
+
+```powershell
+dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=../TestResults/Coverage/ /p:Threshold=25 /p:ThresholdType=line /p:ThresholdStat=total
 ```
 
 MySQL DATETIME golden master 是 opt-in；本機可先建立空測試 schema，再用下列環境變數執行同一個 test command：

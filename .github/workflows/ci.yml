@@ -29,5 +29,5 @@ jobs:
       - name: Build (Release)
         run: dotnet build DCT_data_import.sln --configuration Release --no-restore
 
-      - name: Test (Release)
-        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
+      - name: Test (Release + coverage gate)
+        run: dotnet test DCT_data_import.Tests/DCT_data_import.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=../TestResults/Coverage/ /p:Threshold=25 /p:ThresholdType=line /p:ThresholdStat=total
