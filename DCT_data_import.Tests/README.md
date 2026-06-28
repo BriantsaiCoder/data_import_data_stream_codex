@@ -10,6 +10,7 @@
 | 遷移/執行期契約 | Big5 provider、Thread supervisor、App.config、DryRun、ImportDecision | 必須通過 |
 | net8 行為釘樁 | Special float parse、double formatting、DateTime parser、statistic value conversion | 必須通過 |
 | SPC 回歸 | `CalculateSpcTests` | 必須通過 |
+| Parser / helper 特性化 | Parser characterization、`FileContentFormat.Compare*()`、`FileProcess` helper | 必須通過 |
 
 目前不使用 `ByDesignRed` 或 `CaptureBaseline` filter；若未來新增 by-design red 測試，需同步更新 CI 與本檔。
 
@@ -43,3 +44,4 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration R
 ```
 
 macOS 可作 build/test evidence；完整服務 runtime smoke 仍需 Windows + 實際或影子 MySQL/FTP 環境。
+2026-06-28 已在 macOS 直接 build 測試專案，未再重現舊 CS0012 facade 編譯問題。
