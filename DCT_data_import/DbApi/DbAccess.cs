@@ -187,7 +187,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog("資料庫或 db_key 資料表不存在");
                 return "Fail. Database or table does not exist";
             }
-            //int importResult = 4 * tester + 2 * testResult + failPin;
             int importResult = ComputeImportResult(recoveryRate, tester, testResult, failPin);
             string id, checkStatus, importStatus = "1", mail = "0";
             try
@@ -212,11 +211,6 @@ namespace DCT_data_import
                     return "Fail. There is no information which db_key is '" + dbKey + "'";
                 }
                 // 檢查確認碼
-                //if (importResult < int.Parse(checkStatus))
-                //{
-                //    importStatus = "0";
-                //}
-                /*else */
                 if (int.TryParse(checkStatus, out int checkStatusInt) && importResult == checkStatusInt)
                 {
                     importStatus = "1"; // import successfully
@@ -232,7 +226,6 @@ namespace DCT_data_import
                     // 寫入寄信暫存檔
                     writeToLog.WriteToMailTemp(dbKey + "," + remark);
                 }
-                //importStatus = (importResult.ToString() == checkStatus) ? "1" : "2";
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
                 response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
@@ -283,11 +276,6 @@ namespace DCT_data_import
                     return "Fail. There is no infomation which db_key is '" + dbKey + "'";
                 }
                 // 檢查確認碼
-                //if (importResult < int.Parse(checkStatus))
-                //{
-                //    importStatus = "0";
-                //}
-                /*else*/
                 if (int.TryParse(checkStatus, out int checkStatusInt) && importResult == checkStatusInt)
                 {
                     importStatus = "1";
@@ -303,8 +291,6 @@ namespace DCT_data_import
                     // 寫入寄信暫存檔
                     writeToLog.WriteToMailTemp(dbKey + "," + remark);
                 }
-                //// 寫入寄信暫存檔
-                //writeToLog.WriteToMailTemp(dbKey + "," + dbKey);
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
                 response = DatabaseService.ExecuteSqlAsync(execute_query, "update").GetAwaiter().GetResult();
@@ -366,81 +352,6 @@ namespace DCT_data_import
             {
                 Query = "UPDATE db_key_ui_status SET ui_status=@uiStatus,import_status=@importStatus,mail=@mail,remark=@remark WHERE `db_key`=@dbKey;",
                 Parameters = new { uiStatus, importStatus, mail, remark, dbKey }
-            };
-        }
-
-        public List<DbKeyObject> SelectFailDbKeyResult(DatabaseService DatabaseService, string mode = "")
-        {
-            List<DbKeyObject> dbKeyObject = new List<DbKeyObject>();
-            WriteToLog writeToLog = new WriteToLog();
-            // 檢查資料庫和相關資料表是否存在
-            string tableName = mode == "tester" ? "db_key" : "db_key_ui_status";
-            if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
-            {
-                writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
-                return new List<DbKeyObject>();
-            }
-            string remark = string.Empty;
-            long nowTimeStamp = DateTimeOffset.Now.ToUnixTimeSeconds();
-            //long threeHourAgoTimeStamp = nowTimeStamp - 10800;  // 3小時=10800秒  3小時前
-            long threeHourAgoTimeStamp = nowTimeStamp - 1200;  // 20分鐘前
-            //long threeHourAgoTimeStamp = nowTimeStamp + 10800;  // 3小時=10800秒  3小時後
-            try
-            {
-                Execute_query execute_query = BuildFailDbKeyResultQuery(mode, threeHourAgoTimeStamp);
-                Execute_query_response response = DatabaseService.ExecuteSqlAsync(execute_query, "select").GetAwaiter().GetResult();
-                if (!string.IsNullOrEmpty(response.Error))
-                {
-                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteErrorLog($"Error: {response.Error}");
-                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
-                }
-                for (int i = 0; i < response.Data.Count; i++)
-                {
-                    //Console.WriteLine(response.data[i]["db_key"].ToString());
-                    remark = (response.Data[i]["check_status"].ToString() == "0") ? "未更新check status" : response.Data[i]["remark"].ToString();
-                    // Safe parsing for id field
-                    if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id))
-                    {
-                        writeToLog.WriteInfoLog($"SelectFailDbKeyResult() invalid id value at row {i}: {response.Data[i]["id"]}, skipping row");
-                        continue;
-                    }
-                    dbKeyObject.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), remark));
-                }
-            }
-            catch (Exception ex)
-            {
-                writeToLog.WriteErrorLog("SelectFailDbKeyResult() error:" + ex.Message);
-                Console.WriteLine(ex.ToString());
-                return dbKeyObject;
-            }
-            return dbKeyObject;
-        }
-
-        internal static Execute_query BuildFailDbKeyResultQuery(string mode, long threshold)
-        {
-            string sql;
-            if (mode == "tester")
-            {
-                sql = @"SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`=0 AND `import_status`=0 AND datetime <= @threshold" +
-                          @" union ALL
-                                SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`= 0 AND `import_status`>=2 AND datetime <= @threshold";
-            }
-            else if (mode == "ui_status")
-            {
-                sql = @"SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`=0 AND `import_status`=0 AND datetime <= @threshold" +
-                          @" union ALL
-                                SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`= 0 AND `import_status` >=2 AND datetime <= @threshold";
-            }
-            else
-            {
-                throw new ArgumentException("Unsupported db_key mode", nameof(mode));
-            }
-
-            return new Execute_query
-            {
-                Query = sql,
-                Parameters = new { threshold }
             };
         }
 

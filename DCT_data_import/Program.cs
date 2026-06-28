@@ -586,33 +586,6 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog($"[ImportUiStatusMode] 執行失敗: {ex.Message}");
                 Console.WriteLine($"[ImportUiStatusMode] 執行失敗: {ex.Message}");
             }
-            #region 寄信通報
-            //if (DateTime.Now.TimeOfDay.Hours == 0 || DateTime.Now.TimeOfDay.Hours == 12)
-            //{
-            //    if (DateTime.Now.TimeOfDay.Minutes >= 0 && DateTime.Now.TimeOfDay.Minutes < 10)
-            //    {
-            //        #region 找出需要通報的db_key_ui_status
-            //        List<DbKeyObject> failDbKeyObject = dbAccess.SelectFailDbKeyResult(DatabaseService , "ui_status");
-            //        // 通報
-            //        if (failDbKeyObject.Count > 0)
-            //        {
-            //            string mailBody = "Dear all,<br>下列 ui_status 資料發生異常，請確認檔案內容<br>";
-            //            for (int i = 0; i < failDbKeyObject.Count; i++)
-            //            {
-            //                mailBody += (i + 1).ToString() + ".    DB_Key:" + failDbKeyObject[i].dbKey + ",   <b>" + failDbKeyObject[i].remark + "</b><br>";
-            //            }
-            //            mailBody += "Thanks. <br>";
-            //            string sendResult = SendMailModel(mailBody);
-            //            if (sendResult == "OK")
-            //            {
-            //                // 更新寄信狀態
-            //                string updateMailResult = dbAccess.UpdateMail(DatabaseService , failDbKeyObject, "ui_status");
-            //            }
-            //        }
-            //        #endregion 找出需要通報的db_key
-            //    }
-            //}
-            #endregion
             return string.Empty;
         }
         static string ImportTsmcMode(FileProcess fileAccess, DbAccess dbAccess, DatabaseService DatabaseService)

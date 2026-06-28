@@ -81,7 +81,7 @@
 - [x] **S2（HIGH，已完成 A/PR-1 + A/PR-2）**：SQL 主要寫入路徑已改參數化（Dapper 具名參數）。已完成 `DbAccess` / `TsmcIeda` / identifier chokepoint / `FileProcess.Import*` 批次 INSERT values。完整計畫見 [S2-SQL-PARAMETERIZATION-PLAN.md](S2-SQL-PARAMETERIZATION-PLAN.md)、交接見 [HANDOFF-S2.md](HANDOFF-S2.md)。
 - [x] **S2-residual（LOW，已完成）**：補齊 5 個低風險殘留 SQL value interpolation；只改成 Dapper parameters，不碰 transaction / typed result / DB harness。
   - [x] `DbAccess.SelectDataCountInDays`: `threeHourAgoTimeStamp` → `@threshold`。
-  - [x] `DbAccess.SelectFailDbKeyResult`: `UNION ALL` 兩段 timestamp → 共用 `@threshold`。
+  - [x] 歷史 failure-result 查詢路徑：`UNION ALL` 兩段 timestamp → 共用 `@threshold`；D3 後 dead code 已清理。
   - [x] `FileProcess.DeleteRawData`: `lot_id` → `@lotId`。
   - [x] `FileProcess.DeleteTesterStatus`: `device_info_id` → `@deviceInfoId`。
   - [x] `FileProcess.DeleteFailPinLog`: 三段 `fail_pin_id` → 共用 `@failPinId`。
@@ -108,7 +108,7 @@
 - [x] **R2（MEDIUM）**：SPC 負根號 NaN guard。
 - [x] **R3（MEDIUM）**：hardcoded `C:\temp` log 路徑 → 可設定（net8 cutover 可能觸發）。
 - [ ] **R4（LOW）**：log rotation（optional）。
-- [ ] **D3（MEDIUM）**：dead code 清理（`Program.cs` TEST CASE 區塊、`DbAccess` 舊邏輯）。
+- [x] **D3（MEDIUM）**：dead code 清理（保留 `Program.cs` TEST CASE 區塊，清理 `DbAccess` 舊邏輯）。
 - [ ] **D4（MEDIUM）**：`TsmcIeda` self-contained 路徑收斂。
 - [x] **P1（MEDIUM）**：O(n²) SQL 字串累加 → 已將主要 multi-row batch INSERT values builder 改為 `StringBuilder`，並補 IEDA content multi-row placeholder characterization test。
 - [ ] **D2/D5/P2/P3（LOW/deferred）**：型別更名、命名不一致、fake async（非目標）、手動 GC.Collect。
