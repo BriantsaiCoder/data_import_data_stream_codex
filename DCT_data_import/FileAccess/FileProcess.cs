@@ -84,7 +84,7 @@ namespace DCT_data_import
             int cut_size = (content.FinalRecoveryRateTable.Rows.Count > 5000) ? 5000 : content.FinalRecoveryRateTable.Rows.Count;
             // assign 需要 insert 的 欄位名稱
             string columns = string.Empty, values = string.Empty;
-            Execute_query_response response2;
+            DbCommandResult response2;
             for (int i = 0; i < content.FinalRecoveryRateTable.Columns.Count; i++)
             {
                 string column_name = content.FinalRecoveryRateTable.Columns[i].ColumnName.ToLower();
@@ -183,7 +183,7 @@ namespace DCT_data_import
             if (content.LotInfo.Rows.Count < 1 || content.LotStatistic.Tables.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = string.Empty, values = string.Empty;
-            Execute_query_response response2;
+            DbCommandResult response2;
             #region insert raw data 的 info 表格
             var lotsInfoParameters = new DynamicParameters();
             int lotsInfoParameterIndex = 0;
@@ -233,7 +233,7 @@ namespace DCT_data_import
             try
             {
                 // 取得當前 lot id 值
-                lotId = response2.Data[0]["insertId"].ToString();
+                lotId = response2.InsertId.ToString(CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
@@ -331,7 +331,7 @@ namespace DCT_data_import
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                            response2 = DeleteRawData(DatabaseService, lotId);
+                            DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
                         valuesBuilder.Clear();
@@ -356,7 +356,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                        response2 = DeleteRawData(DatabaseService, lotId);
+                        DeleteRawData(DatabaseService, lotId);
                         return false;
                     }
                 }
@@ -364,7 +364,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' error:" + ex.Message);
-                response2 = DeleteRawData(DatabaseService, lotId);
+                DeleteRawData(DatabaseService, lotId);
                 return false;
             }
             #endregion
@@ -493,7 +493,7 @@ namespace DCT_data_import
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = string.Empty, values = string.Empty;
             string lotId = string.Empty;
-            Execute_query_response response2;
+            DbCommandResult response2;
             #region insert raw data 的 info 表格
             if (!MultiSiteRawDataLotInfoIsImported)
             {
@@ -544,7 +544,7 @@ namespace DCT_data_import
                 {
                     // 取得當前 lot id 值
                     MultiSiteRawDataLotInfoIsImported = true;
-                    MultiSiteRawDataLotInfoInsertId = response2.Data[0]["insertId"].ToString();
+                    MultiSiteRawDataLotInfoInsertId = response2.InsertId.ToString(CultureInfo.InvariantCulture);
                 }
                 catch (Exception ex)
                 {
@@ -648,7 +648,7 @@ namespace DCT_data_import
                         if (!string.IsNullOrEmpty(response2.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                            response2 = DeleteRawData(DatabaseService, lotId);
+                            DeleteRawData(DatabaseService, lotId);
                             return false;
                         }
                         valuesBuilder.Clear();
@@ -673,7 +673,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response2.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' response error:" + response2.Error);
-                        response2 = DeleteRawData(DatabaseService, lotId);
+                        DeleteRawData(DatabaseService, lotId);
                         return false;
                     }
                 }
@@ -681,7 +681,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog("'INSERT INTO lots_statistic' error:" + ex.Message);
-                response2 = DeleteRawData(DatabaseService, lotId);
+                DeleteRawData(DatabaseService, lotId);
                 return false;
             }
             #endregion
@@ -809,7 +809,7 @@ namespace DCT_data_import
             if (content.Tester_device_info.Rows.Count < 1 || content.Tester_status.Rows.Count < 1 || content.Tester_sw_version.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = string.Empty, values = string.Empty;
-            Execute_query_response response;
+            DbCommandResult response;
             #region insert `tester_device_info`
             var testerDeviceInfoParameters = new DynamicParameters();
             int testerDeviceInfoParameterIndex = 0;
@@ -877,7 +877,7 @@ namespace DCT_data_import
             string device_info_Id = string.Empty;
             try
             {
-                device_info_Id = response.Data[0]["insertId"].ToString();
+                device_info_Id = response.InsertId.ToString(CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
@@ -932,7 +932,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_status' error:" + response.Error);
-                        response = DeleteTesterStatus(DatabaseService, device_info_Id);
+                        DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
                 }
@@ -941,7 +941,7 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog("'INSERT INTO tester_status' error:" + ex.Message);
-                response = DeleteTesterStatus(DatabaseService, device_info_Id);
+                DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
@@ -982,7 +982,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_sw_version' error:" + response.Error);
-                        response = DeleteTesterStatus(DatabaseService, device_info_Id);
+                        DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
                 }
@@ -990,7 +990,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog("'INSERT INTO tester_sw_version' error:" + ex.Message);
-                response = DeleteTesterStatus(DatabaseService, device_info_Id);
+                DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
@@ -1034,7 +1034,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO tester_production_analysis' error:" + response.Error);
-                        response = DeleteTesterStatus(DatabaseService, device_info_Id);
+                        DeleteTesterStatus(DatabaseService, device_info_Id);
                         return false;
                     }
                 }
@@ -1042,7 +1042,7 @@ namespace DCT_data_import
             catch (Exception ex)
             {
                 writeToLog.WriteErrorLog("'INSERT INTO tester_production_analysis'  error:" + ex.Message);
-                response = DeleteTesterStatus(DatabaseService, device_info_Id);
+                DeleteTesterStatus(DatabaseService, device_info_Id);
                 return false;
             }
             #endregion
@@ -1054,7 +1054,7 @@ namespace DCT_data_import
             if (content.UI_status.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = string.Empty, values = string.Empty;
-            Execute_query_response response;
+            DbCommandResult response;
             string mac_address, area, factory, os_machine, date;
             for (int j = 0; j < content.UI_status.Columns.Count; j++)
             {
@@ -1123,7 +1123,7 @@ namespace DCT_data_import
             if (content.Fail_pin_rate_info.Rows.Count < 1) return false;
             // assign 需要 insert 的 欄位名稱 與 values
             string columns = string.Empty, values = string.Empty;
-            Execute_query_response response;
+            DbCommandResult response;
             #region insert `fail_pin_rate_info`
             var failPinRateInfoParameters = new DynamicParameters();
             int failPinRateInfoParameterIndex = 0;
@@ -1165,7 +1165,7 @@ namespace DCT_data_import
                 return false;
             }
             #endregion
-            string fail_pin_rate_info_Id = response.Data[0]["insertId"].ToString();
+            string fail_pin_rate_info_Id = response.InsertId.ToString(CultureInfo.InvariantCulture);
             List<string> fail_pin_rate_list_Id = new List<string>();
             #region insert `fail_pin_rate_list`
             columns = "`fail_pin_rate_info_Id`,"; values = string.Empty;
@@ -1208,18 +1208,18 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list' error:" + response.Error);
-                        response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                        DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
                     // 將此筆insert的fail_pin_rate_list_id保存至陣列
-                    fail_pin_rate_list_Id.Add(response.Data[0]["insertId"].ToString());
+                    fail_pin_rate_list_Id.Add(response.InsertId.ToString(CultureInfo.InvariantCulture));
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list' error:" + ex.Message);
-                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
@@ -1271,7 +1271,7 @@ namespace DCT_data_import
                         if (!string.IsNullOrEmpty(response.Error))
                         {
                             writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
-                            response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                            DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                             return false;
                         }
                         valuesBuilder.Clear();
@@ -1296,7 +1296,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + response.Error);
-                        response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                        DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
                 }
@@ -1305,7 +1305,7 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_list_pin_ball' error:" + ex.Message);
-                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
@@ -1347,7 +1347,7 @@ namespace DCT_data_import
                             if (!string.IsNullOrEmpty(response.Error))
                             {
                                 writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
-                                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                                DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                                 return false;
                             }
                             valuesBuilder.Clear();
@@ -1380,7 +1380,7 @@ namespace DCT_data_import
                     if (!string.IsNullOrEmpty(response.Error))
                     {
                         writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + response.Error);
-                        response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                        DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                         return false;
                     }
                 }
@@ -1389,13 +1389,13 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog("'INSERT INTO fail_pin_rate_test_result' error:" + ex.Message);
-                response = DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
                 return false;
             }
             #endregion
             return true;
         }
-        public Execute_query_response ExecuteInsert(DatabaseService DatabaseService, string tableName, string columns, string values, object parameters = null)
+        public DbCommandResult ExecuteInsert(DatabaseService DatabaseService, string tableName, string columns, string values, object parameters = null)
         {
             try
             {
@@ -1405,11 +1405,11 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog($"INSERT {tableName} error : {ex.Message}");
-                return new Execute_query_response { Error = ex.Message };
+                return new DbCommandResult { Error = ex.Message };
             }
         }
 
-        internal Execute_query_response ExecuteInsert(DatabaseService DatabaseService, string tableName, Execute_query execute_query)
+        internal DbCommandResult ExecuteInsert(DatabaseService DatabaseService, string tableName, Execute_query execute_query)
         {
             try
             {
@@ -1418,9 +1418,9 @@ namespace DCT_data_import
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
-                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
+                    return new DbCommandResult { Error = $"Database or table {tableName} does not exist" };
                 }
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "insert");
+                DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Operation: INSERT {tableName}");
@@ -1433,7 +1433,7 @@ namespace DCT_data_import
             {
                 Console.WriteLine(ex.ToString());
                 writeToLog.WriteErrorLog($"INSERT {tableName} error : {ex.Message}");
-                return new Execute_query_response { Error = ex.Message };
+                return new DbCommandResult { Error = ex.Message };
             }
         }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -244,7 +245,7 @@ namespace DCT_data_import.ReadAndImport
         public bool ImportIeda(IedaDataFormat content, DatabaseService DatabaseService)
         {
             if (content.IedaTitle.Rows.Count < 1 || content.IedaContent.Rows.Count < 1) return false;
-            Execute_query_response response2;
+            DbCommandResult response2;
             FileProcess fileProcess = new FileProcess();
             WriteToLog writeToLog = new WriteToLog();
             #region insert ieda 的 title 表格
@@ -267,7 +268,7 @@ namespace DCT_data_import.ReadAndImport
             string titleId = string.Empty;
             try
             {
-                titleId = response2.Data[0]["insertId"].ToString();
+                titleId = response2.InsertId.ToString(CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
