@@ -30,7 +30,7 @@
 - 連線池：`server=...;Pooling=true;Min Pool Size=5;Max Pool Size=100;...;Charset=utf8mb4;`（`DBmysql.cs` `MySqlConnectionManager.Initialize`）。
 - Migration：無 migration 工具；`DCT_data_import/sql/dct.sql` 可作影子 schema 初始化參考，正式 schema 仍由外部維護。
 - Local file 儲存：
-  - log → `C:\temp\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（`WriteToLog.cs:29`）
+  - log → `DataImportLogRoot\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt` 與 `check_logs\DCT_data_check_log_*.csv`；`DataImportLogRetentionDays` 預設清理 90 天前檔案
   - `mail_temp.txt` → exe 目錄
   - `lot_mapping.csv` → `ImportSource` / `LocalImportRoot` 或 FTP 對應的 `TSMC_DATA/LotID/lot_mapping.csv`
   - `dct_import_mail_list.ini` → exe 目錄/設定路徑

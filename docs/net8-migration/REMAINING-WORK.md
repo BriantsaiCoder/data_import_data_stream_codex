@@ -107,7 +107,7 @@
 
 - [x] **R2（MEDIUM）**：SPC 負根號 NaN guard。
 - [x] **R3（MEDIUM）**：hardcoded `C:\temp` log 路徑 → 可設定（net8 cutover 可能觸發）。
-- [ ] **R4（LOW）**：log rotation（optional）。
+- [x] **R4（LOW）**：log retention cleanup（`DataImportLogRetentionDays`，預設 90 天；0/負數可關閉）。
 - [x] **D3（MEDIUM）**：dead code 清理（保留 `Program.cs` TEST CASE 區塊，清理 `DbAccess` 舊邏輯）。
 - [x] **D4（MEDIUM）**：`TsmcIeda` self-contained 路徑收斂。
 - [x] **P1（MEDIUM）**：O(n²) SQL 字串累加 → 已將主要 multi-row batch INSERT values builder 改為 `StringBuilder`，並補 IEDA content multi-row placeholder characterization test。
@@ -136,4 +136,4 @@
 | **C / S2 SQL 參數化** | 既裝 **Dapper 具名參數**逐一改現有 INSERT/SELECT/UPDATE，簽名不變、字串改 `@param`。 | 抽 repository 層 + 參數化 + 整合測試 | ★最小（Dapper 已在用）。抽 repository 屬現代化、非本債目標。**安全區：參數化不可省；動 DBmysql/FileProcess/TsmcIeda 前 `deps-check`。** |
 | **C / S4 SMTP** | IP/sender 移到 App.config key；評估是否需 auth（內網 relay 不需則記錄理由）。 | 認證 SMTP + TLS + 重試 | ★最小先消 hardcode；auth/TLS 視環境。 |
 | **D 測試廣度** | capture-don't-assert characterization，沿用既有 xUnit + capture 模式，`InternalsVisibleTo` 開私有方法，無新框架。 | 引 AutoFixture/Bogus/FluentAssertions/coverlet 門檻 + property-based | ★最小。既有測試零這些依賴；characterization 釘行為不需資料生成器；coverlet 可選非阻塞。 |
-| **E R2/R3/D3/D4/P1…** | 逐項最小：R2 一個 NaN guard；R3 log 路徑改讀 config；D3 刪 dead code；D4 用既有 `ImportFileSource` seam 收斂 `TsmcIeda` 路徑；P1 改 StringBuilder。 | 對應子系統重構 | 多數延後；**D2/D5/P2/P3 等現代化動前須決策者確認**（CLAUDE.md「不主動現代化」）。 |
+| **E R2/R3/R4/D3/D4/P1…** | 逐項最小：R2 一個 NaN guard；R3 log 路徑改讀 config；R4 加 retention cleanup；D3 刪 dead code；D4 用既有 `ImportFileSource` seam 收斂 `TsmcIeda` 路徑；P1 改 StringBuilder。 | 對應子系統重構 | 多數延後；**D2/D5/P2/P3 等現代化動前須決策者確認**（CLAUDE.md「不主動現代化」）。 |
