@@ -48,7 +48,7 @@ namespace DCT_data_import
 
         internal static Execute_query BuildDataCountInDaysQuery(string mode, long threshold)
         {
-            string sql = string.Empty;
+            string sql;
             if (mode == "tester")
             {
                 sql = "SELECT COUNT(id) count_id FROM `db_key` WHERE datetime >= @threshold";
@@ -56,6 +56,10 @@ namespace DCT_data_import
             else if (mode == "ui_status")
             {
                 sql = "SELECT COUNT(id) count_id FROM `db_key_ui_status` WHERE  datetime >= @threshold";
+            }
+            else
+            {
+                throw new ArgumentException("Unsupported db_key mode", nameof(mode));
             }
 
             return new Execute_query
@@ -415,7 +419,7 @@ namespace DCT_data_import
 
         internal static Execute_query BuildFailDbKeyResultQuery(string mode, long threshold)
         {
-            string sql = string.Empty;
+            string sql;
             if (mode == "tester")
             {
                 sql = @"SELECT id, db_key, check_status, remark FROM `db_key` WHERE `mail`=0 AND `import_status`=0 AND datetime <= @threshold" +
@@ -427,6 +431,10 @@ namespace DCT_data_import
                 sql = @"SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`=0 AND `import_status`=0 AND datetime <= @threshold" +
                           @" union ALL
                                 SELECT id, db_key, check_status, remark FROM `db_key_ui_status` WHERE `mail`= 0 AND `import_status` >=2 AND datetime <= @threshold";
+            }
+            else
+            {
+                throw new ArgumentException("Unsupported db_key mode", nameof(mode));
             }
 
             return new Execute_query

@@ -49,6 +49,15 @@ namespace DCT_data_import.Tests
             Assert.Equal(threshold, AnonymousParameterValue(query.Parameters, "threshold"));
         }
 
+        [Fact]
+        public void BuildDataCountInDaysQuery_RejectsUnsupportedMode()
+        {
+            ArgumentException ex = Assert.Throws<ArgumentException>(() =>
+                DbAccess.BuildDataCountInDaysQuery("unknown", 987654321));
+
+            Assert.Equal("mode", ex.ParamName);
+        }
+
         [Theory]
         [InlineData("tester", "`db_key`")]
         [InlineData("ui_status", "`db_key_ui_status`")]
@@ -62,6 +71,15 @@ namespace DCT_data_import.Tests
             Assert.Equal(2, query.Query.Split("@threshold").Length - 1);
             Assert.DoesNotContain(threshold.ToString(), query.Query);
             Assert.Equal(threshold, AnonymousParameterValue(query.Parameters, "threshold"));
+        }
+
+        [Fact]
+        public void BuildFailDbKeyResultQuery_RejectsUnsupportedMode()
+        {
+            ArgumentException ex = Assert.Throws<ArgumentException>(() =>
+                DbAccess.BuildFailDbKeyResultQuery("unknown", 987654321));
+
+            Assert.Equal("mode", ex.ParamName);
         }
 
         [Fact]
