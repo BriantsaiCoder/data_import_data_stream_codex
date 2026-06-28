@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -16,6 +17,20 @@ namespace DCT_data_import
     }
     public class WriteToLog
     {
+        private const string LogRootAppSettingKey = "DataImportLogRoot";
+        private const string DefaultLogRoot = @"C:\temp";
+        private readonly string _logRoot;
+
+        public WriteToLog()
+            : this(ConfigurationManager.AppSettings[LogRootAppSettingKey])
+        {
+        }
+
+        internal WriteToLog(string logRoot)
+        {
+            _logRoot = string.IsNullOrWhiteSpace(logRoot) ? DefaultLogRoot : logRoot;
+        }
+
         /// <summary>
         /// 寫入資料匯入日誌，包含層級資訊
         /// </summary>
@@ -23,12 +38,7 @@ namespace DCT_data_import
         /// <param name="message">日誌訊息</param>
         public void WriteToDataImportLog(LogLevel level, string message)
         {
-            // 取得目前執行檔檔名（不含副檔名）
-            string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
-            // 組合成目標路徑（先用字串，等下轉 Uri）
-            string targetPath = $@"C:\temp\{exeName}\data_import_logs";
-            // 轉成 Uri 再取 LocalPath（保持原本風格）
-            string logDirectory = new Uri(targetPath).LocalPath;
+            string logDirectory = GetLogDirectory("data_import_logs");
             // 確保資料夾存在
             Directory.CreateDirectory(logDirectory);
             //string logDirectory = new Uri(Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase) + "\\data_import_logs").LocalPath;
@@ -148,12 +158,7 @@ namespace DCT_data_import
         }
         public void WriteToCheckLog(string logFilename, string content)
         {
-            // 取得目前執行檔檔名（不含副檔名）
-            string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
-            // 組合路徑：C:\temp\<ExeName>\check_logs
-            string targetPath = $@"C:\temp\{exeName}\check_logs";
-            // 轉成 Uri 再取 LocalPath（保留原本風格）
-            string checkLogFolder = new Uri(targetPath).LocalPath;
+            string checkLogFolder = GetLogDirectory("check_logs");
             // 確保資料夾存在
             Directory.CreateDirectory(checkLogFolder);
             //修正路徑處理，避免 Substring(6) 的風險
@@ -209,6 +214,12 @@ namespace DCT_data_import
                         mutex.ReleaseMutex();
                 }
             }
+        }
+
+        private string GetLogDirectory(string folderName)
+        {
+            string exeName = Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
+            return Path.Combine(_logRoot, exeName, folderName);
         }
     }
 }
