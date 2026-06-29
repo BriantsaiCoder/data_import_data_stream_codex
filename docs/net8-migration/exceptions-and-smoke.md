@@ -21,7 +21,7 @@
 
 ### 2. MySql.Data 9.4.0 DateTime materialization（integration scope，非 unit capture）
 
-DB row → `DateTime` 的物化（[DBmysql.cs:147](../../DCT_data_import/MySQL_api/DBmysql.cs#L147) 的上游）依賴 MySql.Data driver,需**真實 MySQL + 升級後 driver** 才能重現。
+DB row → `DateTime` 的物化（[DBmysql.cs:147](../../DCT_data_import/MySqlApi/DBmysql.cs#L147) 的上游）依賴 MySql.Data driver,需**真實 MySQL + 升級後 driver** 才能重現。
 
 - **為何不 capture**：無真實 DB 連線的 unit 無法重現 driver 物化行為；P0-3 的純格式 capture（`DateTime.ToString("yyyy-MM-dd HH:mm:ss")`）只涵蓋 format 腿,materialization 腿屬 integration。
 - **處置**：登記為 manual smoke（見下）。
@@ -39,7 +39,7 @@ DB row → `DateTime` 的物化（[DBmysql.cs:147](../../DCT_data_import/MySQL_a
 使用者已回報 A3 在 Windows PC 順利 pass；下列項目保留為 cutover smoke 歷史紀錄與未來回歸參考。
 
 - [x] **空網卡啟動**：各 importer 在無可用 NIC 環境啟動,確認 `nics[0]` 仍是顯性 `IndexOutOfRangeException`（非靜默漂移）——與 net462 行為一致即可。
-- [x] **MySql.Data 9.4.0 DateTime 物化**：從真實 DB 撈出的 `DateTime` 經 [DBmysql.cs:147](../../DCT_data_import/MySQL_api/DBmysql.cs#L147) `ToString("yyyy-MM-dd HH:mm:ss")` 後,字串格式與 net462 抽樣比對一致。
+- [x] **MySql.Data 9.4.0 DateTime 物化**：從真實 DB 撈出的 `DateTime` 經 [DBmysql.cs:147](../../DCT_data_import/MySqlApi/DBmysql.cs#L147) `ToString("yyyy-MM-dd HH:mm:ss")` 後,字串格式與 net462 抽樣比對一致。
 - [x] **FTP 目錄列表解析**：net8 下 [ImportData.cs:28](../../DCT_data_import/ReadAndImport/ImportData.cs#L28) / [TsmcIeda.cs:55](../../DCT_data_import/ReadAndImport/TsmcIeda.cs#L55) 解出的檔名 pattern match 結果與 net462 一致。
 - [x] **big5 CSV 內容解碼**：`Big5DecodeTests` 由紅轉綠（P1-6 provider 註冊生效）後,實跑一筆真實 big5 CSV,確認繁中欄位無亂碼。
 - [x] **worker-hang 故障注入**：主動觸發 worker hang / dead-worker supervisor 路徑,確認 net8 不再走 `Thread.Abort` PNSE 失敗路徑。
