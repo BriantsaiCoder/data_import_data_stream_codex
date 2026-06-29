@@ -50,7 +50,7 @@
 | Pattern | Where found | Why it exists |
 |---------|-------------|---------------|
 | Template Method（基底 + 7 子類） | `ReadAndImport/ImportData.cs:7` 基底，`Tester`/`FailPin`/`RawData`… 繼承 | 共用 FTP/路徑/檔案工具，子類各自實作 `ReadAndImport{Type}` |
-| Singleton（連線字串） | `MySqlApi/DBmysql.cs:371` `MySqlConnectionManager`（`volatile` + `lock`，只初始化一次） | 全域共用連線字串 |
+| Singleton（連線字串） | `MySqlApi/DBmysql.cs:311` `MySqlConnectionManager`（`volatile` + `lock`，只初始化一次） | 全域共用連線字串 |
 | Service 包裝 | `DbApi/DatabaseService.cs` 包 `DBmysql` | 統一輸入驗證與錯誤訊息脫敏（`GetSafeErrorMessage`，`:200`） |
 | Synchronous DB wrapper | `DbApi/DatabaseService.cs` | DB result surface 為 `ExecuteQuery` / `ExecuteCommand` typed-only |
 | Status-flag state machine | `db_key`/`db_key_ui_status` 表的 `check_status`/`import_status`/`mail` | 以 DB 旗標驅動「待處理/已匯入/待寄信」 |
