@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using DCT_data_import;
+using DCT_data_import.Common;
 using Xunit;
 
 namespace DCT_data_import.Tests

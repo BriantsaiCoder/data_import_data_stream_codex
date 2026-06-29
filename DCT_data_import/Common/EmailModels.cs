@@ -7,7 +7,7 @@ using System.Linq;
 using System.Net.Mail;
 using System.Net.NetworkInformation;
 using System.Text;
-namespace DCT_data_import
+namespace DCT_data_import.Common
 {
     public class EmailModels
     {

@@ -1,7 +1,7 @@
 using System;
 using System.Configuration;
 
-namespace DCT_data_import
+namespace DCT_data_import.Common
 {
     /// <summary>
     /// 影子驗證(DRY-RUN)旗標。為 true 時 ETL 只解析/比對,不真正寫入 DB、不搬/刪 FTP 檔、不寄信,

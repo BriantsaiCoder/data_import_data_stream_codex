@@ -1,6 +1,8 @@
 using System.Data;
 using System.Globalization;
 using DCT_data_import;
+using DCT_data_import.Common;
+using DCT_data_import.FileAccess;
 using Xunit;
 
 namespace DCT_data_import.Tests

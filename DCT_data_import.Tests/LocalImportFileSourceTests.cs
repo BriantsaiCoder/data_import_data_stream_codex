@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DCT_data_import;
+using DCT_data_import.Common;
 using DCT_data_import.ReadAndImport;
 using Xunit;
 

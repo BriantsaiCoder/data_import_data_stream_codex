@@ -4,6 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
+using DCT_data_import.Common;
+using DCT_data_import.DbApi;
+using DCT_data_import.FileAccess;
+using static DCT_data_import.DbApi.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class ImportData

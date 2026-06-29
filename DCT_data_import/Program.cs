@@ -8,8 +8,10 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using DCT_data_import.Common;
+using DCT_data_import.DbApi;
+using DCT_data_import.FileAccess;
 using DCT_data_import.ReadAndImport;
-using static DCT_data_import.DbObject;
+using static DCT_data_import.DbApi.DbObject;
 namespace DCT_data_import
 {
     class Program

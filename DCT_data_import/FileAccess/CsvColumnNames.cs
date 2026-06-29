@@ -1,4 +1,4 @@
-namespace DCT_data_import
+namespace DCT_data_import.FileAccess
 {
     internal static class CsvColumnNames
     {

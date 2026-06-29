@@ -4,8 +4,9 @@ using System.Data;
 using Dapper;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json.Linq;
-using static DCT_data_import.DbObject;
-namespace DCT_data_import
+using DCT_data_import.Common;
+using static DCT_data_import.DbApi.DbObject;
+namespace DCT_data_import.MySqlApi
 {
     public class DBmysql
     {

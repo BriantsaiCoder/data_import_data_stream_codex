@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using DCT_data_import;
+using DCT_data_import.FileAccess;
 using DCT_data_import.ReadAndImport;
 using Xunit;
 

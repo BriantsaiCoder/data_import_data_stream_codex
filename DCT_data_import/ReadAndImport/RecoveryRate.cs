@@ -6,7 +6,10 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using static DCT_data_import.DbObject;
+using DCT_data_import.Common;
+using DCT_data_import.DbApi;
+using DCT_data_import.FileAccess;
+using static DCT_data_import.DbApi.DbObject;
 namespace DCT_data_import.ReadAndImport
 {
     public class RecoveryRate : ImportData

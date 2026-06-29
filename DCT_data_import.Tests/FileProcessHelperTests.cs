@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using System.Data;
 using DCT_data_import;
+using DCT_data_import.Common;
+using DCT_data_import.DbApi;
+using DCT_data_import.FileAccess;
+using static DCT_data_import.DbApi.DbObject;
 using Xunit;
 
 namespace DCT_data_import.Tests

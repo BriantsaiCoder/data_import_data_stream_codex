@@ -1,4 +1,5 @@
 using DCT_data_import;
+using DCT_data_import.DbApi;
 using Xunit;
 
 namespace DCT_data_import.Tests
