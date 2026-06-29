@@ -7,17 +7,25 @@ namespace DCT_data_import.Tests
     public class FileContentFormatTests
     {
         [Fact]
+        public void CsvColumnNames_DocumentCurrentDbKeyHeaderVariants()
+        {
+            Assert.Equal("DB_Key", CsvColumnNames.DbKeyUnderscore);
+            Assert.Equal("DB Key", CsvColumnNames.DbKeyWithSpace);
+            Assert.NotEqual(CsvColumnNames.DbKeyUnderscore, CsvColumnNames.DbKeyWithSpace);
+        }
+
+        [Fact]
         public void CompareMethods_WhenFullKnownColumnsHaveRows_ReturnTrue()
         {
             var recovery = new RecoveryRateDataContentFormat();
             AddColumnsAndRow(recovery.LotInfo,
-                "DB Key", "Area", "Factory", "OS Machine", "Customer", "Program", "AO Lot", "Mode", "Date");
+                CsvColumnNames.DbKeyWithSpace, "Area", "Factory", "OS Machine", "Customer", "Program", "AO Lot", "Mode", "Date");
             AddColumnsAndRow(recovery.LotRecoveryRate,
                 "Test_Item", "Defect_mode", "reTestPass", "FailPinCount", "Total_Unit", "Recovery rate(%)");
 
             var rawData = new RawDataContentFormat();
             AddColumnsAndRow(rawData.LotInfo,
-                "Version", "Mac_Address", "DB_Key", "Customer", "Package", "BondingDiagram", "Program", "Device",
+                "Version", "Mac_Address", CsvColumnNames.DbKeyUnderscore, "Customer", "Package", "BondingDiagram", "Program", "Device",
                 "Control_lot", "AO_lot", "OS_Machine_ID", "OS_Test_Board_ID", "User_ID", "Schedule_Lot", "File_Name",
                 "Yield(%)", "TOTAL", "PASS", "OPEN_PIN_FAIL", "SHORT_PIN_FAIL", "LEAKAGE_PIN_FAIL", "nVTEP_PIN_FAIL",
                 "TOTAL_PPM", "OPEN_PIN_FAIL_PPM", "SHORT_PIN_FAIL_PPM", "LEAKAGE_PIN_FAIL_PPM", "nVTEP_PIN_FAIL_PPM",
@@ -30,7 +38,7 @@ namespace DCT_data_import.Tests
 
             var testStatus = new TestStatusContentFormat();
             AddColumnsAndRow(testStatus.Tester_device_info,
-                "DB_Key", "Mac_Address", "IP_Address", "Area", "Factory", "Machine Type", "Machine ID", "Customer",
+                CsvColumnNames.DbKeyUnderscore, "Mac_Address", "IP_Address", "Area", "Factory", "Machine Type", "Machine ID", "Customer",
                 "Device Production", "Device Engineer", "Test Program", "Program_path", "Lot ID", "Wafer ID",
                 "Execution mode", "Prober / Handler", "L/B ID", "Dut board type", "Efficiency check",
                 "UI Flow checksum", "Yield", "File type", " Start Time", "End Time", "Lead_count", "Site_qty",
@@ -67,7 +75,7 @@ namespace DCT_data_import.Tests
 
             var failPin = new FailPinLogContentFormat();
             AddColumnsAndRow(failPin.Fail_pin_rate_info,
-                "Mac Address", "DB Key", "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format",
+                "Mac Address", CsvColumnNames.DbKeyWithSpace, "Area", "Factory", "OS Machine", "AO Lot", "Mode", "Data format",
                 "File Name", "Date", "Total", "Pass", "Open", "Short", "LK", "nVTEP");
 
             Assert.True(recovery.CompareInfo(), nameof(recovery.CompareInfo));
@@ -115,7 +123,7 @@ namespace DCT_data_import.Tests
         public void CompareMethods_WhenRequiredColumnsAreMissingButRemainingColumnsAreKnown_ReturnCurrentBehaviorTrue()
         {
             var recovery = new RecoveryRateDataContentFormat();
-            AddColumnsAndRow(recovery.LotInfo, "DB Key");
+            AddColumnsAndRow(recovery.LotInfo, CsvColumnNames.DbKeyWithSpace);
             AddColumnsAndRow(recovery.LotRecoveryRate, "Test_Item");
 
             var rawData = new RawDataContentFormat();
@@ -123,7 +131,7 @@ namespace DCT_data_import.Tests
             rawData.LotStatistic.Tables.Add(TableWithRow("Item No"));
 
             var testStatus = new TestStatusContentFormat();
-            AddColumnsAndRow(testStatus.Tester_device_info, "DB_Key");
+            AddColumnsAndRow(testStatus.Tester_device_info, CsvColumnNames.DbKeyUnderscore);
             AddColumnsAndRow(testStatus.Tester_status, "DPW");
 
             var uiStatus = new UIStatusContentFormat();

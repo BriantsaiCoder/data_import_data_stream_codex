@@ -83,16 +83,16 @@ namespace DCT_data_import.ReadAndImport
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "Recovery data field name not match.");
                 }
-                string queryDbKey = recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString();
+                string queryDbKey = recoveryRateDataContentFormat.LotInfo.Rows[0][CsvColumnNames.DbKeyWithSpace].ToString();
                 Console.WriteLine("dbkey =" + queryDbKey);
-                if (!dbKey.Equals(recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString()))
+                if (!dbKey.Equals(recoveryRateDataContentFormat.LotInfo.Rows[0][CsvColumnNames.DbKeyWithSpace].ToString()))
                 {
                     writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("recovery_rate", recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString(), DatabaseService);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("recovery_rate", recoveryRateDataContentFormat.LotInfo.Rows[0][CsvColumnNames.DbKeyWithSpace].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料:  " + "   檔名:" + filename);

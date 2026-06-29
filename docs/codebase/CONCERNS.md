@@ -21,7 +21,7 @@
 | D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；DB SQL request DTO 已改為 `DbSqlRequest` | `App.config`（現無 API 鍵）、`FileProcess.cs:1337`（`ExecuteInsert`）、git 歷史 | ✅ 完成 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:40-70` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:40-70` | 清除（git 已留歷史） |
 | D4 | Medium | **TSMC IEDA importer 自走一套**：不經 `FileProcess`，自行組 INSERT + `DataTable.Select` 查詢，與其餘 importer 不一致 | `TsmcIeda.cs:141,225` | 收斂至共用路徑或明確記錄為例外 |
-| D5 | Low | **命名/慣例不一致**：namespace 與資料夾不對齊；`db_key` CSV 欄位名 `"DB_Key"` vs `"DB Key"` | STRUCTURE.md §4、CONVENTIONS.md | 漸進統一 |
+| D5 | Low | **命名/慣例不一致**：namespace 與資料夾不對齊；CSV `db_key` 兩種既有外部 header 已集中於 `CsvColumnNames` 並以測試記錄，不列為格式統一項 | STRUCTURE.md §4、CONVENTIONS.md、`FileContentFormatTests` | namespace 漸進統一；維持 CSV 外部契約 |
 
 ### 3) Performance
 

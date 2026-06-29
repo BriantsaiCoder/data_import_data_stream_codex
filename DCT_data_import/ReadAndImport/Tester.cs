@@ -66,13 +66,13 @@ namespace DCT_data_import.ReadAndImport
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "tester_status field name not match.");
                 }
-                if (!dbKey.Equals(testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString()))
+                if (!dbKey.Equals(testStatusContentFormat.Tester_device_info.Rows[0][CsvColumnNames.DbKeyUnderscore].ToString()))
                 {
                     writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0]["DB_Key"].ToString(), DatabaseService);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("tester_device_info", testStatusContentFormat.Tester_device_info.Rows[0][CsvColumnNames.DbKeyUnderscore].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + filename);
@@ -156,7 +156,7 @@ namespace DCT_data_import.ReadAndImport
                     switch (content_part)
                     {
                         case 1:
-                            if (values[0] == "DB_Key")
+                            if (values[0] == CsvColumnNames.DbKeyUnderscore)
                             {
                                 for (int i = 0; i < values.Length; i++)
                                 {
