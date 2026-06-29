@@ -17,6 +17,7 @@ namespace DCT_data_import.Tests
             yield return new object[] { typeof(ImportDecision), "DCT_data_import" };
 
             yield return new object[] { typeof(WriteToLog), "DCT_data_import.Common" };
+            yield return new object[] { typeof(LogLevel), "DCT_data_import.Common" };
             yield return new object[] { typeof(EmailModels), "DCT_data_import.Common" };
             yield return new object[] { typeof(RuntimeMode), "DCT_data_import.Common" };
             yield return new object[] { typeof(NotificationService), "DCT_data_import.Common" };
@@ -46,6 +47,7 @@ namespace DCT_data_import.Tests
             yield return new object[] { typeof(MySqlConnectionManager), "DCT_data_import.MySqlApi" };
 
             yield return new object[] { typeof(ImportData), "DCT_data_import.ReadAndImport" };
+            yield return new object[] { typeof(FileCheckResult), "DCT_data_import.ReadAndImport" };
             yield return new object[] { typeof(RawData), "DCT_data_import.ReadAndImport" };
             yield return new object[] { typeof(MultiSpecRawData), "DCT_data_import.ReadAndImport" };
             yield return new object[] { typeof(Tester), "DCT_data_import.ReadAndImport" };

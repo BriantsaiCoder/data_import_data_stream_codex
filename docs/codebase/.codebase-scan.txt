@@ -55,8 +55,8 @@ DCT_data_import/FileAccess
 DCT_data_import/FileAccess/FileContentFormat.cs
 DCT_data_import/FileAccess/FileProcess.cs
 DCT_data_import/FileAccess/ReadWriteINIfile.cs
-DCT_data_import/MySQL_api
-DCT_data_import/MySQL_api/DBmysql.cs
+DCT_data_import/MySqlApi
+DCT_data_import/MySqlApi/DBmysql.cs
 DCT_data_import/Program.cs
 DCT_data_import/Properties
 DCT_data_import/Properties/AssemblyInfo.cs
