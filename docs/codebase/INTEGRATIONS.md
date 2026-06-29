@@ -8,7 +8,7 @@
 
 | Service | 用途 | 連線方式 | 認證 | Evidence |
 |---------|------|----------|------|----------|
-| MySQL DB | 主資料儲存（讀 `db_key` 待辦、寫各 import table） | `MySqlConnection` 直連 + Dapper | 帳密來自 `App.config`（`{Env}User`/`{Env}Password`） | `MySQL_api/DBmysql.cs:71`、`Program.cs:19-23` |
+| MySQL DB | 主資料儲存（讀 `db_key` 待辦、寫各 import table） | `MySqlConnection` 直連 + Dapper | 帳密來自 `App.config`（`{Env}User`/`{Env}Password`） | `MySqlApi/DBmysql.cs:71`、`Program.cs:19-23` |
 | FTP server | CSV 原始檔來源（下載 + 成功後刪除/改名） | `System.Net.FtpWebRequest`，big5 編碼 | 帳密來自 `App.config` ConnectionStrings | `ReadAndImport/ImportData.cs`（FTP 工具）、`Program.cs:24-26` |
 | SMTP server | 寄送週報/錯誤/缺資料通知 | `SmtpClient`，server/from 由 `App.config` 指定；目前為內網匿名 relay（無 Credentials/Port/SSL） | 無 | `Common/EmailModels.cs`、`App.config`、`Common/NotificationService.cs` |
 | ~~HTTP API（ApiUrl/ApiUser/ApiPassword）~~ | **已移除** — 曾為 DEAD CONFIG（`.cs` 零引用），DB 存取純走直連 MySQL;4 個死鍵已自 `App.config` 刪除 | N/A | git 歷史；現 `App.config` 已無此鍵 |
@@ -53,7 +53,7 @@
 ### 5) Evidence
 
 - `DCT_data_import/App.config`
-- `DCT_data_import/MySQL_api/DBmysql.cs`
+- `DCT_data_import/MySqlApi/DBmysql.cs`
 - `DCT_data_import/ReadAndImport/ImportData.cs`、`TsmcIeda.cs`
 - `DCT_data_import/FileAccess/FileProcess.cs`
 - `DCT_data_import/Common/NotificationService.cs`、`EmailModels.cs`、`WriteToLog.cs`
