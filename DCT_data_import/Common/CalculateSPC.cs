@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-namespace DCT_data_import
+using DCT_data_import.FileAccess;
+namespace DCT_data_import.Common
 {
     public class StatisticItem
     {

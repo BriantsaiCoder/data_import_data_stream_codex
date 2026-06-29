@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
-namespace DCT_data_import
+namespace DCT_data_import.DbApi
 {
     public class DbObject
     {

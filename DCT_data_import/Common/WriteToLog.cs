@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-namespace DCT_data_import
+namespace DCT_data_import.Common
 {
     /// <summary>
     /// 日誌層級列舉

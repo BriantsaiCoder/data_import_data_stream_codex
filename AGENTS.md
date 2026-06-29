@@ -8,7 +8,7 @@ This repository contains a .NET 8 (`net8.0-windows`) console ETL app for DCT dat
 - `DCT_data_import/Program.cs`: process entry point and thread orchestration.
 - `DCT_data_import/ReadAndImport/`: importer flows for supported data formats.
 - `DCT_data_import/FileAccess/`: CSV format contracts, file handling, and DB insert bridge.
-- `DCT_data_import/DbApi/` and `DCT_data_import/MySQL_api/`: database access and Dapper/MySQL execution.
+- `DCT_data_import/DbApi/` and `DCT_data_import/MySqlApi/`: database access and Dapper/MySQL execution.
 - `DCT_data_import/Common/`: logging, notification, SPC, and shared models.
 - `DCT_data_import.Tests/`: xUnit regression and characterization tests.
 - `docs/codebase/`: architecture, stack, testing, integration, convention, and risk documentation.

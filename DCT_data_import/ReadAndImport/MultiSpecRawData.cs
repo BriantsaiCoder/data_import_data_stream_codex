@@ -7,7 +7,10 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using static DCT_data_import.DbObject;
+using DCT_data_import.Common;
+using DCT_data_import.DbApi;
+using DCT_data_import.FileAccess;
+using static DCT_data_import.DbApi.DbObject;
 namespace DCT_data_import.ReadAndImport
 {/// <summary>
  /// 檔案檢查結果類別 - 支援多個檔案及對應錯誤路徑

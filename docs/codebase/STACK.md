@@ -15,8 +15,8 @@
 
 | Dependency | Version | Role in system | Evidence |
 |------------|---------|----------------|----------|
-| Dapper | 2.1.66 | Lightweight ORM; `DBmysql` uses `Query` / `Execute` with optional parameters | `DCT_data_import.csproj`, `MySQL_api/DBmysql.cs` |
-| MySql.Data | 9.4.0 | MySQL ADO.NET driver | `DCT_data_import.csproj`, `MySQL_api/DBmysql.cs` |
+| Dapper | 2.1.66 | Lightweight ORM; `DBmysql` uses `Query` / `Execute` with optional parameters | `DCT_data_import.csproj`, `MySqlApi/DBmysql.cs` |
+| MySql.Data | 9.4.0 | MySQL ADO.NET driver | `DCT_data_import.csproj`, `MySqlApi/DBmysql.cs` |
 | Newtonsoft.Json | 13.0.3 | Legacy `JArray`/`JObject` response shape | `DCT_data_import.csproj`, `DbApi/DbObject.cs` |
 | System.Configuration.ConfigurationManager | 8.0.1 | Reads `App.config` appSettings / connectionStrings | `DCT_data_import.csproj`, `Program.cs` |
 | System.Text.Encoding.CodePages | 8.0.0 | Enables Big5 / codepage 950 decoding on .NET 8 | `DCT_data_import.csproj`, `Program.cs`, `EncodingTestBootstrap.cs` |

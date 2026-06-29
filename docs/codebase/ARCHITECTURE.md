@@ -5,7 +5,7 @@
 ### 1) Architectural Style
 
 - Primary style：**分層 + 批次輪詢的多執行緒 ETL pipeline**（Layered + polling worker）。
-- Why this classification：清楚的三層分工——`Program.cs`（編排）→ `ReadAndImport/*`（業務解析）→ `DbApi`+`MySQL_api`（資料存取）；每層只依賴下層。`Program.Main` 以 3 條長駐 `Thread` 週期性輪詢 `db_key` 旗標表，將 FTP 上的 CSV 拉下、解析、寫入 MySQL（`Program.cs:27-`、`DbApi/DbAccess.cs:69-150`）。
+- Why this classification：清楚的三層分工——`Program.cs`（編排）→ `ReadAndImport/*`（業務解析）→ `DbApi`+`MySqlApi`（資料存取）；每層只依賴下層。`Program.Main` 以 3 條長駐 `Thread` 週期性輪詢 `db_key` 旗標表，將 FTP 上的 CSV 拉下、解析、寫入 MySQL（`Program.cs:27-`、`DbApi/DbAccess.cs:69-150`）。
 - Primary constraints：
   1. Windows-only（`kernel32` P/Invoke INI、hardcoded `C:\temp` log、FTP 經 `System.Net.FtpWebRequest`）。
   2. 同步阻塞模型——importer 與 DB 存取均為明確同步呼叫;P2 後已移除 fake async 外殼。
@@ -42,7 +42,7 @@
 | `FileAccess/FileProcess.cs` | DataTable→參數化 INSERT、分批、級聯刪除 | FTP 存取 | `FileProcess.cs:81-1711` |
 | `FileAccess/FileContentFormat.cs` | 6 種 CSV 欄位契約 + 驗證 | DB / FTP | `FileContentFormat.cs:6,79,138,204,233,277` |
 | `DbApi/DatabaseService.cs` | 連線參數驗證、typed `ExecuteQuery`/`ExecuteCommand`、DB/table 存在性檢查 | 業務語意 | `DatabaseService.cs` |
-| `MySQL_api/DBmysql.cs` | MySqlConnection 生命週期、Dapper 執行、typed result、錯誤碼對應 | 何時匯入 | `DBmysql.cs` |
+| `MySqlApi/DBmysql.cs` | MySqlConnection 生命週期、Dapper 執行、typed result、錯誤碼對應 | 何時匯入 | `DBmysql.cs` |
 | `Common/*` | log（Mutex）、SMTP 寄信、SPC 統計、INI | 匯入流程 | `Common/WriteToLog.cs`、`NotificationService.cs`、`CalculateSPC.cs` |
 
 ### 4) Reused Patterns
@@ -50,7 +50,7 @@
 | Pattern | Where found | Why it exists |
 |---------|-------------|---------------|
 | Template Method（基底 + 7 子類） | `ReadAndImport/ImportData.cs:7` 基底，`Tester`/`FailPin`/`RawData`… 繼承 | 共用 FTP/路徑/檔案工具，子類各自實作 `ReadAndImport{Type}` |
-| Singleton（連線字串） | `MySQL_api/DBmysql.cs:371` `MySqlConnectionManager`（`volatile` + `lock`，只初始化一次） | 全域共用連線字串 |
+| Singleton（連線字串） | `MySqlApi/DBmysql.cs:311` `MySqlConnectionManager`（`volatile` + `lock`，只初始化一次） | 全域共用連線字串 |
 | Service 包裝 | `DbApi/DatabaseService.cs` 包 `DBmysql` | 統一輸入驗證與錯誤訊息脫敏（`GetSafeErrorMessage`，`:200`） |
 | Synchronous DB wrapper | `DbApi/DatabaseService.cs` | DB result surface 為 `ExecuteQuery` / `ExecuteCommand` typed-only |
 | Status-flag state machine | `db_key`/`db_key_ui_status` 表的 `check_status`/`import_status`/`mail` | 以 DB 旗標驅動「待處理/已匯入/待寄信」 |
@@ -70,7 +70,7 @@
 - `DCT_data_import/ReadAndImport/ImportData.cs`、`RawData.cs`、`Tester.cs`、`FailPin.cs`、`RecoveryRate.cs`、`UiStatus.cs`、`MultiSpecRawData.cs`、`TsmcIeda.cs`
 - `DCT_data_import/FileAccess/FileProcess.cs`、`FileContentFormat.cs`
 - `DCT_data_import/DbApi/DatabaseService.cs`、`DbAccess.cs`、`DbObject.cs`
-- `DCT_data_import/MySQL_api/DBmysql.cs`
+- `DCT_data_import/MySqlApi/DBmysql.cs`
 
 ## Extended Sections (Optional)
 

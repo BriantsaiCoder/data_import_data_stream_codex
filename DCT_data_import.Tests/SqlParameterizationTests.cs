@@ -2,9 +2,11 @@ using System;
 using System.Data;
 using System.Linq;
 using Dapper;
+using DCT_data_import.DbApi;
+using DCT_data_import.FileAccess;
 using DCT_data_import.ReadAndImport;
 using Xunit;
-using static DCT_data_import.DbObject;
+using static DCT_data_import.DbApi.DbObject;
 
 namespace DCT_data_import.Tests
 {

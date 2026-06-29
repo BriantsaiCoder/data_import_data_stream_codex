@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using DCT_data_import;
 using DCT_data_import.Common;
+using DCT_data_import.MySqlApi;
 using DCT_data_import.ReadAndImport;
 using Xunit;
 

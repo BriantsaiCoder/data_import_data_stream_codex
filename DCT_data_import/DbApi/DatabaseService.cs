@@ -1,6 +1,8 @@
 ﻿using System;
-using static DCT_data_import.DbObject;
-namespace DCT_data_import
+using DCT_data_import.Common;
+using DCT_data_import.MySqlApi;
+using static DCT_data_import.DbApi.DbObject;
+namespace DCT_data_import.DbApi
 {
     public class DatabaseService
     {

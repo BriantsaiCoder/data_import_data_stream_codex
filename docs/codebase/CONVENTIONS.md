@@ -16,6 +16,8 @@
 | DB 物件型別 | DB result/request contracts 用 PascalCase | `DbQueryResult`、`DbCommandResult`、`DbSqlRequest` | `DbObject.cs` |
 | MySQL table/欄位 | snake_case | `db_key`、`import_status`、`lots_info` | `DbAccess.cs:84`、`FileProcess.cs:211` |
 
+- Namespace 對齊：`Common/` → `DCT_data_import.Common`、`FileAccess/` → `DCT_data_import.FileAccess`、`DbApi/` → `DCT_data_import.DbApi`、`MySqlApi/` → `DCT_data_import.MySqlApi`、`ReadAndImport/` → `DCT_data_import.ReadAndImport`。`Program` / `ImportDecision` 保留於 root `DCT_data_import`。
+
 ### 2) Formatting and Linting
 
 - Formatter：[TODO] 無設定檔（無 `.editorconfig`）。觀察：4 空格縮排、Allman 大括號、`using` 置頂。
@@ -25,9 +27,9 @@
 
 ### 3) Import and Module Conventions
 
-- `using` 置於檔首，未分組排序；混用 `using static`（`using static DCT_data_import.DbObject;`，見 `DBmysql.cs:7`、`DatabaseService.cs:3`）。
+- `using` 置於檔首，未分組排序；混用 `using static`（`using static DCT_data_import.DbApi.DbObject;`，見 `DBmysql.cs:8`、`DatabaseService.cs:4`）。
 - 無路徑別名（C# 無此概念）；以 namespace 引用。
-- Namespace 與資料夾不一致（見 STRUCTURE.md §4）：根層類別常掛 `DCT_data_import` 而非 `DCT_data_import.FileAccess` 等。
+- Namespace 與主要資料夾已對齊（見 STRUCTURE.md §4）；`Program` / `ImportDecision` 保留 root namespace。
 
 ### 4) Error and Logging Conventions
 
@@ -47,7 +49,7 @@
 
 - `DCT_data_import/Common/WriteToLog.cs`
 - `DCT_data_import/DbApi/DatabaseService.cs`
-- `DCT_data_import/MySQL_api/DBmysql.cs`
+- `DCT_data_import/MySqlApi/DBmysql.cs`
 - `DCT_data_import/ReadAndImport/RawData.cs`、`Tester.cs`（`ImportResult` 回傳碼樣式）
 - `DCT_data_import/Program.cs:19-34`
 

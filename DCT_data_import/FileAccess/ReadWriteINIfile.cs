@@ -2,7 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-namespace DCT_data_import
+namespace DCT_data_import.FileAccess
 {
     public class ReadWriteINIfile
     {

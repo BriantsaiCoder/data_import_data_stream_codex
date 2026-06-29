@@ -12,7 +12,7 @@
 | `DCT_data_import/ReadAndImport/` | 各資料格式 importer 與 FTP/Local 檔案來源抽象 | `ReadAndImport/*.cs`（7 個 importer + `ImportData` / `ImportFileSource`） |
 | `DCT_data_import/FileAccess/` | 檔案↔DB 橋接、CSV 格式契約、INI 讀寫 | `FileAccess/FileProcess.cs`、`FileContentFormat.cs`、`ReadWriteINIfile.cs` |
 | `DCT_data_import/DbApi/` | DB 服務介面與資料物件 | `DbApi/DatabaseService.cs`、`DbAccess.cs`、`DbObject.cs` |
-| `DCT_data_import/MySQL_api/` | MySQL 直連與 SQL 執行（Dapper） | `MySQL_api/DBmysql.cs` |
+| `DCT_data_import/MySqlApi/` | MySQL 直連與 SQL 執行（Dapper） | `MySqlApi/DBmysql.cs` |
 | `DCT_data_import/Common/` | 共用工具：log、寄信、SPC 統計、email 模型 | `Common/WriteToLog.cs`、`NotificationService.cs`、`EmailModels.cs`、`CalculateSPC.cs` |
 | `DCT_data_import/Properties/AssemblyInfo.cs` | Assembly 中繼資料（版本 `2026.2.5.0`） | `Properties/AssemblyInfo.cs:30` |
 | `DCT_data_import/App.config` | 執行期設定（DB/FTP/SMTP/資料來源切換） | `App.config` |
@@ -33,14 +33,14 @@
 | `ReadAndImport/`（Business Logic） | 每種資料格式的下載→驗證→解析→呼叫匯入→清理流程 | 連線字串組裝、MySQL 驅動細節 |
 | `FileAccess/FileProcess.cs`（Bridge） | DataTable→SQL INSERT 組裝、批次切割、級聯刪除 | FTP 存取（屬 importer/`ImportData`） |
 | `FileAccess/FileContentFormat.cs`（Data Contract） | 6 種 CSV 格式的欄位結構與 `CompareXxx()` 欄位驗證 | DB 寫入、FTP |
-| `DbApi/` + `MySQL_api/`（Data Access） | 連線參數驗證、SQL 執行、結果轉 `JArray`、`db_key` 旗標查詢/更新 | 業務解析邏輯 |
+| `DbApi/` + `MySqlApi/`（Data Access） | 連線參數驗證、SQL 執行、結果轉 `JArray`、`db_key` 旗標查詢/更新 | 業務解析邏輯 |
 | `Common/`（Cross-cutting） | 日誌（Mutex 保護）、SMTP 寄信、SPC 統計、INI | 匯入流程控制 |
 
 ### 4) Naming and Organization Rules
 
 - 檔案命名：PascalCase，一檔一主類別（例：`FailPin.cs` → `class FailPin`）。例外：`FileContentFormat.cs` 內含 6 個 format 類別；`DBmysql.cs` 內含 `DBmysql` + `MySqlConnectionManager`；`DbObject.cs` 內含巢狀型別。
-- 目錄組織：依「層/職責」分目錄（`ReadAndImport`/`FileAccess`/`DbApi`/`MySQL_api`/`Common`），非依 feature。
-- Namespace 不一致：多數為 `DCT_data_import`，但 importer 在 `DCT_data_import.ReadAndImport`、`NotificationService` 在 `DCT_data_import.Common`；`FileProcess`/`DBmysql`/`DbAccess` 等卻直接放 `DCT_data_import`（根 namespace 與資料夾不對齊）。Evidence：`MySQL_api/DBmysql.cs:8`（`namespace DCT_data_import`）、`Common/NotificationService.cs:7`（`namespace DCT_data_import.Common`）。
+- 目錄組織：依「層/職責」分目錄（`ReadAndImport`/`FileAccess`/`DbApi`/`MySqlApi`/`Common`），非依 feature。
+- Namespace 對齊：`Common/` → `DCT_data_import.Common`、`FileAccess/` → `DCT_data_import.FileAccess`、`DbApi/` → `DCT_data_import.DbApi`、`MySqlApi/` → `DCT_data_import.MySqlApi`、`ReadAndImport/` → `DCT_data_import.ReadAndImport`。`Program` / `ImportDecision` 保留於 root `DCT_data_import`。
 
 ### 5) Evidence
 

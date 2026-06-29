@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using DCT_data_import.Common;
 
 namespace DCT_data_import.ReadAndImport
 {

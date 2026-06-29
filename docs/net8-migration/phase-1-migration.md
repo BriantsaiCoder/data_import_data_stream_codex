@@ -199,7 +199,7 @@ dependsOn：P1-2｜**targetFiles**：`ReadWriteINIfile.cs:265`、`ReadWriteINIfi
 
 dependsOn：P1-2（需 net8 已可 build；本開關在 net8 半驗證影子模式）。**必須在 P1-8 影子步驟（cutover step 5 / Rollback L3 §2）之前落地**——P1-8 的 dry-run 影子跑假設此開關存在（見「決策待確認 Q4」）。原 8 task 草案遺漏此步，dry-run inventory workflow 的 completeness critic 標為 Blocker（它 gate cutover 安全）。
 
-**targetFiles**：`DCT_data_import/MySQL_api/DBmysql.cs:79`、`DCT_data_import/ReadAndImport/ImportData.cs:124`、`DCT_data_import/ReadAndImport/ImportData.cs:134`、`DCT_data_import/Common/EmailModels.cs:82`、`DCT_data_import/Common/NotificationService.cs:228`、`DCT_data_import/App.config`（appSettings 加一個 key）、新增 `DCT_data_import/Common/RuntimeMode.cs`、`DCT_data_import.Tests`（先寫 failing regression test）
+**targetFiles**：`DCT_data_import/MySqlApi/DBmysql.cs:79`、`DCT_data_import/ReadAndImport/ImportData.cs:124`、`DCT_data_import/ReadAndImport/ImportData.cs:134`、`DCT_data_import/Common/EmailModels.cs:82`、`DCT_data_import/Common/NotificationService.cs:228`、`DCT_data_import/App.config`（appSettings 加一個 key）、新增 `DCT_data_import/Common/RuntimeMode.cs`、`DCT_data_import.Tests`（先寫 failing regression test）
 
 **為什麼**：
 

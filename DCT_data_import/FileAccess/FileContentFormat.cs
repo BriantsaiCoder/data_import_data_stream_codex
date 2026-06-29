@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Data;
 using System.Linq;
-namespace DCT_data_import
+using DCT_data_import.Common;
+namespace DCT_data_import.FileAccess
 {
     public class RecoveryRateDataContentFormat
     {

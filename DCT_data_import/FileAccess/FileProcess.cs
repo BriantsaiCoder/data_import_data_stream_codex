@@ -6,8 +6,10 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Dapper;
-using static DCT_data_import.DbObject;
-namespace DCT_data_import
+using DCT_data_import.Common;
+using DCT_data_import.DbApi;
+using static DCT_data_import.DbApi.DbObject;
+namespace DCT_data_import.FileAccess
 {
     public class FileProcess
     {

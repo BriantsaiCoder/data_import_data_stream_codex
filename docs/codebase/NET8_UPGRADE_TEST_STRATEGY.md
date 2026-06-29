@@ -49,7 +49,7 @@
 | **A** | **big5 (codepage 950) 未註冊**：net8 預設無 codepage 950，`Encoding.GetEncoding("big5")` 直接 `ArgumentException` | 硬崩潰（非靜默），但**唯一的升級閘門** | 啟動需 `System.Text.Encoding.CodePages` + `Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)`；全 importer 解碼路徑 |
 | **B** | **`double.TryParse` 解析翻轉**：`-1.#IND`/`1.#QNAN`/`1.#INF` 等 Windows legacy 字面量在 net462 **實測解析失敗→`false`/out=0**（見 §9，非原宣稱的 NaN/Infinity）；標準 `NaN`/`Infinity`/超界 `1E400` 行為見 §9；net8 對應行為待比對 | 靜默（解析失敗的 out=0 是否被當有效值；net8 行為待比對） | [CalculateSPC.cs:48/52/65/118](../../DCT_data_import/Common/CalculateSPC.cs:65)、[FileProcess.cs:1527](../../DCT_data_import/FileAccess/FileProcess.cs:1527)、[FailPin.cs](../../DCT_data_import/ReadAndImport/FailPin.cs) |
 | **C** | **`double`→`string` 最短可往返格式**：.NET Core 3.0+ 改 IEEE754 最短往返輸出，**寫進 SQL 的數值字面量會變**（位數漂移） | 靜默（DB 內容變） | validated double 存 row 未經 round（[FileProcess.cs:265/567](../../DCT_data_import/FileAccess/FileProcess.cs:265)）→ 隱式 `ToString()` 拼進 INSERT（[FileProcess.cs:314/617](../../DCT_data_import/FileAccess/FileProcess.cs:314)） |
-| **D** | **`DateTime` 漂移 + MySql.Data 驅動換代**：(d1) 輸出 `ToString` 無 `IFormatProvider`；(d2) **輸入** `DateTime.TryParse` 無 culture；(d3) PackageReference 遷移可能換驅動版本 → `Convert Zero Datetime` / 微秒 / `DateTimeKind` 對映變 | 靜默（時間字串用於 dup-detect / 寄信決策） | 輸出 [DBmysql.cs:147](../../DCT_data_import/MySQL_api/DBmysql.cs:147)、[FileProcess.cs:806](../../DCT_data_import/FileAccess/FileProcess.cs:806)；輸入見 §3.1；驅動見 §6 |
+| **D** | **`DateTime` 漂移 + MySql.Data 驅動換代**：(d1) 輸出 `ToString` 無 `IFormatProvider`；(d2) **輸入** `DateTime.TryParse` 無 culture；(d3) PackageReference 遷移可能換驅動版本 → `Convert Zero Datetime` / 微秒 / `DateTimeKind` 對映變 | 靜默（時間字串用於 dup-detect / 寄信決策） | 輸出 [DBmysql.cs:147](../../DCT_data_import/MySqlApi/DBmysql.cs:147)、[FileProcess.cs:806](../../DCT_data_import/FileAccess/FileProcess.cs:806)；輸入見 §3.1；驅動見 §6 |
 
 ### 3.1 新發現：`CustomizeDateTimeParser`（輸入端 D，兩份原本都漏）
 
@@ -87,7 +87,7 @@
 ## 6) MySql.Data 驅動換代風險（root cause D-3）
 
 - 現況 pin **9.4.0**（[packages.config:4](../../DCT_data_import/packages.config)、[.csproj:50](../../DCT_data_import/DCT_data_import.csproj)）。
-- 連線字串含 `Convert Zero Datetime=true`（[DBmysql.cs:298](../../DCT_data_import/MySQL_api/DBmysql.cs:298)）——`0000-00-00` → `DateTime.MinValue`。
+- 連線字串含 `Convert Zero Datetime=true`（[DBmysql.cs:298](../../DCT_data_import/MySqlApi/DBmysql.cs:298)）——`0000-00-00` → `DateTime.MinValue`。
 - PackageReference 遷移若不顯式 pin 版本，可能自動升/降版 → `Convert Zero Datetime` / 微秒精度 / `DateTimeKind` 對映改變。
 - **對策**：net8 `.csproj` **顯式 pin 驅動版本** + 對 MySQL 5.6+ `DATETIME` 欄位做 round-trip golden master（zero-date、微秒、Kind）。
 
@@ -211,7 +211,7 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --filter "Categor
 - [FileProcess.cs](../../DCT_data_import/FileAccess/FileProcess.cs)（:52-58 CustomizeDateTimeParser、:71 ValidateDateTime、:265/567 row 存值、:314/617 隱式 ToString 拼 SQL、:806 datetime ToString、:1500 ConvertEmptyToDefaultString、:1489-1490 Math.Round(,9)、:1515-1540 ValidateAndConvertStatisticValue）
 - [FileContentFormat.cs](../../DCT_data_import/FileAccess/FileContentFormat.cs)（6 個 Compare*，遷移不敏感）
 - [Program.cs](../../DCT_data_import/Program.cs)（:354 ImportTesterMode、:405/423/453/471 bit dispatch、:427-431 MultiSpec fallback）
-- [DBmysql.cs](../../DCT_data_import/MySQL_api/DBmysql.cs)（:147 DateTime ToString、:149-151 JToken.FromObject、:298 Convert Zero Datetime）
+- [DBmysql.cs](../../DCT_data_import/MySqlApi/DBmysql.cs)（:147 DateTime ToString、:149-151 JToken.FromObject、:298 Convert Zero Datetime）
 - parser 入口：[Tester.cs:139](../../DCT_data_import/ReadAndImport/Tester.cs)、[FailPin.cs:127](../../DCT_data_import/ReadAndImport/FailPin.cs)、[UiStatus.cs:105](../../DCT_data_import/ReadAndImport/UiStatus.cs)、[RecoveryRate.cs:163](../../DCT_data_import/ReadAndImport/RecoveryRate.cs)、[RawData.cs:154](../../DCT_data_import/ReadAndImport/RawData.cs)、[MultiSpecRawData.cs:265](../../DCT_data_import/ReadAndImport/MultiSpecRawData.cs)、[TsmcIeda.cs:121](../../DCT_data_import/ReadAndImport/TsmcIeda.cs)
 - [packages.config](../../DCT_data_import/packages.config)（MySql.Data 9.4.0）
 - 相關文件：[CONCERNS.md](CONCERNS.md)（R5 / S1-S4）、[TESTING.md](TESTING.md)（現有 R5 樁）、[STACK.md](STACK.md)、[DCT_data_import.Tests/README.md](../../DCT_data_import.Tests/README.md)

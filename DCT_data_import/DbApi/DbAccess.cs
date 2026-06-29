@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using static DCT_data_import.DbObject;
-namespace DCT_data_import
+using DCT_data_import.Common;
+using static DCT_data_import.DbApi.DbObject;
+namespace DCT_data_import.DbApi
 {
     public class DbAccess
     {
