@@ -19,19 +19,6 @@ namespace DCT_data_import.Tests
         public void Dispose() => RuntimeMode.SetDryRunOverrideForTests(null);
 
         [Fact]
-        public void ExcuteMysqlCmd_WhenDryRunAndNonSelect_ReturnsNoOpSuccess_WithoutConnection()
-        {
-            RuntimeMode.SetDryRunOverrideForTests(true);
-
-            // 未呼叫 Connect(),正常路徑會在連線檢查擋下回「尚未初始化」;DryRun 須在開連線前短路成 no-op 成功。
-            var response = new DBmysql().Excute_mysql_cmd("INSERT INTO dummy(x) VALUES(1)", "insert");
-
-            Assert.True(string.IsNullOrEmpty(response.Error),
-                $"DryRun 非 select 應回 no-op 成功(Error 空),實際 Error='{response.Error}'");
-            Assert.Empty(response.Data);
-        }
-
-        [Fact]
         public void ExecuteCommand_WhenDryRun_ReturnsTypedNoOpSuccess_WithoutConnection()
         {
             RuntimeMode.SetDryRunOverrideForTests(true);
@@ -45,51 +32,12 @@ namespace DCT_data_import.Tests
         }
 
         [Fact]
-        public void ToLegacyResponse_WhenCommandSucceeds_PreservesCommandMetadata()
-        {
-            var response = DBmysql.ToLegacyResponse(new DbObject.DbCommandResult
-            {
-                AffectedRows = 3,
-                InsertId = 42
-            });
-
-            Assert.True(string.IsNullOrEmpty(response.Error));
-            Assert.Equal(3, response.AffectedRows);
-            Assert.Equal(42, response.InsertId);
-            Assert.Single(response.Data);
-            Assert.Equal(3, response.Data[0].Value<int>("affectedRows"));
-            Assert.Equal(42, response.Data[0].Value<long>("insertId"));
-        }
-
-        [Fact]
-        public void ExcuteMysqlCmd_WhenModeIsNull_ReturnsModeError_InsteadOfCommandNoOp()
+        public void ExecuteQuery_WhenDryRunAndSelect_NotShortCircuited()
         {
             RuntimeMode.SetDryRunOverrideForTests(true);
 
-            var response = new DBmysql().Excute_mysql_cmd("INSERT INTO dummy(x) VALUES(1)", null);
-
-            Assert.Equal("操作模式不能為空", response.Error);
-            Assert.Empty(response.Data);
-        }
-
-        [Fact]
-        public void ExecuteSql_WhenModeIsNull_ReturnsModeError_BeforeConnectionValidation()
-        {
-            var response = new DatabaseService().ExecuteSql(
-                new DbObject.Execute_query { Query = "INSERT INTO dummy(x) VALUES(1)" },
-                null);
-
-            Assert.Equal("操作模式不能為空", response.Error);
-            Assert.Empty(response.Data);
-        }
-
-        [Fact]
-        public void ExcuteMysqlCmd_WhenDryRunAndSelect_NotShortCircuited()
-        {
-            RuntimeMode.SetDryRunOverrideForTests(true);
-
-            // 不變式守衛:DryRun 不可短路讀取,SELECT 仍須照常走連線檢查(未連線 → 回初始化錯誤)。
-            var response = new DBmysql().Excute_mysql_cmd("SELECT 1", "select");
+            // 不變式守衛:DryRun 不可短路讀取,SELECT 仍須照常走連線檢查(未連線 -> 回初始化錯誤)。
+            var response = new DBmysql().ExecuteQuery("SELECT 1");
 
             Assert.False(string.IsNullOrEmpty(response.Error),
                 "DryRun 不應短路 SELECT,未連線時應回初始化錯誤");

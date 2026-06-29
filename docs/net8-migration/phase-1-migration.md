@@ -239,7 +239,7 @@ P1-8 的 production cutover 採「平行運行影子模式」當 rollback L3 的
 
 **步驟**：
 
-- **(0) 先寫 failing regression test**（CLAUDE.md「修 bug/改行為先寫 failing test」，R5 已示範此模式）：在 `DCT_data_import.Tests` 寫測試釘住「DryRun=true 時，寫入/搬檔/寄信 chokepoint 被短路、回傳 no-op 結果；DryRun=false（預設）時行為與今日一致」。seam：以可注入的 `RuntimeMode.IsDryRun` 取代直接讀 ConfigurationManager（見步驟 1），讓測試不依賴實際 MySQL/FTP/SMTP——可對 `DBmysql.Excute_mysql_cmd`（傳 `mode="insert"`）斷言 DryRun 下不進 `ExecuteNonQueryCommand`（回傳 `affectedRows=0` 之類的假 response 且 `Error` 為空），對 `EmailModels.SendEmail` 斷言 DryRun 下回 true 但不呼叫 `mysmtp.Send`。先紅。
+- **(0) 先寫 failing regression test**（CLAUDE.md「修 bug/改行為先寫 failing test」，R5 已示範此模式）：在 `DCT_data_import.Tests` 寫測試釘住「DryRun=true 時，寫入/搬檔/寄信 chokepoint 被短路、回傳 no-op 結果；DryRun=false（預設）時行為與今日一致」。seam：以可注入的 `RuntimeMode.IsDryRun` 取代直接讀 ConfigurationManager（見步驟 1），讓測試不依賴實際 MySQL/FTP/SMTP——可對 `DBmysql.ExecuteCommand(...)` 斷言 DryRun 下不開連線、不進 `ExecuteNonQueryCommand`、不做真實 DB 寫入（回傳 `DbCommandResult` no-op 成功：`AffectedRows=0`、`InsertId=0`、`Error` 為空），對 `EmailModels.SendEmail` 斷言 DryRun 下回 true 但不呼叫 `mysmtp.Send`。先紅。
 - **(1) 設定讀取（沿用既有 ConfigurationManager.AppSettings pattern）**：依「決策待確認 Q1 預設＝保留 App.config」，**不改 appsettings.json**。在 `App.config` 的 `<appSettings>` 新增**一個** key：
   ```xml
   <add key="DryRun" value="false" />
@@ -256,23 +256,15 @@ P1-8 的 production cutover 採「平行運行影子模式」當 rollback L3 的
   }
   ```
   > **key 缺失語意**：`AppSettings["DryRun"]` 缺 key 回 `null` → `string.Equals(null,"true")` = false → **預設 OFF**（fail-safe：未設定就照正常 production 行為跑，不會意外進影子）。**不要**用會在缺 key 時拋例外的 parse（如 `bool.Parse`），與 `Program.cs:19-26` type-init 早於 Main 的脆弱性（P1-3 已標 `TypeInitializationException` 地雷）一致——本 key 的讀取放在自己的 static class、用容錯比較，不掛進 `Program` 的 type-init 鏈。
-- **(2) DB chokepoint gate（`DBmysql.cs:79` else 分支）**：在進入 `ExecuteNonQueryCommand` 前加守衛。沿用既有 4 空格縮排 / Allman 大括號 / `Execute_query_response`(`response`) 回傳慣例：
+- **(2) DB chokepoint gate（`DBmysql.ExecuteCommand` 開連線前）**：在進入連線檢查 / `ExecuteNonQueryCommand` 前加守衛。沿用既有 4 空格縮排 / Allman 大括號 / typed `DbCommandResult` 回傳慣例：
   ```csharp
-  else
+  if (RuntimeMode.IsDryRun)
   {
-      if (RuntimeMode.IsDryRun)
-      {
-          // DryRun: 跳過所有非 select（insert/update/delete）寫入，回傳 no-op 成功
-          response.Error = "";
-          // 影子模式不寫入；上層以 response 判定流程，回假成功避免誤判失敗→誤寄信
-      }
-      else
-      {
-          ExecuteNonQueryCommand(connection, filteredCmdString, parameters, response);
-      }
+      response.Error = string.Empty;
+      return response;
   }
   ```
-  > **回傳值契約**：上層（DbAccess/FileProcess）以 `response`（含 `Error`/`InsertId`/`AffectedRows` 等欄位）判流程。DryRun 回「無 Error 的假成功」避免讓上層誤判成寫入失敗 → 反而觸發 `import_status=2`/`mail=1` → 污染影子佇列。**確認 `Execute_query_response` 各欄位在 no-op 下的合理預設值**（`InsertId` 子表 FK 用——但子表 INSERT 同樣被本 gate 攔，不會真用到假 InsertId）。實際欄位以該型別定義為準，動工時讀 `DbObject`/`Execute_query_response` 定義填正確欄位，**不臆造欄位名**。
+  > **回傳值契約**：上層（DbAccess/FileProcess）以 `DbCommandResult`（`Error`/`InsertId`/`AffectedRows`）判流程。DryRun 回「無 Error 的 no-op 成功」避免讓上層誤判成寫入失敗 → 反而觸發 `import_status=2`/`mail=1` → 污染影子佇列。`InsertId` / `AffectedRows` 維持預設 0；子表 INSERT 同樣被本 gate 攔，不會真用到假 InsertId。
 - **(3) FTP 檔案 chokepoint gate（`ImportData.cs:124` DeleteFile、`:134` RenameFile）**：各在方法體開頭加：
   ```csharp
   if (RuntimeMode.IsDryRun)

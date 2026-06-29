@@ -71,10 +71,5 @@ namespace DCT_data_import
             public long InsertId { get; set; }
             public string Error { get; set; } = string.Empty;
         }
-        public class Execute_query_response : DbQueryResult
-        {
-            public int AffectedRows { get; set; }
-            public long InsertId { get; set; }
-        }
     }
 }
