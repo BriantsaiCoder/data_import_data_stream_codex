@@ -18,7 +18,7 @@
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
 | D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：root 架構報告 / HTML 已刷新至 S2 與 net8-only 現況 | `專案架構報告.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新 |
-| D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。`Execute_query`/`Execute_query_response` 型別名未改（blast radius 較大,仍為歷史殘留） | `App.config`（現無 API 鍵）、`FileProcess.cs:1337`（`ExecuteInsert`）、git 歷史 | ✅ 完成;型別改名可日後評估 |
+| D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；剩餘歷史命名債限於 `Execute_query` request DTO | `App.config`（現無 API 鍵）、`FileProcess.cs:1337`（`ExecuteInsert`）、git 歷史 | ✅ 完成;request DTO 改名可日後評估 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:40-70` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:40-70` | 清除（git 已留歷史） |
 | D4 | Medium | **TSMC IEDA importer 自走一套**：不經 `FileProcess`，自行組 INSERT + `DataTable.Select` 查詢，與其餘 importer 不一致 | `TsmcIeda.cs:141,225` | 收斂至共用路徑或明確記錄為例外 |
 | D5 | Low | **命名/慣例不一致**：namespace 與資料夾不對齊；`db_key` CSV 欄位名 `"DB_Key"` vs `"DB Key"`；log 方法混用 | STRUCTURE.md §4、CONVENTIONS.md | 漸進統一 |
@@ -28,7 +28,7 @@
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
 | P1 | Medium | **O(n²) SQL 字串累加**：`values += ...` 逐列串接，大檔記憶體/CPU 差 | `FileProcess.cs:110-156` 等 | 改 `StringBuilder` 或批次參數化 |
-| P2 | ~~Medium~~ ✅已修 | **Async-over-sync 全面阻塞**：active code 已全改同步;`DatabaseService.ExecuteSql` 直接呼叫同步 DB path,importer 回 `ImportResult`,`Program.cs` 不再 `.GetAwaiter().GetResult()` | `DatabaseService.cs`、`Program.cs`、`ReadAndImport/*`、`DbAccess.cs`、`FileProcess.cs` | 維持明確同步;若未來要真 async,另立完整 DB/FTP async 設計 |
+| P2 | ~~Medium~~ ✅已修 | **Async-over-sync 全面阻塞**：active code 已全改同步;DB typed API 直接呼叫同步 DB path,importer 回 `ImportResult`,`Program.cs` 不再 `.GetAwaiter().GetResult()` | `DatabaseService.cs`、`Program.cs`、`ReadAndImport/*`、`DbAccess.cs`、`FileProcess.cs` | 維持明確同步;若未來要真 async,另立完整 DB/FTP async 設計 |
 | P3 | ~~Low~~ ✅已修 | **每次匯入後 `GC.Collect()`**：各 importer 成功/finally 分支的手動 full GC 已移除,交給 runtime 管理 | `ReadAndImport/FailPin.cs`、`RawData.cs`、`RecoveryRate.cs`、`Tester.cs`、`UiStatus.cs`、`MultiSpecRawData.cs` | 維持 `using`/`Dispose` 釋放資源;不要以手動 GC 代替 cleanup |
 
 ### 4) Reliability / Correctness

@@ -118,16 +118,14 @@
 
 ---
 
-## Stream F — DB result contract split（PR #27 已合併；legacy decision 待做）
+## Stream F — DB result contract split（PR #27 已合併；typed-only surface complete）
 
 - [x] `DbQueryResult` / `DbCommandResult` typed contracts 已新增。
 - [x] `DatabaseService.ExecuteQuery` / `ExecuteCommand` 與 `DBmysql.ExecuteQuery` / `ExecuteCommand` 已新增。
-- [x] `Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 保留為 legacy compatibility adapters。
-- [x] `mode == null` guard 已補，避免 legacy adapter 空 mode path 例外。
+- [x] **Task 5 DB result adapter/API removal**：舊 DB result adapter/API surface 已自 live code/tests 移除；DB result surface now typed-only。
 - [x] **Task 2 INSERT caller migration**：`response.Data[0]["insertId"]` → `DbCommandResult.InsertId`。
-- [x] **Task 3 SELECT caller migration**：`ExecuteSql(..., "select")` → `ExecuteQuery(...)`，caller 直接吃 `DbQueryResult`。
-- [x] **Task 4 UPDATE/DELETE caller migration**：`ExecuteSql(..., "update/delete")` → `ExecuteCommand(...)`，caller 直接吃 `DbCommandResult`。
-- [ ] **Task 5 legacy rename decision**：等 callers 遷完後再決定是否 rename / remove legacy adapter；不得與 D5 namespace/folder rename、CSV contract、log cleanup、observability 或 DB migration tooling 混做。
+- [x] **Task 3 SELECT caller migration**：mode-based SELECT path → `ExecuteQuery(...)`，caller 直接吃 `DbQueryResult`。
+- [x] **Task 4 UPDATE/DELETE caller migration**：mode-based command path → `ExecuteCommand(...)`，caller 直接吃 `DbCommandResult`。
 
 ---
 

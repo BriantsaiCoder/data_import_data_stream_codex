@@ -8,34 +8,6 @@ namespace DCT_data_import
         {
         }
 
-        /// <summary>
-        /// 執行資料庫查詢操作
-        /// </summary>
-        /// <param name="Execute_query">查詢物件</param>
-        /// <param name="mode">操作模式，預設為 "select"</param>
-        /// <returns>查詢結果</returns>
-        public Execute_query_response ExecuteSql(Execute_query Execute_query, string mode = "select")
-        {
-            if (mode == null)
-            {
-                return new Execute_query_response { Error = "操作模式不能為空" };
-            }
-
-            if (string.Equals(mode, "select", StringComparison.OrdinalIgnoreCase))
-            {
-                return DBmysql.ToLegacyResponse(ExecuteQuery(Execute_query));
-            }
-
-            DbCommandResult commandResult = ExecuteCommand(Execute_query);
-            // 保留舊契約:DryRun 非 select 回 no-op 成功,且 Data 為空。
-            if (RuntimeMode.IsDryRun && string.IsNullOrEmpty(commandResult.Error))
-            {
-                return new Execute_query_response { Error = string.Empty };
-            }
-
-            return DBmysql.ToLegacyResponse(commandResult);
-        }
-
         public DbQueryResult ExecuteQuery(Execute_query executeQuery)
         {
             // 輸入驗證 - 完全相同於原始程式碼

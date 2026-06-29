@@ -125,67 +125,6 @@ namespace DCT_data_import
             }
             return response;
         }
-        public Execute_query_response Excute_mysql_cmd(string cmd_string, string mode = "select", object parameters = null)
-        {
-            if (mode == null)
-            {
-                return new Execute_query_response { Error = "操作模式不能為空" };
-            }
-
-            if (IsSelectMode(mode))
-            {
-                return ToLegacyResponse(ExecuteQuery(cmd_string, parameters));
-            }
-
-            DbCommandResult commandResult = ExecuteCommand(cmd_string, parameters);
-            // 保留舊契約:DryRun 非 select 回 no-op 成功,且 Data 為空。
-            if (RuntimeMode.IsDryRun && string.IsNullOrEmpty(commandResult.Error))
-            {
-                return new Execute_query_response { Error = string.Empty };
-            }
-
-            return ToLegacyResponse(commandResult);
-        }
-        internal static Execute_query_response ToLegacyResponse(DbQueryResult result)
-        {
-            return new Execute_query_response
-            {
-                Data = result?.Data ?? new JArray(),
-                Error = result?.Error ?? string.Empty
-            };
-        }
-        internal static Execute_query_response ToLegacyResponse(DbCommandResult result)
-        {
-            Execute_query_response response = new Execute_query_response
-            {
-                Error = result?.Error ?? string.Empty,
-                AffectedRows = result?.AffectedRows ?? 0,
-                InsertId = result?.InsertId ?? 0
-            };
-
-            if (string.IsNullOrEmpty(response.Error))
-            {
-                response.Data.Add(CreateLegacyCommandMetadata(response.AffectedRows, response.InsertId));
-            }
-
-            return response;
-        }
-        private static JObject CreateLegacyCommandMetadata(int affectedRows, long insertId)
-        {
-            return new JObject
-            {
-                ["fieldCount"] = 0,
-                ["affectedRows"] = affectedRows,
-                ["insertId"] = insertId,
-                ["info"] = string.Empty,
-                ["serverStatus"] = 2,
-                ["warningStatus"] = 0
-            };
-        }
-        private static bool IsSelectMode(string mode)
-        {
-            return string.Equals(mode, "select", StringComparison.OrdinalIgnoreCase);
-        }
         private void ExecuteSelectCommand(MySqlConnection connection, string cmd_string, object parameters, DbQueryResult response)
         {
             try
