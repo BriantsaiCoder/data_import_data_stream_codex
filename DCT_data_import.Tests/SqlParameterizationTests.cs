@@ -13,9 +13,24 @@ namespace DCT_data_import.Tests
         private const string Payload = "'; DROP TABLE db_key;--";
 
         [Fact]
+        public void DbSqlRequest_WhenConstructed_HoldsSqlTextAndParameters()
+        {
+            var parameters = new { dbKey = "DB001" };
+
+            var request = new DbSqlRequest
+            {
+                Query = "SELECT id FROM db_key WHERE db_key=@dbKey",
+                Parameters = parameters
+            };
+
+            Assert.Equal("SELECT id FROM db_key WHERE db_key=@dbKey", request.Query);
+            Assert.Same(parameters, request.Parameters);
+        }
+
+        [Fact]
         public void BuildDbKeyStatusSelectQuery_KeepsDbKeyOutOfSqlText()
         {
-            Execute_query query = DbAccess.BuildDbKeyStatusSelectQuery("db_key", Payload);
+            DbSqlRequest query = DbAccess.BuildDbKeyStatusSelectQuery("db_key", Payload);
 
             Assert.Contains("@dbKey", query.Query);
             Assert.DoesNotContain(Payload, query.Query);
@@ -25,7 +40,7 @@ namespace DCT_data_import.Tests
         [Fact]
         public void BuildDbKeyImportStatusUpdateQuery_KeepsRemarkAndDbKeyOutOfSqlText()
         {
-            Execute_query query = DbAccess.BuildDbKeyImportStatusUpdateQuery(Payload, 1, 1, 1, 1, Payload, "1", "0");
+            DbSqlRequest query = DbAccess.BuildDbKeyImportStatusUpdateQuery(Payload, 1, 1, 1, 1, Payload, "1", "0");
 
             Assert.Contains("@remark", query.Query);
             Assert.Contains("@dbKey", query.Query);
@@ -41,7 +56,7 @@ namespace DCT_data_import.Tests
         {
             const long threshold = 987654321;
 
-            Execute_query query = DbAccess.BuildDataCountInDaysQuery(mode, threshold);
+            DbSqlRequest query = DbAccess.BuildDataCountInDaysQuery(mode, threshold);
 
             Assert.Contains(expectedTable, query.Query);
             Assert.Contains("@threshold", query.Query);
@@ -61,7 +76,7 @@ namespace DCT_data_import.Tests
         [Fact]
         public void BuildTableExistsQuery_KeepsTableNameOutOfSqlText()
         {
-            Execute_query query = DatabaseService.BuildTableExistsQuery("dct", Payload);
+            DbSqlRequest query = DatabaseService.BuildTableExistsQuery("dct", Payload);
 
             Assert.Contains("@tableName", query.Query);
             Assert.DoesNotContain(Payload, query.Query);
@@ -98,7 +113,7 @@ namespace DCT_data_import.Tests
             string values = FileProcess.AddInsertParameter(parameters, ref parameterIndex, "batch", csvPayload) +
                             "),(" +
                             FileProcess.AddInsertParameter(parameters, ref parameterIndex, "batch", "safe");
-            Execute_query query = FileProcess.BuildInsertQuery("lots_result", "`lot_id`", values, parameters);
+            DbSqlRequest query = FileProcess.BuildInsertQuery("lots_result", "`lot_id`", values, parameters);
 
             Assert.Contains("@batch_0),(@batch_1", query.Query);
             Assert.DoesNotContain(csvPayload, query.Query);
@@ -108,7 +123,7 @@ namespace DCT_data_import.Tests
         [Fact]
         public void BuildDeleteRawDataQuery_UsesLotIdParameter()
         {
-            Execute_query query = FileProcess.BuildDeleteRawDataQuery(Payload);
+            DbSqlRequest query = FileProcess.BuildDeleteRawDataQuery(Payload);
 
             Assert.Contains("@lotId", query.Query);
             Assert.DoesNotContain(Payload, query.Query);
@@ -118,7 +133,7 @@ namespace DCT_data_import.Tests
         [Fact]
         public void BuildDeleteTesterStatusQuery_UsesDeviceInfoIdParameter()
         {
-            Execute_query query = FileProcess.BuildDeleteTesterStatusQuery(Payload);
+            DbSqlRequest query = FileProcess.BuildDeleteTesterStatusQuery(Payload);
 
             Assert.Contains("@deviceInfoId", query.Query);
             Assert.DoesNotContain(Payload, query.Query);
@@ -128,10 +143,10 @@ namespace DCT_data_import.Tests
         [Fact]
         public void BuildDeleteFailPinLogQueries_UseFailPinIdParameter()
         {
-            Execute_query[] queries = FileProcess.BuildDeleteFailPinLogQueries(Payload);
+            DbSqlRequest[] queries = FileProcess.BuildDeleteFailPinLogQueries(Payload);
 
             Assert.Equal(3, queries.Length);
-            foreach (Execute_query query in queries)
+            foreach (DbSqlRequest query in queries)
             {
                 Assert.Contains("@failPinId", query.Query);
                 Assert.DoesNotContain(Payload, query.Query);
@@ -147,7 +162,7 @@ namespace DCT_data_import.Tests
             row["lot_id"] = Payload;
             content.IedaTitle.Rows.Add(row);
 
-            Execute_query query = TsmcIeda.BuildIedaTitleInsertQuery(content.IedaTitle, new FileProcess());
+            DbSqlRequest query = TsmcIeda.BuildIedaTitleInsertQuery(content.IedaTitle, new FileProcess());
 
             Assert.Contains("@title_", query.Query);
             Assert.DoesNotContain(Payload, query.Query);
@@ -167,7 +182,7 @@ namespace DCT_data_import.Tests
             secondRow["serial_number"] = "safe";
             content.IedaContent.Rows.Add(secondRow);
 
-            Execute_query query = TsmcIeda.BuildIedaContentInsertQuery(content.IedaContent, titleId, new FileProcess());
+            DbSqlRequest query = TsmcIeda.BuildIedaContentInsertQuery(content.IedaContent, titleId, new FileProcess());
             var parameters = (DynamicParameters)query.Parameters;
 
             Assert.True(serialNumberOrdinal > 0);

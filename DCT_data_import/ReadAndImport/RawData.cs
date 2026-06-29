@@ -76,14 +76,14 @@ namespace DCT_data_import.ReadAndImport
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "Statistic field name not match.");
                 }
-                if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
+                if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0][CsvColumnNames.DbKeyUnderscore].ToString()))
                 {
                     writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
                 //  DB_Key是否已存在於資料庫
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString(), DatabaseService);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("lots_info", rawDataContentFormat.LotInfo.Rows[0][CsvColumnNames.DbKeyUnderscore].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Raw data 比對: " + compareResult + "   檔名:" + filename);

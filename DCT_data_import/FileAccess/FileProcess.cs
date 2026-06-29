@@ -48,11 +48,11 @@ namespace DCT_data_import
             }
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            var execute_query = BuildDbKeyExistsQuery(db_table_name, db_key);
-            DbQueryResult response = DatabaseService.ExecuteQuery(execute_query);
+            var sqlRequest = BuildDbKeyExistsQuery(db_table_name, db_key);
+            DbQueryResult response = DatabaseService.ExecuteQuery(sqlRequest);
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 return false;
             }
@@ -1423,7 +1423,7 @@ namespace DCT_data_import
             }
         }
 
-        internal DbCommandResult ExecuteInsert(DatabaseService DatabaseService, string tableName, Execute_query execute_query)
+        internal DbCommandResult ExecuteInsert(DatabaseService DatabaseService, string tableName, DbSqlRequest sqlRequest)
         {
             try
             {
@@ -1434,7 +1434,7 @@ namespace DCT_data_import
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在");
                     return new DbCommandResult { Error = $"Database or table {tableName} does not exist" };
                 }
-                DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
+                DbCommandResult response = DatabaseService.ExecuteCommand(sqlRequest);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Operation: INSERT {tableName}");
@@ -1451,23 +1451,23 @@ namespace DCT_data_import
             }
         }
 
-        internal static Execute_query BuildDbKeyExistsQuery(string tableName, string dbKey)
+        internal static DbSqlRequest BuildDbKeyExistsQuery(string tableName, string dbKey)
         {
             ValidateSqlIdentifier(tableName, nameof(tableName));
 
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "SELECT db_key FROM " + tableName + " where db_key=@dbKey;",
                 Parameters = new { dbKey }
             };
         }
 
-        internal static Execute_query BuildInsertQuery(string tableName, string columns, string values, object parameters = null)
+        internal static DbSqlRequest BuildInsertQuery(string tableName, string columns, string values, object parameters = null)
         {
             ValidateSqlIdentifier(tableName, nameof(tableName));
             ValidateColumnList(columns, nameof(columns));
 
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "INSERT INTO " + tableName + "(" + columns + ") VALUES (" + values + ");",
                 Parameters = parameters
@@ -1530,19 +1530,19 @@ namespace DCT_data_import
                     return;
                 }
             }
-            Execute_query execute_query = BuildDeleteRawDataQuery(lot_id);
-            DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
+            DbSqlRequest sqlRequest = BuildDeleteRawDataQuery(lot_id);
+            DbCommandResult response = DatabaseService.ExecuteCommand(sqlRequest);
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE lots_info, lots_statistic, lots_result error");
             }
         }
 
-        internal static Execute_query BuildDeleteRawDataQuery(string lotId)
+        internal static DbSqlRequest BuildDeleteRawDataQuery(string lotId)
         {
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = @"DELETE t1, t2, t3
 										  FROM lots_info t1
@@ -1565,19 +1565,19 @@ namespace DCT_data_import
                     return;
                 }
             }
-            Execute_query execute_query = BuildDeleteTesterStatusQuery(device_info_id);
-            DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
+            DbSqlRequest sqlRequest = BuildDeleteTesterStatusQuery(device_info_id);
+            DbCommandResult response = DatabaseService.ExecuteCommand(sqlRequest);
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error");
             }
         }
 
-        internal static Execute_query BuildDeleteTesterStatusQuery(string deviceInfoId)
+        internal static DbSqlRequest BuildDeleteTesterStatusQuery(string deviceInfoId)
         {
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = @"DELETE t1, t2, t3, t4
 										  FROM tester_device_info t1
@@ -1601,38 +1601,38 @@ namespace DCT_data_import
                     return;
                 }
             }
-            Execute_query[] deleteQueries = BuildDeleteFailPinLogQueries(fail_pin_id);
-            Execute_query execute_query = deleteQueries[0];
-            DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
+            DbSqlRequest[] deleteQueries = BuildDeleteFailPinLogQueries(fail_pin_id);
+            DbSqlRequest sqlRequest = deleteQueries[0];
+            DbCommandResult response = DatabaseService.ExecuteCommand(sqlRequest);
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list_pin_ball error");
             }
-            execute_query = deleteQueries[1];
-            response = DatabaseService.ExecuteCommand(execute_query);
+            sqlRequest = deleteQueries[1];
+            response = DatabaseService.ExecuteCommand(sqlRequest);
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_test_result error ");
             }
-            execute_query = deleteQueries[2];
-            response = DatabaseService.ExecuteCommand(execute_query);
+            sqlRequest = deleteQueries[2];
+            response = DatabaseService.ExecuteCommand(sqlRequest);
             if (!string.IsNullOrEmpty(response.Error))
             {
-                writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list and fail_pin_rate_info error");
             }
         }
 
-        internal static Execute_query[] BuildDeleteFailPinLogQueries(string failPinId)
+        internal static DbSqlRequest[] BuildDeleteFailPinLogQueries(string failPinId)
         {
             return new[]
             {
-                new Execute_query
+                new DbSqlRequest
                 {
                     Query = @"DELETE t3
 										FROM fail_pin_rate_list_pin_ball t3
@@ -1640,7 +1640,7 @@ namespace DCT_data_import
 									WHERE t2.fail_pin_rate_info_id = @failPinId; ",
                     Parameters = new { failPinId }
                 },
-                new Execute_query
+                new DbSqlRequest
                 {
                     Query = @"DELETE t4
 										FROM fail_pin_rate_test_result t4
@@ -1648,7 +1648,7 @@ namespace DCT_data_import
 									WHERE t2.fail_pin_rate_info_id = @failPinId; ",
                     Parameters = new { failPinId }
                 },
-                new Execute_query
+                new DbSqlRequest
                 {
                     Query = @"DELETE t1, t2
 										  FROM fail_pin_rate_list t2

@@ -61,7 +61,7 @@ namespace DCT_data_import.ReadAndImport
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "Information field name not match.");
                 }
-                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0]["DB Key"].ToString(), DatabaseService);
+                isDBKeyExist = fileAccess.IsDBKeyExistInDB("fail_pin_rate_info", failPinLogContent.Fail_pin_rate_info.Rows[0][CsvColumnNames.DbKeyWithSpace].ToString(), DatabaseService);
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Fail Pin   檔名:" + filename);

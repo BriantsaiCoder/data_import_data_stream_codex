@@ -8,10 +8,10 @@ namespace DCT_data_import
         {
         }
 
-        public DbQueryResult ExecuteQuery(Execute_query executeQuery)
+        public DbQueryResult ExecuteQuery(DbSqlRequest sqlRequest)
         {
             // 輸入驗證 - 完全相同於原始程式碼
-            string validationError = ValidateSqlRequest(executeQuery);
+            string validationError = ValidateSqlRequest(sqlRequest);
             if (!string.IsNullOrEmpty(validationError))
             {
                 return new DbQueryResult { Error = validationError };
@@ -20,7 +20,7 @@ namespace DCT_data_import
             try
             {
                 var DB = CreateConnectedDb();
-                return DB.ExecuteQuery(executeQuery.Query, executeQuery.Parameters);
+                return DB.ExecuteQuery(sqlRequest.Query, sqlRequest.Parameters);
             }
             catch (Exception ex)
             {
@@ -31,10 +31,10 @@ namespace DCT_data_import
             }
         }
 
-        public DbCommandResult ExecuteCommand(Execute_query executeQuery)
+        public DbCommandResult ExecuteCommand(DbSqlRequest sqlRequest)
         {
             // 輸入驗證 - 完全相同於原始程式碼
-            string validationError = ValidateSqlRequest(executeQuery);
+            string validationError = ValidateSqlRequest(sqlRequest);
             if (!string.IsNullOrEmpty(validationError))
             {
                 return new DbCommandResult { Error = validationError };
@@ -43,7 +43,7 @@ namespace DCT_data_import
             try
             {
                 var DB = CreateConnectedDb();
-                return DB.ExecuteCommand(executeQuery.Query, executeQuery.Parameters);
+                return DB.ExecuteCommand(sqlRequest.Query, sqlRequest.Parameters);
             }
             catch (Exception ex)
             {
@@ -54,13 +54,13 @@ namespace DCT_data_import
             }
         }
 
-        private string ValidateSqlRequest(Execute_query executeQuery)
+        private string ValidateSqlRequest(DbSqlRequest sqlRequest)
         {
-            if (executeQuery == null)
+            if (sqlRequest == null)
             {
                 return "查詢物件不能為空";
             }
-            if (string.IsNullOrWhiteSpace(executeQuery.Query))
+            if (string.IsNullOrWhiteSpace(sqlRequest.Query))
             {
                 return "查詢指令不能為空";
             }
@@ -146,18 +146,18 @@ namespace DCT_data_import
             }
         }
 
-        internal static Execute_query BuildDatabaseExistsQuery(string databaseName)
+        internal static DbSqlRequest BuildDatabaseExistsQuery(string databaseName)
         {
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = @databaseName",
                 Parameters = new { databaseName }
             };
         }
 
-        internal static Execute_query BuildTableExistsQuery(string databaseName, string tableName)
+        internal static DbSqlRequest BuildTableExistsQuery(string databaseName, string tableName)
         {
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = @databaseName AND TABLE_NAME = @tableName",
                 Parameters = new { databaseName, tableName }

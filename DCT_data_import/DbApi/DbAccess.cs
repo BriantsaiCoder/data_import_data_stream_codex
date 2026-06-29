@@ -21,11 +21,11 @@ namespace DCT_data_import
             int count = 0;
             try
             {
-                Execute_query execute_query = BuildDataCountInDaysQuery(mode, threeHourAgoTimeStamp);
-                DbQueryResult response = DatabaseService.ExecuteQuery(execute_query);
+                DbSqlRequest sqlRequest = BuildDataCountInDaysQuery(mode, threeHourAgoTimeStamp);
+                DbQueryResult response = DatabaseService.ExecuteQuery(sqlRequest);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                     writeToLog.WriteErrorLog($"Error: {response.Error}");
                     writeToLog.WriteErrorLog($"SELECT `{tableName}` error! ");
                     return -1;
@@ -52,7 +52,7 @@ namespace DCT_data_import
             }
         }
 
-        internal static Execute_query BuildDataCountInDaysQuery(string mode, long threshold)
+        internal static DbSqlRequest BuildDataCountInDaysQuery(string mode, long threshold)
         {
             string sql;
             if (mode == "tester")
@@ -68,7 +68,7 @@ namespace DCT_data_import
                 throw new ArgumentException("Unsupported db_key mode", nameof(mode));
             }
 
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = sql,
                 Parameters = new { threshold }
@@ -104,14 +104,14 @@ namespace DCT_data_import
             }
             try
             {
-                Execute_query execute_query = new Execute_query
+                DbSqlRequest sqlRequest = new DbSqlRequest
                 {
                     Query = sql
                 };
-                DbQueryResult response = DatabaseService.ExecuteQuery(execute_query);
+                DbQueryResult response = DatabaseService.ExecuteQuery(sqlRequest);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                     writeToLog.WriteErrorLog($"Error: {response.Error}");
                     writeToLog.WriteErrorLog($"SELECT `{tableName}` error! ");
                 }
@@ -135,7 +135,7 @@ namespace DCT_data_import
                             !int.TryParse(response.Data[i]["fail_pin"]?.ToString(), out int failPin) ||
                             !int.TryParse(response.Data[i]["check_status"]?.ToString(), out int checkStatus))
                         {
-                            writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
+                            writeToLog.WriteInfoLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
                             continue;
                         }
                         dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), recoveryRate, tester, testResult, failPin, checkStatus));
@@ -146,7 +146,7 @@ namespace DCT_data_import
                         if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id) ||
                             !int.TryParse(response.Data[i]["check_status"]?.ToString(), out int checkStatus))
                         {
-                            writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
+                            writeToLog.WriteInfoLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
                             continue;
                         }
                         dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), checkStatus));
@@ -198,11 +198,11 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key", dbKey);
-                DbQueryResult selectResponse = DatabaseService.ExecuteQuery(execute_query);
+                DbSqlRequest sqlRequest = BuildDbKeyStatusSelectQuery("db_key", dbKey);
+                DbQueryResult selectResponse = DatabaseService.ExecuteQuery(sqlRequest);
                 if (!string.IsNullOrEmpty(selectResponse.Error))
                 {
-                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                     writeToLog.WriteErrorLog($"Error: {selectResponse.Error}");
                     writeToLog.WriteErrorLog("SELECT `db_key` error! ");
                     return "Fail. Execution 'select' error: " + selectResponse.Error;
@@ -233,8 +233,8 @@ namespace DCT_data_import
                     writeToLog.WriteToMailTemp(dbKey + "," + remark);
                 }
                 // 更新 import check 相關資訊
-                execute_query = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
-                DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
+                sqlRequest = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
+                DbCommandResult response = DatabaseService.ExecuteCommand(sqlRequest);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
@@ -263,11 +263,11 @@ namespace DCT_data_import
             try
             {
                 // 先select 出check status 比對確認結果
-                Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key_ui_status", dbKey);
-                DbQueryResult selectResponse = DatabaseService.ExecuteQuery(execute_query);
+                DbSqlRequest sqlRequest = BuildDbKeyStatusSelectQuery("db_key_ui_status", dbKey);
+                DbQueryResult selectResponse = DatabaseService.ExecuteQuery(sqlRequest);
                 if (!string.IsNullOrEmpty(selectResponse.Error))
                 {
-                    writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
+                    writeToLog.WriteErrorLog($"SQL Query: {sqlRequest.Query}");
                     writeToLog.WriteErrorLog($"Error: {selectResponse.Error}");
                     writeToLog.WriteErrorLog("SELECT `db_key_ui_status` error! ");
                     return "Fail. Execution 'select' error: " + selectResponse.Error;
@@ -298,8 +298,8 @@ namespace DCT_data_import
                     writeToLog.WriteToMailTemp(dbKey + "," + remark);
                 }
                 // 更新 import check 相關資訊
-                execute_query = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
-                DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
+                sqlRequest = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
+                DbCommandResult response = DatabaseService.ExecuteCommand(sqlRequest);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key_ui_status` error! ");
@@ -315,21 +315,21 @@ namespace DCT_data_import
             return "OK";
         }
 
-        internal static Execute_query BuildDbKeyStatusSelectQuery(string tableName, string dbKey)
+        internal static DbSqlRequest BuildDbKeyStatusSelectQuery(string tableName, string dbKey)
         {
             if (tableName != "db_key" && tableName != "db_key_ui_status")
             {
                 throw new ArgumentException("Unsupported db_key table", nameof(tableName));
             }
 
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "SELECT id, check_status FROM `" + tableName + "` WHERE db_key=@dbKey;",
                 Parameters = new { dbKey }
             };
         }
 
-        internal static Execute_query BuildDbKeyImportStatusUpdateQuery(
+        internal static DbSqlRequest BuildDbKeyImportStatusUpdateQuery(
             string dbKey,
             int recoveryRate,
             int tester,
@@ -339,7 +339,7 @@ namespace DCT_data_import
             string importStatus,
             string mail)
         {
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "UPDATE db_key SET recovery_rate=@recoveryRate,tester=@tester,test_result=@testResult,fail_pin=@failPin," +
                         "import_status=@importStatus,mail=@mail,remark=@remark WHERE `db_key`=@dbKey;",
@@ -347,14 +347,14 @@ namespace DCT_data_import
             };
         }
 
-        internal static Execute_query BuildDbKeyUiStatusImportStatusUpdateQuery(
+        internal static DbSqlRequest BuildDbKeyUiStatusImportStatusUpdateQuery(
             string dbKey,
             int uiStatus,
             string remark,
             string importStatus,
             string mail)
         {
-            return new Execute_query
+            return new DbSqlRequest
             {
                 Query = "UPDATE db_key_ui_status SET ui_status=@uiStatus,import_status=@importStatus,mail=@mail,remark=@remark WHERE `db_key`=@dbKey;",
                 Parameters = new { uiStatus, importStatus, mail, remark, dbKey }

@@ -193,7 +193,7 @@ namespace DCT_data_import.ReadAndImport
                         MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(2, "Statistic field name not match.");
                     }
-                    if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0]["DB_Key"].ToString()))
+                    if (!dbKey.Equals(rawDataContentFormat.LotInfo.Rows[0][CsvColumnNames.DbKeyUnderscore].ToString()))
                     {
                         writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
                         MoveToError(ftpFilePath, errorPath);

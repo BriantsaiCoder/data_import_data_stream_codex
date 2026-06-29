@@ -32,7 +32,7 @@ namespace DCT_data_import.Common
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog($"發送程式狀態通知時發生錯誤: {ex.Message}");
+                _writeToLog.WriteErrorLog($"發送程式狀態通知時發生錯誤: {ex.Message}");
                 return false;
             }
         }
@@ -52,7 +52,7 @@ namespace DCT_data_import.Common
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog($"發送異常通知時發生錯誤: {ex.Message}");
+                _writeToLog.WriteErrorLog($"發送異常通知時發生錯誤: {ex.Message}");
                 return false;
             }
         }
@@ -71,7 +71,7 @@ namespace DCT_data_import.Common
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog($"發送資料遺失通知時發生錯誤: {ex.Message}");
+                _writeToLog.WriteErrorLog($"發送資料遺失通知時發生錯誤: {ex.Message}");
                 return false;
             }
         }
@@ -88,7 +88,7 @@ namespace DCT_data_import.Common
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog($"發送通知失敗: {ex.Message}");
+                _writeToLog.WriteErrorLog($"發送通知失敗: {ex.Message}");
                 return false;
             }
         }
@@ -190,18 +190,18 @@ namespace DCT_data_import.Common
                 // 發送郵件
                 if (emailModel.SendEmail())
                 {
-                    _writeToLog.WriteToDataImportLog("寄信成功!");
+                    _writeToLog.WriteInfoLog("寄信成功!");
                     return "OK";
                 }
                 else
                 {
-                    _writeToLog.WriteToDataImportLog("寄信失敗!");
+                    _writeToLog.WriteErrorLog("寄信失敗!");
                     return "FAIL";
                 }
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog($"SendMailModelInternal 發生錯誤: {ex.Message}");
+                _writeToLog.WriteErrorLog($"SendMailModelInternal 發生錯誤: {ex.Message}");
                 return "ERROR";
             }
         }
@@ -231,12 +231,12 @@ namespace DCT_data_import.Common
                 if (File.Exists(logPath))
                 {
                     File.Delete(logPath);
-                    _writeToLog.WriteToDataImportLog("郵件暫存檔已清理");
+                    _writeToLog.WriteInfoLog("郵件暫存檔已清理");
                 }
             }
             catch (Exception ex)
             {
-                _writeToLog.WriteToDataImportLog($"清理郵件暫存檔時發生錯誤: {ex.Message}");
+                _writeToLog.WriteErrorLog($"清理郵件暫存檔時發生錯誤: {ex.Message}");
             }
         }
     }

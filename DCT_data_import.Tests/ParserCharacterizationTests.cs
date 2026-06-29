@@ -50,7 +50,7 @@ namespace DCT_data_import.Tests
                 "site1_yield,site2_yield",
                 "98,97")));
 
-            Assert.Equal("DB001", result.Tester_device_info.Rows[0]["DB_Key"]);
+            Assert.Equal("DB001", result.Tester_device_info.Rows[0][CsvColumnNames.DbKeyUnderscore]);
             Assert.Equal("tester.csv", result.Tester_status.Rows[0]["CSV Name"]);
             Assert.Equal("pui-1", result.Tester_sw_version.Rows[0]["PUI version"]);
             Assert.Equal("98", result.Tester_production_analysis.Rows[0]["site1_yield"]);
@@ -110,7 +110,7 @@ namespace DCT_data_import.Tests
                 "Item2,Short,3,2,20,15")));
 
             Assert.Equal(2, result.FinalRecoveryRateTable.Rows.Count);
-            Assert.Equal("DB001", result.FinalRecoveryRateTable.Rows[0]["DB Key"]);
+            Assert.Equal("DB001", result.FinalRecoveryRateTable.Rows[0][CsvColumnNames.DbKeyWithSpace]);
             Assert.Equal("Item2", result.FinalRecoveryRateTable.Rows[1]["Test_Item"]);
         }
 
@@ -153,7 +153,7 @@ namespace DCT_data_import.Tests
 
         private static void AssertRawDataShape(RawDataContentFormat result)
         {
-            Assert.Equal("DB001", result.LotInfo.Rows[0]["DB_Key"]);
+            Assert.Equal("DB001", result.LotInfo.Rows[0][CsvColumnNames.DbKeyUnderscore]);
             Assert.Equal("1", result.LotResult.Rows[0]["Serial"]);
             Assert.Equal("N", result.LotResult.Rows[0]["retest_loc"]);
             Assert.Equal(2, result.LotStatistic.Tables.Count);

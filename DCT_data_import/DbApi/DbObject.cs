@@ -55,7 +55,7 @@ namespace DCT_data_import
                 Remark = string.Empty;
             }
         }
-        public class Execute_query
+        public class DbSqlRequest
         {
             public string Query { get; set; }
             public object Parameters { get; set; }

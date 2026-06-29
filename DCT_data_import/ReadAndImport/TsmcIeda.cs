@@ -295,7 +295,7 @@ namespace DCT_data_import.ReadAndImport
             return (value ?? string.Empty).Replace("'", "''");
         }
 
-        internal static Execute_query BuildIedaTitleInsertQuery(DataTable titleTable, FileProcess fileProcess)
+        internal static DbSqlRequest BuildIedaTitleInsertQuery(DataTable titleTable, FileProcess fileProcess)
         {
             var columnsBuilder = new StringBuilder();
             var valuesBuilder = new StringBuilder();
@@ -315,7 +315,7 @@ namespace DCT_data_import.ReadAndImport
             return FileProcess.BuildInsertQuery("ieda_title", columnsBuilder.ToString(), valuesBuilder.ToString(), parameters);
         }
 
-        internal static Execute_query BuildIedaContentInsertQuery(DataTable contentTable, string titleId, FileProcess fileProcess)
+        internal static DbSqlRequest BuildIedaContentInsertQuery(DataTable contentTable, string titleId, FileProcess fileProcess)
         {
             var columnsBuilder = new StringBuilder();
             for (int i = 0; i < contentTable.Columns.Count; i++)

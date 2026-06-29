@@ -62,6 +62,25 @@ namespace DCT_data_import.Tests
         }
 
         [Fact]
+        public void WriteInfoAndErrorLog_WriteExpectedLevelTags()
+        {
+            var writeToLog = new WriteToLog(_root);
+
+            writeToLog.WriteInfoLog("info message");
+            writeToLog.WriteErrorLog("error message");
+            writeToLog.WriteToDataImportLog("compat message");
+
+            string exeName = Path.GetFileNameWithoutExtension(typeof(WriteToLog).Assembly.Location);
+            string dataLogDirectory = Path.Combine(_root, exeName, "data_import_logs");
+            string dataLogPath = Assert.Single(Directory.GetFiles(dataLogDirectory, "DCT_data_import_Log_*.txt"));
+            string content = File.ReadAllText(dataLogPath);
+
+            Assert.Contains("[INFO] info message", content);
+            Assert.Contains("[ERROR] error message", content);
+            Assert.Contains("[INFO] compat message", content);
+        }
+
+        [Fact]
         public void LogImportSuccess_WhenLocalArchiveCleanupHasPath_LogsCleanupResultOnly()
         {
             var writeToLog = new WriteToLog(_root);
@@ -107,7 +126,7 @@ namespace DCT_data_import.Tests
             File.SetLastWriteTime(expiredSuccessLog, DateTime.Now.AddDays(-31));
             File.SetLastWriteTime(expiredCheckLog, DateTime.Now.AddDays(-31));
 
-            writeToLog.WriteToDataImportLog("trigger data cleanup");
+            writeToLog.WriteInfoLog("trigger data cleanup");
             writeToLog.WriteToCheckLog("DCT_data_check_log_rawData_20990101.csv", "sample.csv,1KB,2026/06/28,1,2");
 
             Assert.False(File.Exists(expiredDataLog));
@@ -128,7 +147,7 @@ namespace DCT_data_import.Tests
             File.WriteAllText(expiredDataLog, "sample");
             File.SetLastWriteTime(expiredDataLog, DateTime.Now.AddDays(-365));
 
-            writeToLog.WriteToDataImportLog("retention disabled");
+            writeToLog.WriteInfoLog("retention disabled");
 
             Assert.True(File.Exists(expiredDataLog));
         }
