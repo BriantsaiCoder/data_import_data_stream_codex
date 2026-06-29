@@ -33,9 +33,9 @@
 
 - 錯誤策略：每個 importer 以一個大 `try/catch(Exception)` 包住整段流程，catch 內 `WriteToLog.WriteErrorLog(...)` + `Console.WriteLine(...)`，回傳 `ImportResult(code, message)`。`ImportResult.Result` 慣例：`0`=檔案不存在、`1`=成功、`2`=驗證/讀檔失敗、`3`=重複或匯入失敗（`RawData.cs`、`Tester.cs` 等一致）。
 - DB 層錯誤：primary API 回 `DbQueryResult` / `DbCommandResult`，錯誤仍放 `Error` 字串；Task 5 後 DB result surface 已是 typed-only。`DBmysql` 對 `MySqlException` 依錯誤碼補中文說明（`FormatMySqlError`）；`DatabaseService.GetSafeErrorMessage` 只回 `ex.Message`、不含 StackTrace（脫敏）。
-- Logging 樣式：`{yyyy/MM/dd HH:mm:ss} [INFO|ERROR] {message}`（`WriteToLog.WriteToDataImportLog`）。多執行緒以命名 `Mutex` 保護寫檔，逾時 30 秒（`WriteToLog` 的 data / success / check log 寫入路徑一致）。log 寫到 `DataImportLogRoot\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（預設 `C:\temp`，每日分檔，UTF-8 BOM）；`DataImportLogRetentionDays` 預設 90 天，0/負數可關閉過期檔清理。
+- Logging 樣式：`{yyyy/MM/dd HH:mm:ss} [INFO|ERROR] {message}`（`WriteToLog`）。production call sites 使用 `WriteInfoLog(...)` / `WriteErrorLog(...)` 表達層級；`WriteToDataImportLog(string)` 保留為相容 wrapper，不作為新 production call-site 慣例。多執行緒以命名 `Mutex` 保護寫檔，逾時 30 秒（`WriteToLog` 的 data / success / check log 寫入路徑一致）。log 寫到 `DataImportLogRoot\{exeName}\data_import_logs\DCT_data_import_Log_{yyyy_MM_dd}.txt`（預設 `C:\temp`，每日分檔，UTF-8 BOM）；`DataImportLogRetentionDays` 預設 90 天，0/負數可關閉過期檔清理。
 - 敏感資料脫敏：啟動輸出已遮罩 PASSWORD，只印 set/unset；`App.config` 仍含既有明文 DB/FTP 設定（見 CONCERNS S1）。
-- 慣例不一致：log 方法混用 `WriteErrorLog` / `WriteToDataImportLog` / `WriteInfoLog` / `WriteToCheckLog`，同類事件在不同 importer 用不同方法（如 `RecoveryRate`/`UiStatus` 偏好 `WriteToDataImportLog`，其餘偏 `WriteErrorLog`）。
+- `WriteToCheckLog(...)` 與 `WriteImportSuccessLog(...)` 分別保留給 timing/check CSV 與成功匯入 audit file，不併入一般 data import log helper。
 
 ### 5) Testing Conventions
 

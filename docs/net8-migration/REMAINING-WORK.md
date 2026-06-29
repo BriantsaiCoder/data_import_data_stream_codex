@@ -113,7 +113,8 @@
 - [x] **P1（MEDIUM）**：O(n²) SQL 字串累加 → 已將主要 multi-row batch INSERT values builder 改為 `StringBuilder`，並補 IEDA content multi-row placeholder characterization test。
 - [x] **P2（LOW/deferred）**：fake async / async-over-sync cleanup → active code 已改為明確同步呼叫;`Program.cs` TEST CASE 註解區塊保留。
 - [x] **P3（LOW/deferred）**：手動 `GC.Collect` cleanup → importer 成功/finally 分支不再強制 full GC,資源釋放仍靠 `using` / `Dispose`。
-- [ ] **D2/D5（LOW/deferred）**：型別更名、命名不一致。
+- [x] **D5 logging call-site 慣例**：production call sites 已統一使用 `WriteInfoLog(...)` / `WriteErrorLog(...)`；`WriteToDataImportLog(string)` 保留相容 wrapper。
+- [ ] **D2/D5（LOW/deferred）**：型別更名、namespace/CSV 欄位命名不一致。
 - [ ] 觀測性（metrics/tracing/APM、error tracking）、DB migration 工具（LOW，外部 owner）。
 
 ---

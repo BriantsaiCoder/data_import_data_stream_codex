@@ -305,7 +305,7 @@ namespace DCT_data_import
                 {
                     if (Email_class.SendEmail())
                     {
-                        writeToLog.WriteToDataImportLog("寄信成功!");
+                        writeToLog.WriteInfoLog("寄信成功!");
                         Console.WriteLine("寄信成功!");
                         return "OK";
                     }

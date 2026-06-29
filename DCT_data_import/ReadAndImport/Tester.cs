@@ -76,7 +76,7 @@ namespace DCT_data_import.ReadAndImport
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料: Tester Status     檔名:" + filename);
-                    writeToLog.WriteToDataImportLog("資料庫已存在此資料: " + ftpFilePath);
+                    writeToLog.WriteInfoLog("資料庫已存在此資料: " + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }

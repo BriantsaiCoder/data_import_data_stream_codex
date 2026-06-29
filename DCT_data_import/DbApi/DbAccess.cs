@@ -135,7 +135,7 @@ namespace DCT_data_import
                             !int.TryParse(response.Data[i]["fail_pin"]?.ToString(), out int failPin) ||
                             !int.TryParse(response.Data[i]["check_status"]?.ToString(), out int checkStatus))
                         {
-                            writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
+                            writeToLog.WriteInfoLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
                             continue;
                         }
                         dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), recoveryRate, tester, testResult, failPin, checkStatus));
@@ -146,7 +146,7 @@ namespace DCT_data_import
                         if (!int.TryParse(response.Data[i]["id"]?.ToString(), out int id) ||
                             !int.TryParse(response.Data[i]["check_status"]?.ToString(), out int checkStatus))
                         {
-                            writeToLog.WriteToDataImportLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
+                            writeToLog.WriteInfoLog($"SelectDbKey() invalid integer data at row {i}, skipping row");
                             continue;
                         }
                         dbKeyList.Add(new DbKeyObject(id, response.Data[i]["db_key"].ToString(), checkStatus));

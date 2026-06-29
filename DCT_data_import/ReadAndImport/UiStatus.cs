@@ -30,7 +30,7 @@ namespace DCT_data_import.ReadAndImport
             if (!isFileExist)
             {
                 Console.WriteLine("UI Status File not found:  " + filename);
-                writeToLog.WriteToDataImportLog("UI Status File not found: " + ftpFilePath);
+                writeToLog.WriteErrorLog("UI Status File not found: " + ftpFilePath);
                 return new ImportResult(0, "File not found.");
             }
             try
@@ -44,14 +44,14 @@ namespace DCT_data_import.ReadAndImport
                 if (uiStatusContentFormat == null)
                 {
                     Console.WriteLine("UI Status 讀取失敗: " + filename);
-                    writeToLog.WriteToDataImportLog("UI Status 讀取失敗:" + ftpFilePath);
+                    writeToLog.WriteErrorLog("UI Status 讀取失敗:" + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "File content is missing.");
                 }
                 if (!uiStatusContentFormat.CompareUiStatus())
                 {
                     Console.WriteLine("UI Status 之 ui_status 欄位名稱不符: " + filename);
-                    writeToLog.WriteToDataImportLog("UI Status 之 ui_status 欄位名稱不符:" + ftpFilePath);
+                    writeToLog.WriteErrorLog("UI Status 之 ui_status 欄位名稱不符:" + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "ui_status field name not match.");
                 }
@@ -71,7 +71,7 @@ namespace DCT_data_import.ReadAndImport
                 else
                 {
                     Console.WriteLine("匯入失敗: UI Status " + filename);
-                    writeToLog.WriteToDataImportLog("匯入失敗:" + ftpFilePath);
+                    writeToLog.WriteErrorLog("匯入失敗:" + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "Import failed.");
                 }

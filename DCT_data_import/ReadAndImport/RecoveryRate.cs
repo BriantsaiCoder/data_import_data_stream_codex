@@ -62,7 +62,7 @@ namespace DCT_data_import.ReadAndImport
                 if (recoveryRateDataContentFormat == null || recoveryRateDataContentFormat.LotInfo.Rows.Count < 1)
                 {
                     Console.WriteLine("Recovery Rate 讀檔失敗:  " + filename);
-                    writeToLog.WriteToDataImportLog("Recovery Rate  讀檔失敗: " + ftpFilePath);
+                    writeToLog.WriteErrorLog("Recovery Rate  讀檔失敗: " + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "File content is missing. " + recoveryRateDataContentFormat.ErrMsg);
@@ -70,7 +70,7 @@ namespace DCT_data_import.ReadAndImport
                 if (!recoveryRateDataContentFormat.CompareInfo())
                 {
                     Console.WriteLine("Recovery Rate 之 information 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Recovery Rate 之 information 欄位名稱不符:" + ftpFilePath);
+                    writeToLog.WriteErrorLog("Recovery Rate 之 information 欄位名稱不符:" + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "Information field name not match.");
@@ -78,7 +78,7 @@ namespace DCT_data_import.ReadAndImport
                 if (!recoveryRateDataContentFormat.CompareRecoveryRate())
                 {
                     Console.WriteLine("Recovery Rate 之 data 欄位名稱不符:  " + filename);
-                    writeToLog.WriteToDataImportLog("Recovery Rate 之 data 欄位名稱不符:" + ftpFilePath);
+                    writeToLog.WriteErrorLog("Recovery Rate 之 data 欄位名稱不符:" + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     //RenameFile(ftpserver, "/Data_Analysis/Data_Cloud_CSV_/" + list_filename[i], FTP_USER, FTP_PASSWORD);
                     return new ImportResult(2, "Recovery data field name not match.");
@@ -87,7 +87,7 @@ namespace DCT_data_import.ReadAndImport
                 Console.WriteLine("dbkey =" + queryDbKey);
                 if (!dbKey.Equals(recoveryRateDataContentFormat.LotInfo.Rows[0]["DB Key"].ToString()))
                 {
-                    writeToLog.WriteToDataImportLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
+                    writeToLog.WriteErrorLog("檔名與內容的DB_Key不相符: " + ftpFilePath);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(2, "The filename does not match the DB_Key in the content.");
                 }
@@ -96,7 +96,7 @@ namespace DCT_data_import.ReadAndImport
                 if (isDBKeyExist)
                 {
                     Console.WriteLine("資料庫已存在此資料:  " + "   檔名:" + filename);
-                    writeToLog.WriteToDataImportLog("資料庫已存在此資料:  " + "   檔名:" + filename);
+                    writeToLog.WriteInfoLog("資料庫已存在此資料:  " + "   檔名:" + filename);
                     MoveToError(ftpFilePath, errorPath);
                     return new ImportResult(3, "The same DB_Key exists in the database.");
                 }
@@ -125,7 +125,7 @@ namespace DCT_data_import.ReadAndImport
                     else
                     {
                         Console.WriteLine("匯入失敗: Recovery Rate " + filename);
-                        writeToLog.WriteToDataImportLog("匯入失敗 Recovery Rate:" + ftpFilePath);
+                        writeToLog.WriteErrorLog("匯入失敗 Recovery Rate:" + ftpFilePath);
                         MoveToError(ftpFilePath, errorPath);
                         return new ImportResult(3, "Import failed.");
                     }
