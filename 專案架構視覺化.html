@@ -412,7 +412,7 @@
     </div>
   </div>
   <div class="note">
-    📌 <b>歷史殘留</b>:<code>Execute_query_response</code>、<code>ExecuteSql</code>、<code>Excute_mysql_cmd</code> 仍刻意保留為 compatibility adapters。第三階段 caller migration 尚未完成:SELECT callers 已改吃 <code>DbQueryResult</code>;INSERT callers 已改吃 <code>DbCommandResult.InsertId</code>;UPDATE/DELETE callers 尚未全面改吃 <code>DbCommandResult.AffectedRows</code>。現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service。
+    📌 <b>歷史殘留</b>:<code>Execute_query_response</code>、<code>ExecuteSql</code>、<code>Excute_mysql_cmd</code> 仍刻意保留為 compatibility adapters。caller migration 已完成:SELECT callers 已改吃 <code>DbQueryResult</code>;INSERT/UPDATE/DELETE callers 已改吃 <code>DbCommandResult</code>。legacy adapter rename/remove decision 留待 Task 5。現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service。
   </div>
 </section>
 
@@ -448,7 +448,7 @@
   <h2 class="sec"><span class="num">10</span> 變更時間軸</h2>
   <p class="legend"><span><span class="dot" style="background:var(--green)"></span>新能力</span><span><span class="dot" style="background:var(--accent)"></span>修正/基建</span></p>
   <div class="tl" style="margin-top:14px">
-    <div class="tl-item"><span class="tl-hash">1d9e7f9</span> 拆分 DbQueryResult / DbCommandResult,保留 legacy adapter,caller migration 待後續階段</div>
+    <div class="tl-item"><span class="tl-hash">1d9e7f9</span> 拆分 DbQueryResult / DbCommandResult,保留 legacy adapter,caller migration 後續已完成</div>
     <div class="tl-item"><span class="tl-hash">06d90fe</span> 移除 forced GC,清完 fake async,文件同步至 P2/P3 清理後現況</div>
     <div class="tl-item"><span class="tl-hash">c972047</span> WriteToLog 新增 DataImportLogRetentionDays retention cleanup</div>
     <div class="tl-item"><span class="tl-hash">da1f9b3</span> TsmcIeda 匯入路徑收斂到 ImportData / IImportFileSource helper</div>
@@ -488,7 +488,7 @@
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Thread.Sleep(432000) 註解誤標「2H」(實 7.2 分)</div><div class="rk-d">Program.cs。認知陷阱。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">ui_status 失敗通知被註解停用</div><div class="rk-d">NotificationService.cs。</div></div></div>
   <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">Log retention 只依天數清理</div><div class="rk-d">WriteToLog.cs。已有 90 天預設 retention,但尚無 size-based rotation。</div></div></div>
-  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">DB typed result caller migration 尚未完成</div><div class="rk-d"><code>Execute_query_response</code> / <code>ExecuteSql</code> / <code>Excute_mysql_cmd</code> 仍作為 legacy adapters。</div></div></div>
+  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">DB legacy adapter decision 待 Task 5</div><div class="rk-d"><code>Execute_query_response</code> / <code>ExecuteSql</code> / <code>Excute_mysql_cmd</code> 仍作為 compatibility layer。</div></div></div>
   <div class="note danger">高風險 1 仍屬<b>既有設計</b>。SQL 值注入已由 S2 參數化收斂;後續新增 SQL 須沿用 <code>Execute_query.Parameters</code> / <code>ExecuteInsert</code>,並優先使用 <code>DbQueryResult</code> / <code>DbCommandResult</code> typed results。</div>
 </section>
 

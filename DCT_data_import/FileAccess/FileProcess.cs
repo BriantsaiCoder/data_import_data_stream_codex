@@ -1518,7 +1518,7 @@ namespace DCT_data_import
                 }
             }
         }
-        private Execute_query_response DeleteRawData(DatabaseService DatabaseService, string lot_id)
+        private void DeleteRawData(DatabaseService DatabaseService, string lot_id)
         {
             // 檢查資料庫和相關資料表是否存在
             string[] requiredTables = { "lots_info", "lots_statistic", "lots_result" };
@@ -1527,18 +1527,17 @@ namespace DCT_data_import
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在，無法執行刪除操作");
-                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
+                    return;
                 }
             }
             Execute_query execute_query = BuildDeleteRawDataQuery(lot_id);
-            Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "delete");
+            DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE lots_info, lots_statistic, lots_result error");
             }
-            return response;
         }
 
         internal static Execute_query BuildDeleteRawDataQuery(string lotId)
@@ -1554,7 +1553,7 @@ namespace DCT_data_import
             };
         }
 
-        private Execute_query_response DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
+        private void DeleteTesterStatus(DatabaseService DatabaseService, string device_info_id)
         {
             // 檢查資料庫和相關資料表是否存在
             string[] requiredTables = { "tester_device_info", "tester_status", "tester_sw_version", "tester_production_analysis" };
@@ -1563,18 +1562,17 @@ namespace DCT_data_import
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在，無法執行刪除操作");
-                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
+                    return;
                 }
             }
             Execute_query execute_query = BuildDeleteTesterStatusQuery(device_info_id);
-            Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "delete");
+            DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE tester_device_info, tester_status, tester_sw_version, tester_production_analysis error");
             }
-            return response;
         }
 
         internal static Execute_query BuildDeleteTesterStatusQuery(string deviceInfoId)
@@ -1591,7 +1589,7 @@ namespace DCT_data_import
             };
         }
 
-        private Execute_query_response DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
+        private void DeleteFailPinLog(DatabaseService DatabaseService, string fail_pin_id)
         {
             // 檢查資料庫和相關資料表是否存在
             string[] requiredTables = { "fail_pin_rate_info", "fail_pin_rate_list", "fail_pin_rate_list_pin_ball", "fail_pin_rate_test_result" };
@@ -1600,12 +1598,12 @@ namespace DCT_data_import
                 if (!DatabaseService.CheckDatabaseAndTableExists(tableName))
                 {
                     writeToLog.WriteErrorLog($"資料庫或資料表 {tableName} 不存在，無法執行刪除操作");
-                    return new Execute_query_response { Error = $"Database or table {tableName} does not exist" };
+                    return;
                 }
             }
             Execute_query[] deleteQueries = BuildDeleteFailPinLogQueries(fail_pin_id);
             Execute_query execute_query = deleteQueries[0];
-            Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "delete");
+            DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1613,7 +1611,7 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list_pin_ball error");
             }
             execute_query = deleteQueries[1];
-            response = DatabaseService.ExecuteSql(execute_query, "delete");
+            response = DatabaseService.ExecuteCommand(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
@@ -1621,14 +1619,13 @@ namespace DCT_data_import
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_test_result error ");
             }
             execute_query = deleteQueries[2];
-            response = DatabaseService.ExecuteSql(execute_query, "delete");
+            response = DatabaseService.ExecuteCommand(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
                 writeToLog.WriteErrorLog($"Error: {response.Error}");
                 writeToLog.WriteErrorLog("DELETE fail_pin_rate_list and fail_pin_rate_info error");
             }
-            return response;
         }
 
         internal static Execute_query[] BuildDeleteFailPinLogQueries(string failPinId)
