@@ -13,7 +13,7 @@
 | SMTP server | 寄送週報/錯誤/缺資料通知 | `SmtpClient`，server/from 由 `App.config` 指定；目前為內網匿名 relay（無 Credentials/Port/SSL） | 無 | `Common/EmailModels.cs`、`App.config`、`Common/NotificationService.cs` |
 | ~~HTTP API（ApiUrl/ApiUser/ApiPassword）~~ | **已移除** — 曾為 DEAD CONFIG（`.cs` 零引用），DB 存取純走直連 MySQL;4 個死鍵已自 `App.config` 刪除 | N/A | git 歷史；現 `App.config` 已無此鍵 |
 
-> 早期透過 Web API 存取的殘留:`ExecuteInsertWithAPI` 方法、API dead config 與「Web API body」誤導註解已清理（改名為 `ExecuteInsert`、刪 dead config 與註解）。目前 DB result primary contract 已拆成 `DbQueryResult`（SELECT）與 `DbCommandResult`（INSERT/UPDATE/DELETE）;SELECT/INSERT callers 已改吃 typed result，`Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 仍保留為 legacy compatibility adapters。第三階段 caller migration 尚未完成，UPDATE/DELETE callers 仍有 legacy adapter path（見同目錄 `ARCHITECTURE.md` / `CONCERNS.md`）。
+> 早期透過 Web API 存取的殘留:`ExecuteInsertWithAPI` 方法、API dead config 與「Web API body」誤導註解已清理（改名為 `ExecuteInsert`、刪 dead config 與註解）。目前 DB result primary contract 已拆成 `DbQueryResult`（SELECT）與 `DbCommandResult`（INSERT/UPDATE/DELETE）；SELECT callers 已改吃 `DbQueryResult`，INSERT/UPDATE/DELETE callers 已改吃 `DbCommandResult`。`Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 仍保留為 legacy compatibility adapters，rename/remove decision 留待 Task 5（見同目錄 `ARCHITECTURE.md` / `CONCERNS.md`）。
 
 ### 2) Data Stores
 

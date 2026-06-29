@@ -118,7 +118,7 @@
 
 ---
 
-## Stream F — DB result contract split（PR #27 已合併；caller migration 待做）
+## Stream F — DB result contract split（PR #27 已合併；legacy decision 待做）
 
 - [x] `DbQueryResult` / `DbCommandResult` typed contracts 已新增。
 - [x] `DatabaseService.ExecuteQuery` / `ExecuteCommand` 與 `DBmysql.ExecuteQuery` / `ExecuteCommand` 已新增。
@@ -126,7 +126,7 @@
 - [x] `mode == null` guard 已補，避免 legacy adapter 空 mode path 例外。
 - [x] **Task 2 INSERT caller migration**：`response.Data[0]["insertId"]` → `DbCommandResult.InsertId`。
 - [x] **Task 3 SELECT caller migration**：`ExecuteSql(..., "select")` → `ExecuteQuery(...)`，caller 直接吃 `DbQueryResult`。
-- [ ] **Task 4 UPDATE/DELETE caller migration**：`ExecuteSql(..., "update/delete")` → `ExecuteCommand(...)`，caller 直接吃 `DbCommandResult.AffectedRows`。
+- [x] **Task 4 UPDATE/DELETE caller migration**：`ExecuteSql(..., "update/delete")` → `ExecuteCommand(...)`，caller 直接吃 `DbCommandResult`。
 - [ ] **Task 5 legacy rename decision**：等 callers 遷完後再決定是否 rename / remove legacy adapter；不得與 D5 namespace/folder rename、CSV contract、log cleanup、observability 或 DB migration tooling 混做。
 
 ---

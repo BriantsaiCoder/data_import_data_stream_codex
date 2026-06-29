@@ -234,7 +234,7 @@ namespace DCT_data_import
                 }
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "update");
+                DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
@@ -299,10 +299,10 @@ namespace DCT_data_import
                 }
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "update");
+                DbCommandResult response = DatabaseService.ExecuteCommand(execute_query);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
-                    writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
+                    writeToLog.WriteErrorLog("UPDATE `db_key_ui_status` error! ");
                     return "Fail. Execution 'update' error: " + response.Error;
                 }
             }
