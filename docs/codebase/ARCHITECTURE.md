@@ -18,10 +18,10 @@
    -> [DbAccess.SelectDbKey 撈出 check_status>0 且 import_status=0 的待處理旗標]
    -> [依 CheckStatus bitmask + 各分量旗標決定要跑哪些 importer]
    -> [ReadAndImport.*：IImportFileSource 讀取 FTP/Local CSV(big5) -> FileContentFormat 欄位驗證 -> 解析成 DataTable]
-   -> [FileProcess.Import*：DataTable -> Dapper 參數化 INSERT(分批) -> DatabaseService.ExecuteSql legacy adapter]
-   -> [DatabaseService.ExecuteCommand/ExecuteQuery -> DBmysql.ExecuteCommand/ExecuteQuery]
-   -> [typed result 轉 Execute_query_response legacy response]
-   -> [DbAccess.UpdateDbKeyImportStatus：比對 importResult==check_status 設 import_status=1/2，失敗寫 mail_temp]
+   -> [FileProcess.Import*：DataTable -> Dapper 參數化 INSERT(分批) -> DatabaseService.ExecuteCommand -> DBmysql.ExecuteCommand]
+   -> [INSERT callers 讀 DbCommandResult.InsertId；SELECT callers 讀 DbQueryResult.Data]
+   -> [DbAccess.UpdateDbKeyImportStatus：SELECT 用 ExecuteQuery；UPDATE half 待 Task 4 遷移]
+   -> [比對 importResult==check_status 設 import_status=1/2，失敗寫 mail_temp]
    -> [成功刪 FTP 檔 / 失敗搬到 *_Error 目錄；NotificationService 依條件寄信]
 ```
 
@@ -30,7 +30,7 @@
 2. `DbApi/DbAccess.cs:69-150` `SelectDbKey(mode)`：以 `SELECT ... WHERE check_status>0 AND import_status=0 AND mail=0` 取得待匯入清單。
 3. importer（如 `ReadAndImport/RawData.cs:16`）依 `ImportData.GetFilePath()`（`ReadAndImport/ImportData.cs:274`）組相對路徑，透過 `ImportFileSourceFactory` 選擇 FTP 或 Local 來源，再以 `Encoding.GetEncoding("big5")` 解析。
 4. `FileContentFormat`（`FileAccess/FileContentFormat.cs`）的 `CompareInfo()`/`CompareStatistic()` 等做欄位名驗證後，importer 把資料填入 `DataTable`。
-5. `FileProcess.Import*`（`FileAccess/FileProcess.cs:81-1392`）把 `DataTable` 轉為 INSERT placeholders + `DynamicParameters`，呼叫 `FileProcess.ExecuteInsert`（`:1398`）→ `DatabaseService.ExecuteSql`（`DbApi/DatabaseService.cs:17` legacy adapter）→ `DatabaseService.ExecuteCommand` / `ExecuteQuery` → `DBmysql.ExecuteCommand` / `ExecuteQuery`，再轉回 `Execute_query_response`。`DBmysql.Excute_mysql_cmd`（`MySQL_api/DBmysql.cs:128`）是 DBmysql 直接 caller 的 legacy adapter。第三階段 caller migration 尚未完成。
+5. `FileProcess.Import*`（`FileAccess/FileProcess.cs:81-1392`）把 `DataTable` 轉為 INSERT placeholders + `DynamicParameters`，呼叫 `FileProcess.ExecuteInsert`（`:1398`）→ `DatabaseService.ExecuteCommand` → `DBmysql.ExecuteCommand`。`DatabaseService.ExecuteSql`（`DbApi/DatabaseService.cs:17`）與 `DBmysql.Excute_mysql_cmd`（`MySQL_api/DBmysql.cs:128`）仍保留為 legacy adapters。第三階段 caller migration 尚未完成。
 6. `DbAccess.UpdateDbKeyImportStatus`（`DbApi/DbAccess.cs:163-247`）比對 `importResult == check_status`，相符設 `import_status=1`，否則 `import_status=2` + `mail=1` 並 `WriteToMailTemp`。
 
 ### 3) Layer/Module Responsibilities
@@ -62,7 +62,7 @@
 - **架構文件需持續同步**：根目錄 `專案架構報告.md` / `專案架構視覺化.html` 已刷新至 `master @ 1d9e7f9`；後續 module boundary 或 data-flow 變更仍需同步更新。
 - **殘餘 placeholder 字串累加**：大型批次路徑已改用 `StringBuilder`，但 `FileProcess` 部分小表/單筆路徑仍有 `values += ...`;若資料量放大到這些路徑,再收斂為 builder。
 - **TSMC IEDA importer 自走一套**：`TsmcIeda` 不經 `FileProcess`，但 S2 後 INSERT 與 `DataTable.Select` filter value 已做參數化/escaping；流程邊界仍與其他 importer 不一致。
-- **DB result caller migration 未完成**：`DbQueryResult` / `DbCommandResult` 已是 typed contract,但 `Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 仍保留為 legacy adapters。SELECT callers 尚未全面改吃 `DbQueryResult`;INSERT callers 尚未全面改吃 `DbCommandResult.InsertId`;UPDATE/DELETE callers 尚未全面改吃 `DbCommandResult.AffectedRows`。
+- **DB result caller migration 未完成**：`DbQueryResult` / `DbCommandResult` 已是 typed contract,但 `Execute_query_response`、`DatabaseService.ExecuteSql`、`DBmysql.Excute_mysql_cmd` 仍保留為 legacy adapters。SELECT callers 已改吃 `DbQueryResult`;INSERT callers 已改吃 `DbCommandResult.InsertId`;UPDATE/DELETE callers 尚未全面改吃 `DbCommandResult.AffectedRows`。
 
 ### 6) Evidence
 

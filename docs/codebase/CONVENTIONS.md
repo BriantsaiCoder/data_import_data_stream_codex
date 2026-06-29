@@ -57,4 +57,4 @@
 - `db_key` 欄位名在不同格式不一致：RawData 用 `"DB_Key"`、FailPin/RecoveryRate 用 `"DB Key"`（含空格），造成 CSV 欄位比對對大小寫/空格敏感（`RawData.cs:91`、`FailPin.cs:75`、`RecoveryRate.cs:98`）。
 - active importer / DB 呼叫已是明確同步模型;`Program.cs` TEST CASE 註解區塊仍保留舊呼叫範例。
 - 大量被註解掉的測試案例與舊邏輯留存於 `Program.cs:40-` 與各 `DbAccess` 方法內（dead code）。
-- DB result caller migration 尚未完成：SELECT callers 尚未全面改吃 `DbQueryResult`;INSERT callers 尚未全面改吃 `DbCommandResult.InsertId`;UPDATE/DELETE callers 尚未全面改吃 `DbCommandResult.AffectedRows`。
+- DB result caller migration 尚未完成：SELECT callers 已改吃 `DbQueryResult`;INSERT callers 已改吃 `DbCommandResult.InsertId`;UPDATE/DELETE callers 尚未全面改吃 `DbCommandResult.AffectedRows`。

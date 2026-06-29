@@ -49,7 +49,7 @@ namespace DCT_data_import
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             var execute_query = BuildDbKeyExistsQuery(db_table_name, db_key);
-            Execute_query_response response = DatabaseService.ExecuteSql(execute_query);
+            DbQueryResult response = DatabaseService.ExecuteQuery(execute_query);
             if (!string.IsNullOrEmpty(response.Error))
             {
                 writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
