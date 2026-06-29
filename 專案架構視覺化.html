@@ -412,7 +412,7 @@
     </div>
   </div>
   <div class="note">
-    📌 <b>歷史殘留</b>:<code>Execute_query_response</code>、<code>ExecuteSql</code>、<code>Excute_mysql_cmd</code> 仍刻意保留為 compatibility adapters。第三階段 caller migration 尚未完成:SELECT callers 尚未全面改吃 <code>DbQueryResult</code>;INSERT callers 尚未全面改吃 <code>DbCommandResult.InsertId</code>;UPDATE/DELETE callers 尚未全面改吃 <code>DbCommandResult.AffectedRows</code>。現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service。
+    📌 <b>歷史殘留</b>:<code>Execute_query_response</code>、<code>ExecuteSql</code>、<code>Excute_mysql_cmd</code> 仍刻意保留為 compatibility adapters。第三階段 caller migration 尚未完成:SELECT callers 已改吃 <code>DbQueryResult</code>;INSERT callers 已改吃 <code>DbCommandResult.InsertId</code>;UPDATE/DELETE callers 尚未全面改吃 <code>DbCommandResult.AffectedRows</code>。現況是 Dapper 直連 MySQL,沒有外部 HTTP API Service。
   </div>
 </section>
 

@@ -22,12 +22,18 @@ namespace DCT_data_import
             try
             {
                 Execute_query execute_query = BuildDataCountInDaysQuery(mode, threeHourAgoTimeStamp);
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
+                DbQueryResult response = DatabaseService.ExecuteQuery(execute_query);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
                     writeToLog.WriteErrorLog($"Error: {response.Error}");
-                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
+                    writeToLog.WriteErrorLog($"SELECT `{tableName}` error! ");
+                    return -1;
+                }
+                if (response.Data == null || response.Data.Count == 0)
+                {
+                    writeToLog.WriteErrorLog($"SELECT `{tableName}` count returned no rows");
+                    return -1;
                 }
                 if (int.TryParse(response.Data[0]["count_id"].ToString(), out count))
                 {
@@ -102,12 +108,12 @@ namespace DCT_data_import
                 {
                     Query = sql
                 };
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
+                DbQueryResult response = DatabaseService.ExecuteQuery(execute_query);
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
                     writeToLog.WriteErrorLog($"Error: {response.Error}");
-                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
+                    writeToLog.WriteErrorLog($"SELECT `{tableName}` error! ");
                 }
                 for (int i = 0; i < response.Data.Count; i++)
                 {
@@ -193,18 +199,18 @@ namespace DCT_data_import
             {
                 // 先select 出check status 比對確認結果
                 Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key", dbKey);
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
-                if (!string.IsNullOrEmpty(response.Error))
+                DbQueryResult selectResponse = DatabaseService.ExecuteQuery(execute_query);
+                if (!string.IsNullOrEmpty(selectResponse.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteErrorLog($"Error: {response.Error}");
+                    writeToLog.WriteErrorLog($"Error: {selectResponse.Error}");
                     writeToLog.WriteErrorLog("SELECT `db_key` error! ");
-                    return "Fail. Execution 'select' error: " + response.Error;
+                    return "Fail. Execution 'select' error: " + selectResponse.Error;
                 }
-                if (response.Data.Count > 0)
+                if (selectResponse.Data.Count > 0)
                 {
-                    id = response.Data[0]["id"].ToString();
-                    checkStatus = response.Data[0]["check_status"].ToString();
+                    id = selectResponse.Data[0]["id"].ToString();
+                    checkStatus = selectResponse.Data[0]["check_status"].ToString();
                 }
                 else
                 {
@@ -228,7 +234,7 @@ namespace DCT_data_import
                 }
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyImportStatusUpdateQuery(dbKey, recoveryRate, tester, testResult, failPin, remark, importStatus, mail);
-                response = DatabaseService.ExecuteSql(execute_query, "update");
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "update");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
@@ -258,18 +264,18 @@ namespace DCT_data_import
             {
                 // 先select 出check status 比對確認結果
                 Execute_query execute_query = BuildDbKeyStatusSelectQuery("db_key_ui_status", dbKey);
-                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "select");
-                if (!string.IsNullOrEmpty(response.Error))
+                DbQueryResult selectResponse = DatabaseService.ExecuteQuery(execute_query);
+                if (!string.IsNullOrEmpty(selectResponse.Error))
                 {
                     writeToLog.WriteErrorLog($"SQL Query: {execute_query.Query}");
-                    writeToLog.WriteErrorLog($"Error: {response.Error}");
-                    writeToLog.WriteErrorLog("SELECT `db_key` error! ");
-                    return "Fail. Execution 'select' error: " + response.Error;
+                    writeToLog.WriteErrorLog($"Error: {selectResponse.Error}");
+                    writeToLog.WriteErrorLog("SELECT `db_key_ui_status` error! ");
+                    return "Fail. Execution 'select' error: " + selectResponse.Error;
                 }
-                if (response.Data.Count > 0)
+                if (selectResponse.Data.Count > 0)
                 {
-                    id = response.Data[0]["id"].ToString();
-                    checkStatus = response.Data[0]["check_status"].ToString();
+                    id = selectResponse.Data[0]["id"].ToString();
+                    checkStatus = selectResponse.Data[0]["check_status"].ToString();
                 }
                 else
                 {
@@ -293,7 +299,7 @@ namespace DCT_data_import
                 }
                 // 更新 import check 相關資訊
                 execute_query = BuildDbKeyUiStatusImportStatusUpdateQuery(dbKey, uiStatus, remark, importStatus, mail);
-                response = DatabaseService.ExecuteSql(execute_query, "update");
+                Execute_query_response response = DatabaseService.ExecuteSql(execute_query, "update");
                 if (!string.IsNullOrEmpty(response.Error))
                 {
                     writeToLog.WriteErrorLog("UPDATE `db_key` error! ");
