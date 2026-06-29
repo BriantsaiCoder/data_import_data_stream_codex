@@ -62,7 +62,7 @@
 - **架構文件需持續同步**：根目錄 `專案架構報告.md` / `專案架構視覺化.html` 已刷新至 Stream F Task 5 typed-only DB result surface；後續 module boundary 或 data-flow 變更仍需同步更新。
 - **殘餘 placeholder 字串累加**：大型批次路徑已改用 `StringBuilder`，但 `FileProcess` 部分小表/單筆路徑仍有 `values += ...`;若資料量放大到這些路徑,再收斂為 builder。
 - **TSMC IEDA importer 自走一套**：`TsmcIeda` 不經 `FileProcess`，但 S2 後 INSERT 與 `DataTable.Select` filter value 已做參數化/escaping；流程邊界仍與其他 importer 不一致。
-- **DB result surface typed-only**：Task 5 已移除舊 DB result adapter/API surface；SELECT callers 吃 `DbQueryResult`，INSERT/UPDATE/DELETE callers 吃 `DbCommandResult`。剩餘命名債限於仍存在的 `Execute_query` request DTO。
+- **DB result surface typed-only**：Task 5 已移除舊 DB result adapter/API surface；SELECT callers 吃 `DbQueryResult`，INSERT/UPDATE/DELETE callers 吃 `DbCommandResult`。DB SQL request DTO 已改為 `DbSqlRequest`。
 
 ### 6) Evidence
 

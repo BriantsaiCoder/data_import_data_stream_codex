@@ -13,7 +13,7 @@
 | Methods | PascalCase | `ReadAndImportRawData`、`ExecuteQuery` | `RawData.cs:16`、`DatabaseService.cs` |
 | 區域變數 | camelCase（但常見區域變數沿用型別名，如 `DatabaseService DatabaseService`） | `var writeToLog`、`DatabaseService DatabaseService` | `DbAccess.cs:69`、`DatabaseService.cs:45` |
 | 靜態全域設定 | 全大寫 | `HOST`、`USER`、`FTP_IP` | `Program.cs:19-26` |
-| DB 物件型別 | Result contracts 用 PascalCase；既有 request DTO 仍保留歷史蛇底線命名 | `DbQueryResult`、`DbCommandResult`、`Execute_query` | `DbObject.cs` |
+| DB 物件型別 | DB result/request contracts 用 PascalCase | `DbQueryResult`、`DbCommandResult`、`DbSqlRequest` | `DbObject.cs` |
 | MySQL table/欄位 | snake_case | `db_key`、`import_status`、`lots_info` | `DbAccess.cs:84`、`FileProcess.cs:211` |
 
 ### 2) Formatting and Linting
@@ -57,4 +57,4 @@
 - `db_key` 欄位名在不同格式不一致：RawData 用 `"DB_Key"`、FailPin/RecoveryRate 用 `"DB Key"`（含空格），造成 CSV 欄位比對對大小寫/空格敏感（`RawData.cs:91`、`FailPin.cs:75`、`RecoveryRate.cs:98`）。
 - active importer / DB 呼叫已是明確同步模型;`Program.cs` TEST CASE 註解區塊仍保留舊呼叫範例。
 - 大量被註解掉的測試案例與舊邏輯留存於 `Program.cs:40-` 與各 `DbAccess` 方法內（dead code）。
-- DB result caller migration 與 Task 5 cleanup 已完成：SELECT callers 吃 `DbQueryResult`;INSERT/UPDATE/DELETE callers 吃 `DbCommandResult`。剩餘命名不一致限於既有 `Execute_query` request DTO。
+- DB result caller migration 與 Task 5 cleanup 已完成：SELECT callers 吃 `DbQueryResult`;INSERT/UPDATE/DELETE callers 吃 `DbCommandResult`。DB SQL request DTO 已改為 `DbSqlRequest`。

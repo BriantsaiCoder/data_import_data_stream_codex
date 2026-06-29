@@ -18,7 +18,7 @@
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
 | D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：root 架構報告 / HTML 已刷新至 S2 與 net8-only 現況 | `專案架構報告.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新 |
-| D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；剩餘歷史命名債限於 `Execute_query` request DTO | `App.config`（現無 API 鍵）、`FileProcess.cs:1337`（`ExecuteInsert`）、git 歷史 | ✅ 完成;request DTO 改名可日後評估 |
+| D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；DB SQL request DTO 已改為 `DbSqlRequest` | `App.config`（現無 API 鍵）、`FileProcess.cs:1337`（`ExecuteInsert`）、git 歷史 | ✅ 完成 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:40-70` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:40-70` | 清除（git 已留歷史） |
 | D4 | Medium | **TSMC IEDA importer 自走一套**：不經 `FileProcess`，自行組 INSERT + `DataTable.Select` 查詢，與其餘 importer 不一致 | `TsmcIeda.cs:141,225` | 收斂至共用路徑或明確記錄為例外 |
 | D5 | Low | **命名/慣例不一致**：namespace 與資料夾不對齊；`db_key` CSV 欄位名 `"DB_Key"` vs `"DB Key"`；log 方法混用 | STRUCTURE.md §4、CONVENTIONS.md | 漸進統一 |
