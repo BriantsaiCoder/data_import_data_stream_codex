@@ -53,7 +53,7 @@
 
 ## Extended Sections (Optional)
 
-### 已知慣例違規（待清理）
+### 已知慣例例外與待決策清理
 - CSV `db_key` 欄位名有兩個既有外部契約：RawData/MultiSpecRawData/Tester 使用 `"DB_Key"`，RecoveryRate/FailPin 使用 `"DB Key"`（含空格）。兩者集中於 `CsvColumnNames`，不得藉由清理任務改動可接受的外部 CSV 格式。
 - active importer / DB 呼叫已是明確同步模型;`Program.cs` TEST CASE 註解區塊仍保留舊呼叫範例。
 - 大量被註解掉的測試案例與舊邏輯留存於 `Program.cs:40-` 與各 `DbAccess` 方法內（dead code）。
