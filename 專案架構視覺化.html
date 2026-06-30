@@ -177,7 +177,7 @@
     <span class="pill"><b>.NET</b> net8.0-windows</span>
     <span class="pill"><b>資料來源</b> FTP / Local</span>
     <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
-    <span class="pill"><b>原始碼</b> 24 檔 / 5 層</span>
+    <span class="pill"><b>原始碼</b> 25 檔 / 5 層</span>
     <span class="pill"><b>對應</b> Stream F Task 5 typed-only DB result surface</span>
     <span class="pill"><b>更新</b> 2026-06-28</span>
   </div>
@@ -227,12 +227,14 @@
       <span class="chip">三執行緒 <small>自我復活</small></span>
       <span class="chip">GetEnvironment <small>IP→Dev/Prod</small></span>
       <span class="chip">SendMailModel</span>
+      <span class="chip">ImportDecision <small>check_status→派工</small></span>
     </div>
   </div>
   <div class="layer L2">
     <div class="layer-head">🟪 匯入協調層 · ReadAndImport/</div>
     <div class="layer-body">
       <span class="chip">ImportData <small>基底(big5/FTP)</small></span>
+      <span class="chip">ImportFileSource <small>FTP/Local 來源</small></span>
       <span class="chip">RawData</span><span class="chip">MultiSpecRawData</span>
       <span class="chip">Tester</span><span class="chip">FailPin</span>
       <span class="chip">RecoveryRate</span><span class="chip">UiStatus</span><span class="chip">TsmcIeda</span>
@@ -241,8 +243,9 @@
   <div class="layer L3">
     <div class="layer-head">🟦 檔案處理層 · FileAccess/</div>
     <div class="layer-body">
-      <span class="chip">FileProcess <small>匯入引擎 1711行</small></span>
+      <span class="chip">FileProcess <small>匯入引擎 1724行</small></span>
       <span class="chip">FileContentFormat <small>DTO+驗證</small></span>
+      <span class="chip">CsvColumnNames <small>欄位常數</small></span>
       <span class="chip">ReadWriteINIfile <small>kernel32</small></span>
     </div>
   </div>
@@ -262,6 +265,7 @@
       <span class="chip">NotificationService</span>
       <span class="chip">EmailModels <small>SMTP</small></span>
       <span class="chip">CalculateSPC</span>
+      <span class="chip">RuntimeMode <small>DryRun 影子驗證</small></span>
     </div>
   </div>
 </section>
@@ -283,6 +287,9 @@
   <div class="note">
     成功時:清理來源檔並寫 <code>DCT_data_import_Success_Log_yyyy_MM_dd.txt</code>。失敗時:回寫 <code>db_key.mail=1</code> + 寫本機 <code>mail_temp.txt</code> → 7.2 分鐘迴圈下輪重撈未完成的 DB_Key 重做。<b>沒有真實 DB transaction</b>(見 ⑪)。
   </div>
+  <div class="note" style="border-left-color:var(--amber)">
+    <b>影子驗證模式(DryRun)</b>:<code>App.config</code> 設 <code>DryRun=true</code>(預設 false、缺 key 亦 false)時整條 ETL 變唯讀 —— DB 寫入(含 cascade delete)、FTP 刪/改名、Local 搬檔、寄信全部轉 no-op,只解析/比對並保留 <code>mail_temp.txt</code> 供比對;SELECT 仍照常。供 .NET 8 cutover 影子試跑與資料污染回滾防護(<code>Common/RuntimeMode.cs</code> · <code>DBmysql.cs:98</code>)。
+  </div>
 </section>
 
 <!-- ⑤ THREADS -->
@@ -298,7 +305,7 @@
     <div class="thread t2">
       <div class="th-name">ImportUiStatusMode</div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:8px">UiStatus 模式</div>
-      <p style="font-size:13px;color:var(--mut)">獨立處理 UI 狀態,寫 <code>UI_status</code> 表。<b>不在 check_status 旗標內</b>。</p>
+      <p style="font-size:13px;color:var(--mut)">獨立處理 UI 狀態,寫 <code>ui_status</code> 表。<b>不在 check_status 旗標內</b>。</p>
     </div>
     <div class="thread t3">
       <div class="th-name">ImportTsmcMode</div>
@@ -317,42 +324,42 @@
   <p><code>ImportData.cs</code> 是基底類別(big5 / FTP / 路徑);以下 7 個處理器繼承它。<span style="color:var(--red)">舊報告誤列的 <code>*Refactored.cs</code> 全部不存在。</span></p>
   <div class="grid g2" style="margin-top:14px">
     <div class="card">
-      <h4>RawData <span class="tag" style="background:#1f6feb33;color:var(--accent2)">385行</span></h4>
+      <h4>RawData <span class="tag" style="background:#1f6feb33;color:var(--accent2)">388行</span></h4>
       <div class="file">ReadAndImport/RawData.cs</div>
       <p>表:<code>lots_info / lots_statistic / lots_result</code></p>
       <p>result 代碼:<b>0=檔案不存在(唯一觸發 fallback)</b> / 1=成功 / 2=格式錯 / 3=重複或例外。Customer=='TSMC' 呼叫 TsmcIeda。</p>
     </div>
     <div class="card">
       <h4>MultiSpecRawData <span class="tag" style="background:#d2992233;color:var(--amber)">fallback</span></h4>
-      <div class="file">ReadAndImport/MultiSpecRawData.cs · 491行</div>
+      <div class="file">ReadAndImport/MultiSpecRawData.cs · 494行</div>
       <p>僅 RawData result==0 時啟用(<code>e30b06c</code> 收斂)。搜尋 <code>test_result_site*_{dbKey}.csv</code>,多 site 共用單一 lots_info。</p>
       <p style="color:var(--red)">⚠️ 多 site 部分失敗 → 前段不回滾(partial import)。</p>
     </div>
     <div class="card">
       <h4>Tester <span class="tag" style="background:#3fb95033;color:var(--green)">15621ef</span></h4>
-      <div class="file">ReadAndImport/Tester.cs · 251行</div>
+      <div class="file">ReadAndImport/Tester.cs · 254行</div>
       <p>4 表:<code>tester_device_info / tester_status / tester_sw_version / tester_production_analysis</code></p>
       <p>新增 <b>SWT result / SWT respond</b> 欄位;CompareStatus 子集驗證相容新舊 CSV。</p>
     </div>
     <div class="card">
       <h4>FailPin <span class="tag" style="background:#3fb95033;color:var(--green)">e195008</span></h4>
-      <div class="file">ReadAndImport/FailPin.cs · 273行</div>
+      <div class="file">ReadAndImport/FailPin.cs · 276行</div>
       <p>表:<code>fail_pin_rate_info / _list / _list_pin_ball</code> + test_result(DataSet)</p>
       <p><b>SN Num 相容</b>:新 dataStartIndex=4 / 舊=3,HasSnNum 旗標切換。'@' 分隔測試結果。</p>
     </div>
     <div class="card">
-      <h4>RecoveryRate <span class="tag" style="background:#1f6feb33;color:var(--accent2)">215行</span></h4>
+      <h4>RecoveryRate <span class="tag" style="background:#1f6feb33;color:var(--accent2)">218行</span></h4>
       <div class="file">ReadAndImport/RecoveryRate.cs</div>
       <p>笛卡兒積展開 → FinalRecoveryRateTable → 寫 <code>recovery_rate</code> 表(check_status 權重 8)。</p>
     </div>
     <div class="card">
       <h4>UiStatus <span class="tag" style="background:#8b949e33;color:var(--mut)">最簡單</span></h4>
-      <div class="file">ReadAndImport/UiStatus.cs · 129行</div>
-      <p>單一 <code>UI_status</code> 表,無重複檢查,Thread.Sleep(500),純同步。<b>獨立於 check_status</b>。</p>
+      <div class="file">ReadAndImport/UiStatus.cs · 132行</div>
+      <p>單一 <code>ui_status</code> 表,無重複檢查,Thread.Sleep(500),純同步。<b>獨立於 check_status</b>。</p>
     </div>
     <div class="card" style="grid-column:1/-1">
       <h4>TsmcIeda <span class="tag" style="background:#bc8cff33;color:var(--purple)">唯一固定寬度</span> <span class="tag" style="background:#3fb95033;color:var(--green)">bbe7e3c</span></h4>
-      <div class="file">ReadAndImport/TsmcIeda.cs · 361行</div>
+      <div class="file">ReadAndImport/TsmcIeda.cs · 359行</div>
       <p>唯一以 <code>Substring</code> 固定寬度解析、唯一純同步、唯一 ListDirectory 批次。<code>lot_mapping.csv → ase_lot</code>;寫 <code>ieda_title / ieda_content</code>。IEDA/CSV/LotID 路徑已收斂到 ImportData / IImportFileSource helper。</p>
     </div>
   </div>
@@ -432,11 +439,11 @@
       <tr><td class="mono">fail_pin_rate_info</td><td>FailPin</td><td>失效針腳資訊</td></tr>
       <tr><td class="mono">fail_pin_rate_list</td><td>FailPin</td><td>失效針腳清單(50 筆/批)</td></tr>
       <tr><td class="mono">fail_pin_rate_list_pin_ball</td><td>FailPin</td><td>針腳/球腳</td></tr>
-      <tr><td class="mono">Fail_pin_rate_list_test_result</td><td>FailPin</td><td>測試結果(DataSet)</td></tr>
+      <tr><td class="mono">fail_pin_rate_test_result</td><td>FailPin</td><td>測試結果(來源為 DataSet)</td></tr>
       <tr><td class="mono">recovery_rate</td><td>RecoveryRate</td><td>回收率(批次 5000;check_status 權重 8)</td></tr>
-      <tr><td class="mono">UI_status</td><td>UiStatus</td><td>UI 狀態(獨立於 check_status)</td></tr>
+      <tr><td class="mono">ui_status</td><td>UiStatus</td><td>UI 狀態(獨立於 check_status)</td></tr>
       <tr><td class="mono">ieda_title / ieda_content</td><td>TsmcIeda</td><td>TSMC IEDA</td></tr>
-      <tr><td class="mono">ase_lot</td><td>TsmcIeda</td><td>lot_mapping.csv 映射</td></tr>
+      <tr><td class="mono">ieda_title.ase_lot(欄,非表)</td><td>TsmcIeda</td><td>lot_mapping.csv 讀入記憶體快取後映射至 ieda_title 的 ase_lot 欄,本身非獨立 DB 表</td></tr>
       <tr><td class="mono" style="color:var(--accent2)">db_key</td><td>DbAccess</td><td><b>主控表</b>:check_status / import_status / mail</td></tr>
       <tr><td class="mono" style="color:var(--accent2)">db_key_ui_status</td><td>DbAccess</td><td>UI 狀態獨立控制表</td></tr>
     </tbody>

@@ -8,22 +8,22 @@
 |------|---------|----------|
 | `DCT_data_import.sln` | Visual Studio 方案檔（單一專案） | `DCT_data_import.sln` |
 | `DCT_data_import/` | 主專案根目錄 | `.csproj` 位置 |
-| `DCT_data_import/Program.cs` | 程式進入點；環境偵測 + 3 執行緒監督迴圈 | `Program.cs:15,27` |
+| `DCT_data_import/Program.cs` | 程式進入點；環境偵測 + 3 執行緒監督迴圈 | `Program.cs:20,29` |
 | `DCT_data_import/ReadAndImport/` | 各資料格式 importer 與 FTP/Local 檔案來源抽象 | `ReadAndImport/*.cs`（7 個 importer + `ImportData` / `ImportFileSource`） |
-| `DCT_data_import/FileAccess/` | 檔案↔DB 橋接、CSV 格式契約、INI 讀寫 | `FileAccess/FileProcess.cs`、`FileContentFormat.cs`、`ReadWriteINIfile.cs` |
+| `DCT_data_import/FileAccess/` | 檔案↔DB 橋接、CSV 格式契約與欄位常數、INI 讀寫 | `FileAccess/FileProcess.cs`、`FileContentFormat.cs`、`CsvColumnNames.cs`、`ReadWriteINIfile.cs` |
 | `DCT_data_import/DbApi/` | DB 服務介面與資料物件 | `DbApi/DatabaseService.cs`、`DbAccess.cs`、`DbObject.cs` |
 | `DCT_data_import/MySqlApi/` | MySQL 直連與 SQL 執行（Dapper） | `MySqlApi/DBmysql.cs` |
-| `DCT_data_import/Common/` | 共用工具：log、寄信、SPC 統計、email 模型 | `Common/WriteToLog.cs`、`NotificationService.cs`、`EmailModels.cs`、`CalculateSPC.cs` |
-| `DCT_data_import/Properties/AssemblyInfo.cs` | Assembly 中繼資料（版本 `2026.2.5.0`） | `Properties/AssemblyInfo.cs:30` |
+| `DCT_data_import/Common/` | 共用工具：log、寄信、SPC 統計、email 模型、執行模式旗標（DryRun 影子驗證） | `Common/WriteToLog.cs`、`NotificationService.cs`、`EmailModels.cs`、`CalculateSPC.cs`、`RuntimeMode.cs` |
+| `DCT_data_import/Properties/AssemblyInfo.cs` | Assembly 中繼資料（版本 `2026.2.5.0`） | `Properties/AssemblyInfo.cs:33` |
 | `DCT_data_import/App.config` | 執行期設定（DB/FTP/SMTP/資料來源切換） | `App.config` |
 | `DCT_data_import/DCT_data_import.csproj` | SDK-style `net8.0-windows` + PackageReference 套件清單 | `DCT_data_import.csproj` |
 | `專案架構報告.md` / `專案架構視覺化.html` | 已刷新至 S2 SQL 參數化後的 root 架構導覽 | repo 根目錄 |
 
 ### 2) Entry Points
 
-- Main runtime entry：`DCT_data_import/Program.cs:27`（`static void Main`）。
+- Main runtime entry：`DCT_data_import/Program.cs:29`（`static void Main`）。
 - Secondary entry points：無（單一 console exe，無 worker/CLI 子命令）。
-- 啟動如何選擇行為：無命令列參數解析；行為由 `App.config` 與執行期 IP 偵測（`Dev`/`Prod`）決定（`Program.cs:18`）。`Main` 內以 3 條 `Thread` 分別跑 Tester / UiStatus / TSMC 模式，並以監督迴圈在執行緒死亡時重啟（`Program.cs` 監督段）。
+- 啟動如何選擇行為：無命令列參數解析；行為由 `App.config` 與執行期 IP 偵測（`Dev`/`Prod`）決定（`Program.cs:224` `GetEnvironment()`）。`Main` 內以 3 條 `Thread` 分別跑 Tester / UiStatus / TSMC 模式，並以監督迴圈在執行緒死亡時重啟（`Program.cs` 監督段）。
 
 ### 3) Module Boundaries
 
@@ -44,7 +44,7 @@
 
 ### 5) Evidence
 
-- `docs/codebase/.codebase-scan.txt`（21 個 `.cs`、6442 行）
+- `docs/codebase/.codebase-scan.txt`（初次掃描快照，當時 21 個 `.cs`；**現況 25 個 `.cs`【含 `AssemblyInfo`，24 個源碼檔】、約 7,900 行**，檔數/行數以此處為準）
 - `DCT_data_import/Program.cs:15-38`
 - `DCT_data_import.sln`
 - 各層代表檔（見上表 Evidence 欄）

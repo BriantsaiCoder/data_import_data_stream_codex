@@ -1,4 +1,9 @@
 
+=== SNAPSHOT NOTICE ===
+本檔為 acquire-codebase-knowledge 初次掃描的一次性快照（git 停在 15621ef、C#: 21 檔、Total files scanned 含 packages/）。
+之後新增的 ImportFileSource.cs / CsvColumnNames.cs / RuntimeMode.cs / ImportDecision.cs 與 namespace 對齊等變更未反映於此。
+當前檔數/行數/結構以 docs/codebase/STRUCTURE.md 為準；本檔僅留作初始掃描證據。
+
 === DIRECTORY TREE (max depth 3, source files only) ===
 .DS_Store
 .claude

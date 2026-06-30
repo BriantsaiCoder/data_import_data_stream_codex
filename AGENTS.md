@@ -29,7 +29,7 @@ CI runs on `windows-latest` and uses the same restore/build/test flow. The app s
 
 ## Coding Style & Naming Conventions
 
-Follow existing C# style: 4-space indentation, Allman braces, `using` directives at the top, PascalCase for types/methods/files, and camelCase for locals. Do not reorganize namespaces just to match folders; this repo intentionally contains legacy namespace drift. Keep comments short and useful, preferably matching the surrounding Traditional Chinese documentation style.
+Follow existing C# style: 4-space indentation, Allman braces, `using` directives at the top, PascalCase for types/methods/files, and camelCase for locals. Namespaces are aligned to their folders (commit `23e9c73`, enforced by `NamespaceConventionTests`); keep new files aligned and do not reintroduce drift. Keep comments short and useful, preferably matching the surrounding Traditional Chinese documentation style.
 
 ## Implementation Discipline
 

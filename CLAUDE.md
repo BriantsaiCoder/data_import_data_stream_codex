@@ -35,7 +35,7 @@ DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 ## 慣例與風險
 
 - 沿用既有檔風格；註解以繁中為主。
-- **namespace 與資料夾不對齊**是既有現象，勿順手「修正」。
+- **namespace 已與資料夾對齊**（commit `23e9c73`，`NamespaceConventionTests` 把關）：新檔比照對齊，勿讓它退化。
 - 匯入與 DB 存取目前是明確同步模型；現代化非本專案目標，維運沿用。
 - 完整風險清單見 [docs/codebase/CONCERNS.md](docs/codebase/CONCERNS.md)。
 
@@ -45,7 +45,6 @@ DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 |----|------|
 | `docs/codebase/*.md` | 七檔工程文件（STACK/STRUCTURE/ARCHITECTURE/CONVENTIONS/INTEGRATIONS/TESTING/CONCERNS） |
 | `docs/codebase/NET8_UPGRADE_TEST_STRATEGY.md` | 歷史 migration 測試策略，描述 net462→net8 過程，不是 live stack 權威 |
-| `docs/net8-migration/REMAINING-WORK.md` | net8 遷移收尾 backlog 與 A1-A4 狀態 |
 | `專案架構報告.md` | 架構報告 |
 | `專案架構視覺化.html` | self-contained 互動視覺化 |
 | `DCT_data_import.Tests/README.md` | 測試說明 |

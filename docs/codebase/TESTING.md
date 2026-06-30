@@ -40,7 +40,7 @@
   - `dotnet restore ... -p:NuGetAudit=true -p:NuGetAuditMode=all`
   - `dotnet build ... --configuration Release --no-restore`
   - `dotnet test ... --configuration Release --no-build ... /p:CollectCoverage=true /p:Threshold=25 /p:ThresholdType=line /p:ThresholdStat=total`
-- Latest macOS verification after coverage tooling: `dotnet build DCT_data_import.sln --configuration Release --no-restore /p:UseAppHost=false` passed with 0 warnings / 0 errors. `dotnet test ... /p:UseAppHost=false` passed `223` tests with 1 opt-in MySQL test skipped. The coverage gate command passed with total line coverage `25.95%` against the 25% threshold. The MySQL DATETIME golden master is opt-in via `DCT_MYSQL_GOLDEN_MASTER_CONNECTION_STRING` and covers normal `DATETIME`, `DATETIME(6)`, and `Convert Zero Datetime=true` zero-date materialization. Runtime smoke still belongs on Windows.
+- Latest macOS verification after coverage tooling: `dotnet build DCT_data_import.sln --configuration Release --no-restore /p:UseAppHost=false` passed with 0 warnings / 0 errors. `dotnet test ... /p:UseAppHost=false` passed `278` tests with 1 opt-in MySQL test skipped. The coverage gate command passed with total line coverage `29.35%` against the 25% threshold. The MySQL DATETIME golden master is opt-in via `DCT_MYSQL_GOLDEN_MASTER_CONNECTION_STRING` and covers normal `DATETIME`, `DATETIME(6)`, and `Convert Zero Datetime=true` zero-date materialization. Runtime smoke still belongs on Windows.
 
 ### 5) Evidence
 

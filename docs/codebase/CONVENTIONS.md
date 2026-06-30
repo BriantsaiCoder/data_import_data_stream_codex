@@ -9,9 +9,9 @@
 | Item | Rule | Example | Evidence |
 |------|------|---------|----------|
 | Files | PascalCase，一檔一主類別 | `FailPin.cs`、`DatabaseService.cs` | 全 `ReadAndImport/`、`DbApi/` |
-| Classes | PascalCase | `class FileProcess`、`class DBmysql` | `FileProcess.cs:10`、`DBmysql.cs:10` |
+| Classes | PascalCase | `class FileProcess`、`class DBmysql` | `FileProcess.cs:14`、`DBmysql.cs:11` |
 | Methods | PascalCase | `ReadAndImportRawData`、`ExecuteQuery` | `RawData.cs:16`、`DatabaseService.cs` |
-| 區域變數 | camelCase（但常見區域變數沿用型別名，如 `DatabaseService DatabaseService`） | `var writeToLog`、`DatabaseService DatabaseService` | `DbAccess.cs:69`、`DatabaseService.cs:45` |
+| 區域變數 | camelCase（但常見區域變數沿用型別名，如 `DatabaseService DatabaseService`） | `writeToLog`、`DatabaseService DatabaseService` | `DbAccess.cs:12`、`Program.cs:43` |
 | 靜態全域設定 | 全大寫 | `HOST`、`USER`、`FTP_IP` | `Program.cs:19-26` |
 | DB 物件型別 | DB result/request contracts 用 PascalCase | `DbQueryResult`、`DbCommandResult`、`DbSqlRequest` | `DbObject.cs` |
 | MySQL table/欄位 | snake_case | `db_key`、`import_status`、`lots_info` | `DbAccess.cs:84`、`FileProcess.cs:211` |
@@ -22,7 +22,7 @@
 
 - Formatter：[TODO] 無設定檔（無 `.editorconfig`）。觀察：4 空格縮排、Allman 大括號、`using` 置頂。
 - Linter：[TODO] 無（無 StyleCop/Roslyn analyzer 設定）。
-- 註解語言：以繁體中文為主（XML doc + 行內），夾雜少量簡體（如 `RawData`/`TsmcIeda` 部分註解）。Evidence：`DatabaseService.cs:12-17`、`ImportData.cs:227-234`（簡體「创建」「响应」）。
+- 註解語言：以繁體中文為主（XML doc + 行內），無簡體。Evidence：`DatabaseService.cs:90-93`（XML doc）。
 - Run commands：N/A（無 lint/format 工具）。
 
 ### 3) Import and Module Conventions
