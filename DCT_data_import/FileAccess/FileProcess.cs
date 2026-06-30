@@ -74,14 +74,14 @@ namespace DCT_data_import.FileAccess
             if (time_split.Length != 6) return string.Empty;
             string newDatetimeStr = time_split[0] + " " + time_split[1] + " " + time_split[2] + " " + time_split[3] + ":" + time_split[4] + ":" + time_split[5];
             DateTime dateTime = new DateTime();
-            if (DateTime.TryParse(newDatetimeStr, out dateTime))
+            if (DateTime.TryParse(newDatetimeStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTime))
             {
-                return dateTime.ToString("yyyy-MM-dd hh:mm:ss");
+                return dateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
             }
             // 日期格式解析失敗
             else
             {
-                return DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
+                return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
             }
         }
         public string ValidateDateTime(string input)
