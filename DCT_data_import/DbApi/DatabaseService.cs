@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using DCT_data_import.Common;
 using DCT_data_import.MySqlApi;
 using static DCT_data_import.DbApi.DbObject;
@@ -6,6 +7,11 @@ namespace DCT_data_import.DbApi
 {
     public class DatabaseService
     {
+        // 已確認存在的 table 正向快取:三條 import thread 共用同一 DatabaseService 實例,
+        // 故須 thread-safe。只快取「存在」結果——table 一旦建立即為終態,不會被刪;
+        // 尚不存在時不寫入,之後建立仍會重查。消除每次 INSERT 前的兩段 INFORMATION_SCHEMA 往返。
+        private readonly ConcurrentDictionary<string, byte> _verifiedTables = new();
+
         public DatabaseService()
         {
         }
@@ -126,6 +132,10 @@ namespace DCT_data_import.DbApi
         /// <returns>true: 都存在, false: 有一個不存在</returns>
         public bool CheckDatabaseAndTableExists(string tableName)
         {
+            // 既驗證過存在的 table 直接放行,省掉重複的 INFORMATION_SCHEMA 查詢。
+            if (_verifiedTables.ContainsKey(tableName))
+                return true;
+
             try
             {
                 // 檢查資料庫
@@ -137,7 +147,11 @@ namespace DCT_data_import.DbApi
                 // 檢查資料表
                 var tableResult = ExecuteQuery(BuildTableExistsQuery(Program.DATABASE, tableName));
 
-                return string.IsNullOrEmpty(tableResult.Error) && tableResult.Data != null && tableResult.Data.Count > 0;
+                bool tableExists = string.IsNullOrEmpty(tableResult.Error) && tableResult.Data != null && tableResult.Data.Count > 0;
+                if (tableExists)
+                    _verifiedTables.TryAdd(tableName, 0);
+
+                return tableExists;
             }
             catch (Exception ex)
             {
