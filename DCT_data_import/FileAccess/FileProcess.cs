@@ -15,12 +15,21 @@ namespace DCT_data_import.FileAccess
     {
         //public DatabaseService  DatabaseService ;
         private readonly WriteToLog writeToLog;
+        // 批次 INSERT 單批列數上限。真正硬限制是 MySQL `max_allowed_packet`(封包位元組數),
+        // 5000 列為對其的寬鬆安全邊界,與 recovery/lots_statistic/lot_result 三條批次共用同一上限。
+        private const int MaxInsertBatchRows = 5000;
         public bool MultiSiteRawDataLotInfoIsImported { get; set; }
         public string MultiSiteRawDataLotInfoInsertId { get; set; }
         public FileProcess()
         {
             //DatabaseService  = new DatabaseService ();
             writeToLog = new WriteToLog();
+        }
+        // 依「待寫入 table 數」決定批次大小,clamp 至 MaxInsertBatchRows。
+        // 每張 statistic table 貢獻一列,故 tableCount 即列數;≤上限時累積成單批由收尾 flush 處理。
+        internal static int ComputeStatisticBatchSize(int tableCount)
+        {
+            return (tableCount > MaxInsertBatchRows) ? MaxInsertBatchRows : tableCount;
         }
         internal static bool TryGetRequiredInsertId(DbCommandResult response, string operationName, out string insertId, out string error)
         {
@@ -101,7 +110,7 @@ namespace DCT_data_import.FileAccess
         {
             if (content.LotInfo.Rows.Count < 1 || content.LotRecoveryRate.Rows.Count < 1) return false;
             #region insert recovery rate 的 data
-            int cut_size = (content.FinalRecoveryRateTable.Rows.Count > 5000) ? 5000 : content.FinalRecoveryRateTable.Rows.Count;
+            int cut_size = (content.FinalRecoveryRateTable.Rows.Count > MaxInsertBatchRows) ? MaxInsertBatchRows : content.FinalRecoveryRateTable.Rows.Count;
             // assign 需要 insert 的 欄位名稱
             string columns = string.Empty, values = string.Empty;
             DbCommandResult response2;
@@ -318,11 +327,9 @@ namespace DCT_data_import.FileAccess
                     columns += ",";
                 }
             }
-            // 開始逐一insert 統計值表
-            int test_count = 0, cut_size = 0;
-            int.TryParse(content.LotStatistic.Tables[0].Rows[0]["# of PASS"].ToString(), out test_count);
+            // 開始逐一insert 統計值表(每張 table 一列,批次大小依 table 數而非 # of PASS)
             int tableCount = content.LotStatistic.Tables.Count;
-            cut_size = (test_count > 0 && test_count < 10000) ? 10000 / test_count : 1;
+            int cut_size = ComputeStatisticBatchSize(tableCount);
             int lotResultCount = content.LotResult.Rows.Count;
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
             try
@@ -383,7 +390,7 @@ namespace DCT_data_import.FileAccess
             }
             #endregion
             #region insert raw data 的 result 表格
-            cut_size = (content.LotResult.Rows.Count > 5000) ? 5000 : content.LotResult.Rows.Count;
+            cut_size = (content.LotResult.Rows.Count > MaxInsertBatchRows) ? MaxInsertBatchRows : content.LotResult.Rows.Count;
             columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotResult.Columns.Count; i++)
             {
@@ -630,11 +637,9 @@ namespace DCT_data_import.FileAccess
                     columns += ",";
                 }
             }
-            // 開始逐一insert 統計值表
-            int test_count = 0, cut_size = 0;
-            int.TryParse(content.LotStatistic.Tables[0].Rows[0]["# of PASS"].ToString(), out test_count);
+            // 開始逐一insert 統計值表(每張 table 一列,批次大小依 table 數而非 # of PASS)
             int tableCount = content.LotStatistic.Tables.Count;
-            cut_size = (test_count > 0 && test_count < 10000) ? 10000 / test_count : 1;
+            int cut_size = ComputeStatisticBatchSize(tableCount);
             int lotResultCount = content.LotResult.Rows.Count;
             Console.WriteLine("itemCount=" + tableCount + " lotResultCount= " + lotResultCount);
             try
@@ -696,7 +701,7 @@ namespace DCT_data_import.FileAccess
             }
             #endregion
             #region insert raw data 的 result 表格
-            cut_size = (content.LotResult.Rows.Count > 5000) ? 5000 : content.LotResult.Rows.Count;
+            cut_size = (content.LotResult.Rows.Count > MaxInsertBatchRows) ? MaxInsertBatchRows : content.LotResult.Rows.Count;
             columns = "`lot_id`,"; values = string.Empty;
             for (int i = 0; i < content.LotResult.Columns.Count; i++)
             {

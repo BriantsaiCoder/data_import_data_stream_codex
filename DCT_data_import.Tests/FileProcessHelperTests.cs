@@ -112,6 +112,18 @@ namespace DCT_data_import.Tests
             Assert.Equal(string.Empty, error);
         }
 
+        // finding C 回歸:舊公式 cut_size = (test_count>0 && test_count<10000) ? 10000/test_count : 1
+        // 在 # of PASS=0(parse 失敗)或 ≥10000(wafer sort 常態)時退化為 1 → 逐表 INSERT。
+        // 新公式改依 table 數做 5000 clamp(對齊 recovery/lot_result 兩 sibling)。
+        [Theory]
+        [InlineData(3, 3)]        // 小批次:原樣回傳,單批由收尾 flush 處理
+        [InlineData(6000, 5000)]  // 超上限:clamp 到 MaxInsertBatchRows
+        [InlineData(1, 1)]        // 合法單表:不再被 # of PASS 干擾退化
+        public void ComputeStatisticBatchSize_ClampsToMaxInsertBatchRows(int tableCount, int expected)
+        {
+            Assert.Equal(expected, FileProcess.ComputeStatisticBatchSize(tableCount));
+        }
+
         private static DataTable StatisticTableWithRow()
         {
             DataTable table = StatisticTable();
