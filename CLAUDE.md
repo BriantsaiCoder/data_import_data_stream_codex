@@ -6,7 +6,7 @@
 
 C# **.NET 8 (`net8.0-windows`)** Console App（`OutputType=Exe`），長駐輪詢式多執行緒 ETL：3 條 `Thread`（Tester / UiStatus / TSMC 模式）週期性輪詢 MySQL `db_key` 旗標表 → 從 FTP 或 Local 來源取得 big5 CSV → 解析驗證 → 以 Dapper parameters 寫回 MySQL → 依結果寄信/搬檔。入口 `DCT_data_import/Program.cs`。
 
-詳見 [docs/codebase/ARCHITECTURE.md](docs/codebase/ARCHITECTURE.md) 與 [專案架構報告.md](專案架構報告.md)。
+詳見 [docs/codebase/ARCHITECTURE.md](docs/codebase/ARCHITECTURE.md)（含 Mermaid 架構圖，單一真實來源）與互動視覺化 [專案架構視覺化.html](專案架構視覺化.html)。
 
 ## Build / Run / Test
 
@@ -45,8 +45,7 @@ DCT_data_import\bin\Release\net8.0-windows\DCT_data_import.exe
 |----|------|
 | `docs/codebase/*.md` | 七檔工程文件（STACK/STRUCTURE/ARCHITECTURE/CONVENTIONS/INTEGRATIONS/TESTING/CONCERNS） |
 | `docs/codebase/NET8_UPGRADE_TEST_STRATEGY.md` | 歷史 migration 測試策略，描述 net462→net8 過程，不是 live stack 權威 |
-| `專案架構報告.md` | 架構報告 |
-| `專案架構視覺化.html` | self-contained 互動視覺化 |
+| `專案架構視覺化.html` | opt-in self-contained 互動架構視覺化（圖衍生自 `ARCHITECTURE.md` Mermaid，勿手改圖） |
 | `DCT_data_import.Tests/README.md` | 測試說明 |
 
 ## AI 協作守則

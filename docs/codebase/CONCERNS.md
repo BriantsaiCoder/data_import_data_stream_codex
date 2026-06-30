@@ -17,7 +17,7 @@
 
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
-| D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：root 架構報告 / HTML 已刷新至 S2 與 net8-only 現況 | `專案架構報告.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新 |
+| D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：架構視覺化已收斂為 `docs/codebase/ARCHITECTURE.md`（Mermaid 單一真實來源）+ 衍生 `專案架構視覺化.html`，皆刷新至 net8-only 現況 | `docs/codebase/ARCHITECTURE.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新本檔圖與 HTML |
 | D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；DB SQL request DTO 已改為 `DbSqlRequest` | `App.config`（現無 API 鍵）、`FileProcess.cs:1414`（`ExecuteInsert`）、git 歷史 | ✅ 完成 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:46-94` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:46-94` | 清除（git 已留歷史） |
 | D4 | Medium | **TSMC IEDA importer 流程邊界不一致**：`ImportIeda` 仍走 `FileProcess.ExecuteInsert` 共用 INSERT/identifier guard，但不經其他 importer 的 `FileProcess.Import*` 逐表方法、自行以 `DataTable.Select` 過濾，與其餘 importer 不一致 | `TsmcIeda.cs:117,162` | 收斂至共用路徑或明確記錄為例外 |
@@ -48,7 +48,6 @@
 - `DCT_data_import/DbApi/DbAccess.cs`、`DatabaseService.cs`
 - `DCT_data_import/ReadAndImport/TsmcIeda.cs`
 - `DCT_data_import/Common/EmailModels.cs`、`WriteToLog.cs`、`CalculateSPC.cs`、`ReadWriteINIfile.cs`
-- `專案架構報告.md`（脫節文件）
 - `docs/codebase/.codebase-scan.txt`
 
 ## Extended Sections (Optional)
@@ -57,3 +56,6 @@
 - **SPC 暖機排除**：`CalculateSPC.SeperatePassValue`（:115）會剔除 spec_max/spec_min 範圍外的 fail points 才算 stdev/avg——這是業務定義的良率計算規則，非單純技術過濾（剔除邏輯 `CalculateSPC.cs:127-132`）。
 - **統計值異常轉換**：`FileProcess.ValidateAndConvertStatisticValue`（:1697）把 `-1.#IND`/`1.#QNAN` 等非數值 stdev/cp/cpk/avg 轉 0——對應 git log `479f29e` 的資料完整性處理。
 - **CheckStatus bit 定義**（交叉驗證後修正）：Bit0(1)=FailPin、Bit1(2)=RawData/TestResult、Bit2(4)=Tester、Bit3(8)=RecoveryRate（公式 `DbAccess.cs:179`,已抽純函式 `ComputeImportResult` + `Program.cs:482` 引數順序）；Bit4(16)=UiStatus 走另一張表、不在此公式內（`DbAccess.cs:253`）。詳見 ARCHITECTURE.md Extended 與 R5。
+- **MultiSpec / multi-site fallback**：`MultiSpecRawData` 僅在 `RawData` 回 `result==0`（無資料）時才 fallback；同一批多個量測 site 各有檔案、**共用單一 `lots_info`**（非每 site 一張）。不知道會誤以為 MultiSpec 是獨立資料表或恆執行。
+- **SWT 欄位（Tester 新舊 CSV 相容）**：Tester 後來新增的 result/respond 欄位；`FileContentFormat.Compare*` 以**子集驗證**兼容新舊兩種 CSV header，缺 SWT 欄的舊檔仍可過驗證。
+- **SN Num 欄位（FailPin 新舊格式切換）**：FailPin 序號欄位；新舊格式以 `dataStartIndex`（4 或 3）+ `HasSnNum` 旗標切換資料起始欄位，少了這個切換舊檔會錯位解析。
