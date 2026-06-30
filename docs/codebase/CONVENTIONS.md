@@ -10,11 +10,11 @@
 |------|------|---------|----------|
 | Files | PascalCase，一檔一主類別 | `FailPin.cs`、`DatabaseService.cs` | 全 `ReadAndImport/`、`DbApi/` |
 | Classes | PascalCase | `class FileProcess`、`class DBmysql` | `FileProcess.cs:14`、`DBmysql.cs:11` |
-| Methods | PascalCase | `ReadAndImportRawData`、`ExecuteQuery` | `RawData.cs:16`、`DatabaseService.cs` |
+| Methods | PascalCase | `ReadAndImportRawData`、`ExecuteQuery` | `RawData.cs:18`、`DatabaseService.cs` |
 | 區域變數 | camelCase（但常見區域變數沿用型別名，如 `DatabaseService DatabaseService`） | `writeToLog`、`DatabaseService DatabaseService` | `DbAccess.cs:12`、`Program.cs:43` |
 | 靜態全域設定 | 全大寫 | `HOST`、`USER`、`FTP_IP` | `Program.cs:19-26` |
 | DB 物件型別 | DB result/request contracts 用 PascalCase | `DbQueryResult`、`DbCommandResult`、`DbSqlRequest` | `DbObject.cs` |
-| MySQL table/欄位 | snake_case | `db_key`、`import_status`、`lots_info` | `DbAccess.cs:84`、`FileProcess.cs:211` |
+| MySQL table/欄位 | snake_case | `db_key`、`import_status`、`lots_info` | `DbAccess.cs:90`、`FileProcess.cs:212`、`FileProcess.cs:229` |
 
 - Namespace 對齊：`Common/` → `DCT_data_import.Common`、`FileAccess/` → `DCT_data_import.FileAccess`、`DbApi/` → `DCT_data_import.DbApi`、`MySqlApi/` → `DCT_data_import.MySqlApi`、`ReadAndImport/` → `DCT_data_import.ReadAndImport`。`Program` / `ImportDecision` 保留於 root `DCT_data_import`。
 

@@ -49,7 +49,7 @@
 | **A** | **big5 (codepage 950) 未註冊**：net8 預設無 codepage 950，`Encoding.GetEncoding("big5")` 直接 `ArgumentException` | 硬崩潰（非靜默），但**唯一的升級閘門** | 啟動需 `System.Text.Encoding.CodePages` + `Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)`；全 importer 解碼路徑 |
 | **B** | **`double.TryParse` 解析翻轉**：`-1.#IND`/`1.#QNAN`/`1.#INF` 等 Windows legacy 字面量在 net462 **實測解析失敗→`false`/out=0**（見 §9，非原宣稱的 NaN/Infinity）；標準 `NaN`/`Infinity`/超界 `1E400` 行為見 §9；net8 對應行為待比對 | 靜默（解析失敗的 out=0 是否被當有效值；net8 行為待比對） | [CalculateSPC.cs:48/52/65/118](../../DCT_data_import/Common/CalculateSPC.cs:65)、[FileProcess.cs:1697](../../DCT_data_import/FileAccess/FileProcess.cs:1697)、[FailPin.cs](../../DCT_data_import/ReadAndImport/FailPin.cs) |
 | **C** | **`double`→`string` 最短可往返格式**：.NET Core 3.0+ 改 IEEE754 最短往返輸出，**寫進 SQL 的數值字面量會變**（位數漂移） | 靜默（DB 內容變） | validated double 存 row 未經 round（[FileProcess.cs:265/567](../../DCT_data_import/FileAccess/FileProcess.cs:265)）→ 隱式 `ToString()` 拼進 INSERT（[FileProcess.cs:314/617](../../DCT_data_import/FileAccess/FileProcess.cs:314)） |
-| **D** | **`DateTime` 漂移 + MySql.Data 驅動換代**：(d1) 輸出 `ToString` 無 `IFormatProvider`；(d2) **輸入** `DateTime.TryParse` 無 culture；(d3) PackageReference 遷移可能換驅動版本 → `Convert Zero Datetime` / 微秒 / `DateTimeKind` 對映變 | 靜默（時間字串用於 dup-detect / 寄信決策） | 輸出 [DBmysql.cs:147](../../DCT_data_import/MySqlApi/DBmysql.cs:147)、[FileProcess.cs:806](../../DCT_data_import/FileAccess/FileProcess.cs:806)；輸入見 §3.1；驅動見 §6 |
+| **D** | **`DateTime` 漂移 + MySql.Data 驅動換代**：(d1) 輸出 `ToString` 無 `IFormatProvider`；(d2) **輸入** `DateTime.TryParse` 無 culture；(d3) PackageReference 遷移可能換驅動版本 → `Convert Zero Datetime` / 微秒 / `DateTimeKind` 對映變 | 靜默（時間字串用於 dup-detect / 寄信決策） | 輸出 [DBmysql.cs:153](../../DCT_data_import/MySqlApi/DBmysql.cs:153)、[FileProcess.cs:806](../../DCT_data_import/FileAccess/FileProcess.cs:806)；輸入見 §3.1；驅動見 §6 |
 
 ### 3.1 新發現：`CustomizeDateTimeParser`（輸入端 D，兩份原本都漏）
 
@@ -77,7 +77,7 @@
 | RecoveryRate / RawData / MultiSpec 的 `FileRead*` | **private** | `InternalsVisibleTo("DCT_data_import.Tests")` 或 internal 化（僅這 3 個） | 低 |
 | `ValidateAndConvertStatisticValue` | private + 寫 `writeToLog` 實例變數 | `InternalsVisibleTo`；測試需處理 log 副作用（stub 或抽純函式） | 低-中 |
 | `SeperatePassValue` / `AverageOfSumSquare` | private / public | 經 public `AverageOfSumSquare` 測即可涵蓋 | 低（順帶記 [CalculateSPC.cs:124](../../DCT_data_import/Common/CalculateSPC.cs:124) list-aliasing dead code，**本階段只記不改**） |
-| `ImportDecision`（從 `ImportTesterMode` 抽派工決策） | [Program.cs:354](../../DCT_data_import/Program.cs:354) | 抽純函式 `bool ShouldRun*(int checkStatus, int currentState)`；副作用全在 importer 內，**不需碰業務邏輯** | 低（~40-60 行純提升） |
+| `ImportDecision`（從 `ImportTesterMode` 抽派工決策） | [Program.cs:335](../../DCT_data_import/Program.cs:335) | 抽純函式 `bool ShouldRun*(int checkStatus, int currentState)`；副作用全在 importer 內，**不需碰業務邏輯** | 低（~40-60 行純提升） |
 | ~~`DoubleToSqlString`（root cause C 的探針 seam）~~ **評估後免動** | 賦值點 ~265 `Convert.ToString(double)`、讀取點 314/617 boxed double `item.ToString()` | **不抽 seam**：兩處在 `CurrentCulture` 下皆等價於 `double.ToString(CurrentCulture)`，直接對 BCL `double.ToString()` 做 golden-master 可證等價且同時覆蓋兩條路徑 → 見 [`DoubleToStringFormatTests.cs`](../../DCT_data_import.Tests/DoubleToStringFormatTests.cs)。免碰高扇入 `FileProcess` | 無（不改任何 production 程式） |
 
 > **派工測試修正**：`ImportTesterMode` 派工同時取決於 `check_status` **與**各 importer 當前 int 狀態（recovery_rate / test_result / …），**不是 check_status 單一維度**。測試要帶第二維（bit→importer：bit0 FailPin / bit1 RawData / bit2 Tester / bit3 RecoveryRate；RawData `Result==0` 才 fallback MultiSpec，見 [Program.cs:427-431](../../DCT_data_import/Program.cs:427)）。
@@ -86,8 +86,8 @@
 
 ## 6) MySql.Data 驅動換代風險（root cause D-3）
 
-- 現況 pin **9.4.0**（[packages.config:4](../../DCT_data_import/packages.config)、[.csproj:50](../../DCT_data_import/DCT_data_import.csproj)）。
-- 連線字串含 `Convert Zero Datetime=true`（[DBmysql.cs:298](../../DCT_data_import/MySqlApi/DBmysql.cs:298)）——`0000-00-00` → `DateTime.MinValue`。
+- 現況 pin **9.4.0**（[.csproj:23](../../DCT_data_import/DCT_data_import.csproj) `PackageReference`）。
+- 連線字串含 `Convert Zero Datetime=true`（[DBmysql.cs:335](../../DCT_data_import/MySqlApi/DBmysql.cs:335)）——`0000-00-00` → `DateTime.MinValue`。
 - PackageReference 遷移若不顯式 pin 版本，可能自動升/降版 → `Convert Zero Datetime` / 微秒精度 / `DateTimeKind` 對映改變。
 - **對策**：net8 `.csproj` **顯式 pin 驅動版本** + 對 MySQL 5.6+ `DATETIME` 欄位做 round-trip golden master（zero-date、微秒、Kind）。
 
@@ -114,7 +114,7 @@ P0（升級閘門 / 會悄悄改資料）
   -    ImportDecision：check_status × importer 狀態「雙維」dispatch
 
 P1（遷移敏感但影響較小 / 需驅動）
-  D  ★ DateTime 輸出（DBmysql:147 / FileProcess:806）+ MySql.Data 驅動 round-trip golden master + 版本 pin
+  D  ★ DateTime 輸出（DBmysql:153 / FileProcess:806）+ MySql.Data 驅動 round-trip golden master + 版本 pin
   -    SeperatePassValue spec 篩選 characterization
   -    既有 R5 紅/綠維持原狀（整數運算未變的守門，見 CONCERNS R5）
 
@@ -210,8 +210,8 @@ dotnet test DCT_data_import.Tests\DCT_data_import.Tests.csproj --filter "Categor
 - [CalculateSPC.cs](../../DCT_data_import/Common/CalculateSPC.cs)（:13 AverageOfSumSquare、:48/52/65/118 TryParse、:83-92 sum-of-square/stdev、:112-135 SeperatePassValue、:124 dead code）
 - [FileProcess.cs](../../DCT_data_import/FileAccess/FileProcess.cs)（:52-58 CustomizeDateTimeParser、:71 ValidateDateTime、:265/567 row 存值、:314/617 隱式 ToString 拼 SQL、:806 datetime ToString、:1500 ConvertEmptyToDefaultString、:1489-1490 Math.Round(,9)、:1515-1540 ValidateAndConvertStatisticValue）
 - [FileContentFormat.cs](../../DCT_data_import/FileAccess/FileContentFormat.cs)（6 個 Compare*，遷移不敏感）
-- [Program.cs](../../DCT_data_import/Program.cs)（:354 ImportTesterMode、:405/423/453/471 bit dispatch、:427-431 MultiSpec fallback）
-- [DBmysql.cs](../../DCT_data_import/MySqlApi/DBmysql.cs)（:147 DateTime ToString、:149-151 JToken.FromObject、:298 Convert Zero Datetime）
+- [Program.cs](../../DCT_data_import/Program.cs)（:335 ImportTesterMode、:405/423/453/471 bit dispatch、:427-431 MultiSpec fallback）
+- [DBmysql.cs](../../DCT_data_import/MySqlApi/DBmysql.cs)（:153 DateTime ToString、:157/165 JToken.FromObject、:335 Convert Zero Datetime）
 - parser 入口：[Tester.cs:139](../../DCT_data_import/ReadAndImport/Tester.cs)、[FailPin.cs:127](../../DCT_data_import/ReadAndImport/FailPin.cs)、[UiStatus.cs:105](../../DCT_data_import/ReadAndImport/UiStatus.cs)、[RecoveryRate.cs:163](../../DCT_data_import/ReadAndImport/RecoveryRate.cs)、[RawData.cs:154](../../DCT_data_import/ReadAndImport/RawData.cs)、[MultiSpecRawData.cs:265](../../DCT_data_import/ReadAndImport/MultiSpecRawData.cs)、[TsmcIeda.cs:121](../../DCT_data_import/ReadAndImport/TsmcIeda.cs)
-- [packages.config](../../DCT_data_import/packages.config)（MySql.Data 9.4.0）
+- [.csproj:23](../../DCT_data_import/DCT_data_import.csproj)（MySql.Data 9.4.0 `PackageReference`）
 - 相關文件：[CONCERNS.md](CONCERNS.md)（R5 / S1-S4）、[TESTING.md](TESTING.md)（現有 R5 樁）、[STACK.md](STACK.md)、[DCT_data_import.Tests/README.md](../../DCT_data_import.Tests/README.md)

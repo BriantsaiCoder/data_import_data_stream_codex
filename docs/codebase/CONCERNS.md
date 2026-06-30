@@ -20,7 +20,7 @@
 | D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：root 架構報告 / HTML 已刷新至 S2 與 net8-only 現況 | `專案架構報告.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新 |
 | D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；DB SQL request DTO 已改為 `DbSqlRequest` | `App.config`（現無 API 鍵）、`FileProcess.cs:1414`（`ExecuteInsert`）、git 歷史 | ✅ 完成 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:46-94` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:46-94` | 清除（git 已留歷史） |
-| D4 | Medium | **TSMC IEDA importer 流程邊界不一致**：`ImportIeda` 仍走 `FileProcess.ExecuteInsert` 共用 INSERT/identifier guard，但不經其他 importer 的 `FileProcess.Import*` 逐表方法、自行以 `DataTable.Select` 過濾，與其餘 importer 不一致 | `TsmcIeda.cs:256,280` | 收斂至共用路徑或明確記錄為例外 |
+| D4 | Medium | **TSMC IEDA importer 流程邊界不一致**：`ImportIeda` 仍走 `FileProcess.ExecuteInsert` 共用 INSERT/identifier guard，但不經其他 importer 的 `FileProcess.Import*` 逐表方法、自行以 `DataTable.Select` 過濾，與其餘 importer 不一致 | `TsmcIeda.cs:117,162` | 收斂至共用路徑或明確記錄為例外 |
 | D5 | ~~Low~~ ✅已修 | **命名/慣例不一致**：namespace/folder 已對齊；CSV `db_key` 兩種既有外部 header 已集中於 `CsvColumnNames` 並以測試記錄，不列為格式統一項 | `NamespaceConventionTests`、STRUCTURE.md、CONVENTIONS.md、`FileContentFormatTests` | ✅ 完成 |
 
 ### 3) Performance
@@ -37,7 +37,7 @@
 |---|----------|------|----------|------|
 | R1 | Medium | **整合測試仍不足**：已有 `net8.0-windows` xUnit regression/characterization suite，但 importer / FTP / 真 MySQL 寫入仍缺自動化整合測試與 coverage gate | TESTING.md、`DCT_data_import.Tests/` | 續補 parser、`FileContentFormat.Compare*` 與 controlled DB/FTP smoke |
 | R2 | ~~Medium~~ ✅已修 | **SPC 負號根值 NaN 防護**：`AverageOfSumSquare` 已把 rounding residue 造成的負 variance clamp 為 0，避免 `Math.Sqrt` 產生 NaN 後整列統計被 catch 掉 | `Common/CalculateSPC.cs`、`CalculateSpcTests.cs` | 維持 regression test；若未來要輸出 stdev，再補 stdev 欄位契約 |
-| R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、hardcoded `C:\temp` log 路徑 | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:23` | 路徑改設定；跨平台需求才重構 INI |
+| R3 | Medium | **Windows-only 硬綁定**：`kernel32` P/Invoke 讀寫 INI、log 路徑可由 App.config `DataImportLogRoot` 設定、預設 `C:\temp` | `ReadWriteINIfile.cs:10-13`、`WriteToLog.cs:21,23` | 路徑已可設定；跨平台需求才重構 INI |
 | R4 | ~~Low~~ ✅已修 | **log retention cleanup**：每日分檔仍不做大小切檔；已新增 `DataImportLogRetentionDays` 清理過期 `data_import_logs` / `check_logs` 檔案 | `WriteToLog.cs`、`App.config` | 維持預設 90 天；若單日檔案過大再評估 size-based rotation |
 | R5 | ~~High~~ **已修復（2026-06-27，`fix/r5-checkstatus`）** | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:221`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:179,221`、各 importer `Result` 0/1/2/3、`Program.cs:482`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | **規格決定（用戶 2026-06-27）：分量正規化規則 = `Result == 1 ? 1 : 0`（成功才設位；明確排除 `Math.Min(x,1)`——後者會把失敗碼 2/3 也映成 1、反把失敗當成功）。** 已於純函式 `ComputeImportResult`（`DbAccess.cs:179`）單點套用此正規化，0/1 輸入行為不變、僅修正 ≥2 溢位。`CheckStatusWeightedSumTests` 3 條 `_R5` 測試（含一條判別 `Math.Min` 誤修的 pin）轉綠、移除 `ByDesignRed` trait 重納 CI gate。 |
 

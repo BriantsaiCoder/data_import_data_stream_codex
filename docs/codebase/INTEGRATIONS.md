@@ -48,7 +48,7 @@
 
 - Logging：自製 `WriteToLog`（檔案 + Console），無結構化日誌、無集中式 log sink。
 - Metrics / Tracing / APM：[TODO] 無。
-- 健康通知：`NotificationService` 以 email 充當告警（錯誤、缺資料 >1 天、週一 8:00 狀態回報）；以 `Ping` 檢查 SMTP 可達性。
+- 健康通知：`NotificationService` 以 email 充當告警（錯誤、缺資料 >1 天、週一 8:00 狀態回報）；寄信前的 SMTP 可達性檢查（`Ping`）在 `EmailModels.SendEmail`。
 - Error tracking 平台（Sentry 等）：[TODO] 無。
 
 ### 5) Evidence

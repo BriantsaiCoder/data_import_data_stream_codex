@@ -38,9 +38,9 @@
 | Layer or module | Owns | Must not own | Evidence |
 |-----------------|------|--------------|----------|
 | `Program.cs` | 環境偵測、執行緒監督、依 bitmask 派工 | 解析、SQL | `Program.cs:20,29,198,224` |
-| `ReadAndImport/*` | FTP/Local 來源讀取、格式驗證、解析、清理、回傳 `ImportResult` | 連線字串、Dapper | `ReadAndImport/RawData.cs:16`、`ImportData.cs:225`、`ImportFileSource.cs:78` |
+| `ReadAndImport/*` | FTP/Local 來源讀取、格式驗證、解析、清理、回傳 `ImportResult` | 連線字串、Dapper | `ReadAndImport/RawData.cs:16`、`ImportData.cs:225`、`ImportFileSource.cs:79` |
 | `FileAccess/FileProcess.cs` | DataTable→參數化 INSERT、分批、級聯刪除 | FTP 存取 | `FileProcess.cs:81-1724` |
-| `FileAccess/FileContentFormat.cs` | 6 種 CSV 欄位契約 + 驗證 | DB / FTP | `FileContentFormat.cs:6,79,138,204,233,277` |
+| `FileAccess/FileContentFormat.cs` | 5 種 CSV 欄位契約 + 1 種 TSMC IEDA 固定寬度 DataTable 契約 + 驗證 | DB / FTP | `FileContentFormat.cs:7,80,139,205,234,278` |
 | `DbApi/DatabaseService.cs` | 連線參數驗證、typed `ExecuteQuery`/`ExecuteCommand`、DB/table 存在性檢查 | 業務語意 | `DatabaseService.cs` |
 | `MySqlApi/DBmysql.cs` | MySqlConnection 生命週期、Dapper 執行、typed result、錯誤碼對應 | 何時匯入 | `DBmysql.cs` |
 | `Common/*` | log（Mutex）、SMTP 寄信、SPC 統計、INI | 匯入流程 | `Common/WriteToLog.cs`、`NotificationService.cs`、`CalculateSPC.cs` |

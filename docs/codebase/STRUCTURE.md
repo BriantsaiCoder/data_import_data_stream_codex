@@ -6,7 +6,7 @@
 
 | Path | Purpose | Evidence |
 |------|---------|----------|
-| `DCT_data_import.sln` | Visual Studio 方案檔（單一專案） | `DCT_data_import.sln` |
+| `DCT_data_import.sln` | Visual Studio 方案檔（主專案 + 測試專案，共 2 個） | `DCT_data_import.sln` |
 | `DCT_data_import/` | 主專案根目錄 | `.csproj` 位置 |
 | `DCT_data_import/Program.cs` | 程式進入點；環境偵測 + 3 執行緒監督迴圈 | `Program.cs:20,29` |
 | `DCT_data_import/ReadAndImport/` | 各資料格式 importer 與 FTP/Local 檔案來源抽象 | `ReadAndImport/*.cs`（7 個 importer + `ImportData` / `ImportFileSource`） |
