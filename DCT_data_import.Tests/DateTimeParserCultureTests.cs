@@ -7,7 +7,7 @@ using Xunit;
 namespace DCT_data_import.Tests
 {
     /// <summary>
-    /// Root cause D(DateTime 解析漂移)的回歸防護:<see cref="FileProcess.CustomizeDateTimeParser"/>
+    /// DateTime 解析漂移(findings A/J)的回歸防護:<see cref="FileProcess.CustomizeDateTimeParser"/>
     /// 修復後的 culture-invariant 斷言。
     ///
     /// 該方法以 <c>_</c> 切成 6 段、重組為 "MMM dd yyyy H:m:s" 後,以

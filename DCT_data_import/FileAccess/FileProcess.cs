@@ -154,7 +154,7 @@ namespace DCT_data_import.FileAccess
                         }
                     }
                     // 每cut_size個row就匯入一次
-                    if (i != 0 && i % cut_size == 0 && valuesBuilder.Length > 0)
+                    if (i != 0 && (i + 1) % cut_size == 0 && valuesBuilder.Length > 0)
                     {
                         valuesBuilder.Append(")");
                         values = valuesBuilder.ToString();
@@ -343,7 +343,7 @@ namespace DCT_data_import.FileAccess
                     valuesBuilder.Append("(").Append(AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(lotId))).Append(",");
                     valuesBuilder.Append(AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))));
                     // 每cut_size個row就匯入一次
-                    if (i != 0 && i % cut_size == 0)
+                    if (i != 0 && (i + 1) % cut_size == 0)
                     {
                         valuesBuilder.Append(")");
                         values = valuesBuilder.ToString();
@@ -455,7 +455,7 @@ namespace DCT_data_import.FileAccess
                             }
                         }
                         // 每cut_size個row就匯入一次
-                        if (i != 0 && i % cut_size == 0 && valuesBuilder.Length > 0)
+                        if (i != 0 && (i + 1) % cut_size == 0 && valuesBuilder.Length > 0)
                         {
                             valuesBuilder.Append(")");
                             values = valuesBuilder.ToString();
@@ -654,7 +654,7 @@ namespace DCT_data_import.FileAccess
                     valuesBuilder.Append(AddInsertParameter(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", ConvertEmptyToDefaultString(siteId.ToString()))).Append(",");
                     valuesBuilder.Append(AddInsertParameters(lotsStatisticParameters, ref lotsStatisticParameterIndex, "lots_statistic", content.LotStatistic.Tables[i].Rows[0].ItemArray.Select(item => ConvertEmptyToDefaultString(item?.ToString()))));
                     // 每cut_size個row就匯入一次
-                    if (i != 0 && i % cut_size == 0)
+                    if (i != 0 && (i + 1) % cut_size == 0)
                     {
                         valuesBuilder.Append(")");
                         values = valuesBuilder.ToString();
@@ -766,7 +766,7 @@ namespace DCT_data_import.FileAccess
                             }
                         }
                         // 每cut_size個row就匯入一次
-                        if (i != 0 && i % cut_size == 0 && valuesBuilder.Length > 0)
+                        if (i != 0 && (i + 1) % cut_size == 0 && valuesBuilder.Length > 0)
                         {
                             valuesBuilder.Append(")");
                             values = valuesBuilder.ToString();

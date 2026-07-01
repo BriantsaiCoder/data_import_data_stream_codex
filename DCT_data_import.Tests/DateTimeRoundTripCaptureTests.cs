@@ -6,7 +6,7 @@ using Xunit;
 namespace DCT_data_import.Tests
 {
     /// <summary>
-    /// Root cause D 在生產 datetime literal **寫入點**的 parse+format round-trip net8 特性化測試。
+    /// 生產 datetime literal **寫入點**的 parse+format round-trip net8 特性化測試(附帶釘住 finding A 的 hh/HH BCL 事實)。
     ///
     /// <see cref="FileProcess"/> FileProcess.cs:847-852 對 <c>start_time</c>/<c>end_time</c> 欄先以**無 culture
     /// 參數**的 <c>DateTime.TryParse(cell.Trim(), out datetime)</c>(2-arg → 吃 <see cref="CultureInfo.CurrentCulture"/>)
