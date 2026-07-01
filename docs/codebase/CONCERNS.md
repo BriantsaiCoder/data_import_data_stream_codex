@@ -18,7 +18,7 @@
 | # | Severity | 問題 | Evidence | 建議 |
 |---|----------|------|----------|------|
 | D1 | ~~High~~ ✅已修 | **架構文件曾嚴重脫節**：架構視覺化已收斂為 `docs/codebase/ARCHITECTURE.md`（Mermaid 單一真實來源）+ 衍生 `專案架構視覺化.html`，皆刷新至 net8-only 現況 | `docs/codebase/ARCHITECTURE.md`、`專案架構視覺化.html` | 後續 module/data-flow 變更需同步更新本檔圖與 HTML |
-| D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；DB SQL request DTO 已改為 `DbSqlRequest` | `App.config`（現無 API 鍵）、`FileProcess.cs:1414`（`ExecuteInsert`）、git 歷史 | ✅ 完成 |
+| D2 | ~~Medium~~ ✅已修(Q5) | **DEAD CONFIG / 殘留命名**：API dead config（ApiUrl/AuthKey/ApiUser/ApiPassword）已自 `App.config` 刪除;`ExecuteInsertWithAPI` 已改名 `ExecuteInsert`;「Web API body」誤導註解已清。Task 5 後 DB result surface 已是 typed-only；DB SQL request DTO 已改為 `DbSqlRequest` | `App.config`（現無 API 鍵）、`FileProcess.cs:1422`（`ExecuteInsert`）、git 歷史 | ✅ 完成 |
 | D3 | Medium | **大量註解掉的 dead code**：`Program.cs:46-94` 整段 TEST CASE、各 `DbAccess` 方法內舊邏輯 | `Program.cs:46-94` | 清除（git 已留歷史） |
 | D4 | Medium | **TSMC IEDA importer 流程邊界不一致**：`ImportIeda` 仍走 `FileProcess.ExecuteInsert` 共用 INSERT/identifier guard，但不經其他 importer 的 `FileProcess.Import*` 逐表方法、自行以 `DataTable.Select` 過濾，與其餘 importer 不一致 | `TsmcIeda.cs:117,162` | 收斂至共用路徑或明確記錄為例外 |
 | D5 | ~~Low~~ ✅已修 | **命名/慣例不一致**：namespace/folder 已對齊；CSV `db_key` 兩種既有外部 header 已集中於 `CsvColumnNames` 並以測試記錄，不列為格式統一項 | `NamespaceConventionTests`、STRUCTURE.md、CONVENTIONS.md、`FileContentFormatTests` | ✅ 完成 |
@@ -41,6 +41,25 @@
 | R4 | ~~Low~~ ✅已修 | **log retention cleanup**：每日分檔仍不做大小切檔；已新增 `DataImportLogRetentionDays` 清理過期 `data_import_logs` / `check_logs` 檔案 | `WriteToLog.cs`、`App.config` | 維持預設 90 天；若單日檔案過大再評估 size-based rotation |
 | R5 | ~~High~~ **已修復（2026-06-27，`fix/r5-checkstatus`）** | **CheckStatus 加權和的脆弱契約**：`importResult = 8*recoveryRate + 4*tester + 2*testResult + failPin` 假設各 component `Result` 只回 0/1，但實際回 0/1/2/3。任一回 2/3 → 加權和溢位污染高位 bit → `importResult == check_status`（`DbAccess.cs:221`）恆 false → 部分成功一律判失敗+寄信，且重跑會把錯誤碼再餵回公式延續污染 | `DbAccess.cs:179,221`、各 importer `Result` 0/1/2/3、`Program.cs:482`、`DCT_data_import.Tests/CheckStatusWeightedSumTests.cs` | **規格決定（用戶 2026-06-27）：分量正規化規則 = `Result == 1 ? 1 : 0`（成功才設位；明確排除 `Math.Min(x,1)`——後者會把失敗碼 2/3 也映成 1、反把失敗當成功）。** 已於純函式 `ComputeImportResult`（`DbAccess.cs:179`）單點套用此正規化，0/1 輸入行為不變、僅修正 ≥2 溢位。`CheckStatusWeightedSumTests` 3 條 `_R5` 測試（含一條判別 `Math.Min` 誤修的 pin）轉綠、移除 `ByDesignRed` trait 重納 CI gate。 |
 
+### Code Review 批次修復（2026-07-01，`fix/code-review-a-l-fixes`）
+
+> 對抗式 code review 找出的 12 項局部缺口（A~L）已全數修復。可達缺陷（A/C/D/F/I）為真修復，其餘為硬化 / 加固 / latent（多項在出貨組態實際不可觸發，屬 defense-in-depth）。
+
+| 項 | Severity | 問題 | 修復 | Commit |
+|----|----------|------|------|--------|
+| A | ~~High~~ ✅ | `CustomizeDateTimeParser` 用小寫 `hh`（12 小時制）把下午時間損壞 | format 改 `HH` | `ca7c84c` |
+| J | ~~Low~~ ✅ | 同上方法 `DateTime.TryParse` 缺 culture，ar-SA 等 culture 會漂移 | 加 `InvariantCulture` + `DateTimeStyles.None` | `ca7c84c` |
+| C | ~~Medium~~ ✅ | `lots_statistic` 批次在 `# of PASS`≥10000 或解析失敗時退化為逐列 INSERT | 抽 `ComputeStatisticBatchSize`（clamp 至 5000） | `349c3f6` |
+| H | ~~Low~~ ✅ | 批次上限 5000 為魔術數字 | 抽 `MaxInsertBatchRows` 常數 + 註解（真正上限是 `max_allowed_packet`） | `349c3f6` |
+| I | ~~Low~~ ✅ | `CheckDatabaseAndTableExists` 每次 INSERT 前重打兩段 `INFORMATION_SCHEMA`（N+1） | `ConcurrentDictionary` 正向快取（三 thread 共用單例，thread-safe） | `7bfc235` |
+| L | ~~Low~~ ✅ | 單一 `FileProcess` 共用於三 thread，可變欄位跨 thread 互覆（latent） | 三 thread 各持獨立 `FileProcess` 實例 | `79602c0` |
+| D | ~~Low~~ ✅ | 已參數化的 `program_path` 上多餘 `\ → \\` 雙重轉義污染 Windows 路徑（S2 漏網補完） | 移除轉義並塌陷殘留特例分支 | `a0f0288` |
+| E | ~~Low~~ ✅ | `fail_pin_rate_list_pin_ball` 索引 `int.Parse(val)-1` 例外訊息無法定位壞值 | `TryParse` + 邊界檢查，錯誤訊息點名 `val` | `a0f0288` |
+| F | ~~Low~~ ✅ | TSMC 找不到「Net Name」標頭行仍 `CompleteSuccess` 靜默刪檔 → 資料遺失 | 空標頭走 error path（`MoveToError`）保留檔案 | `a0f0288` |
+| G | ~~Low~~ ✅ | FTP `connectionString` 缺 key 時 static-init 擲 `TypeInitializationException` 繞過 Main 友善 catch | `?.` + Main 內早期驗證擲 `ConfigurationErrorsException` | `a0f0288` |
+| K | ~~Low~~ ✅ | `DBmysql` INSERT 前綴判斷用 `ToUpper()`（culture-unsafe） | `StartsWith(..., OrdinalIgnoreCase)` + log 用 `ToUpperInvariant()` | `a0f0288` |
+| B | ~~Low~~ ✅ | 主迴圈 `Sleep(432000)` 註解誤標「432000秒 → 2H」 | 修正註解為「≈7.2 分鐘」（值不變，用戶決策） | `a0f0288` |
+
 ### 5) Evidence
 
 - `DCT_data_import/App.config`、`Program.cs:32-34`
@@ -54,7 +73,7 @@
 
 ### 領域知識（程式看不出 why，值得保存）
 - **SPC 暖機排除**：`CalculateSPC.SeperatePassValue`（:115）會剔除 spec_max/spec_min 範圍外的 fail points 才算 stdev/avg——這是業務定義的良率計算規則，非單純技術過濾（剔除邏輯 `CalculateSPC.cs:127-132`）。
-- **統計值異常轉換**：`FileProcess.ValidateAndConvertStatisticValue`（:1697）把 `-1.#IND`/`1.#QNAN` 等非數值 stdev/cp/cpk/avg 轉 0——對應 git log `479f29e` 的資料完整性處理。
+- **統計值異常轉換**：`FileProcess.ValidateAndConvertStatisticValue`（:1705）把 `-1.#IND`/`1.#QNAN` 等非數值 stdev/cp/cpk/avg 轉 0——對應 git log `479f29e` 的資料完整性處理。
 - **CheckStatus bit 定義**（交叉驗證後修正）：Bit0(1)=FailPin、Bit1(2)=RawData/TestResult、Bit2(4)=Tester、Bit3(8)=RecoveryRate（公式 `DbAccess.cs:179`,已抽純函式 `ComputeImportResult` + `Program.cs:482` 引數順序）；Bit4(16)=UiStatus 走另一張表、不在此公式內（`DbAccess.cs:253`）。詳見 ARCHITECTURE.md Extended 與 R5。
 - **MultiSpec / multi-site fallback**：`MultiSpecRawData` 僅在 `RawData` 回 `result==0`（無資料）時才 fallback；同一批多個量測 site 各有檔案、**共用單一 `lots_info`**（非每 site 一張）。不知道會誤以為 MultiSpec 是獨立資料表或恆執行。
 - **SWT 欄位（Tester 新舊 CSV 相容）**：Tester 後來新增的 result/respond 欄位；`FileContentFormat.Compare*` 以**子集驗證**兼容新舊兩種 CSV header，缺 SWT 欄的舊檔仍可過驗證。
