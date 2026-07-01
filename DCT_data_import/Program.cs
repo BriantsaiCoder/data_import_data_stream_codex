@@ -39,7 +39,11 @@ namespace DCT_data_import
                 // 不印明文密碼(S3 已知債):只標示是否已設定,避免帳密外洩到 console / log。
                 Console.WriteLine("PASSWORD: " + (string.IsNullOrEmpty(PASSWORD) ? "(unset)" : "********"));
                 Console.WriteLine("Environment: " + Environment);
-                FileProcess fileAccess = new FileProcess();
+                // 每條 import thread 各持一個 FileProcess:其 MultiSiteRawDataLotInfoIsImported /
+                // MultiSiteRawDataLotInfoInsertId 是可變實例欄位,共用單一實例會在三 thread 間互相覆寫。
+                FileProcess fileAccessTester = new FileProcess();
+                FileProcess fileAccessUiStatus = new FileProcess();
+                FileProcess fileAccessTsmc = new FileProcess();
                 DatabaseService DatabaseService = new DatabaseService();
                 DbAccess dbAccess = new DbAccess();
                 int count = 0;
@@ -94,9 +98,9 @@ namespace DCT_data_import
                 //Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);
                 //Console.ReadLine();
                 bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
-                Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
-                Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
-                Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService));
+                Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccessTester, dbAccess, DatabaseService));
+                Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccessUiStatus, dbAccess, DatabaseService));
+                Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccessTsmc, dbAccess, DatabaseService));
                 while (true)
                 {
                     try
@@ -107,17 +111,17 @@ namespace DCT_data_import
                         if (!threadTesterAlive)
                         {
                             threadTesterMode = RestartWorker(threadTesterMode,
-                                () => ImportTesterMode(fileAccess, dbAccess, DatabaseService), writeToLog, "TesterMode");
+                                () => ImportTesterMode(fileAccessTester, dbAccess, DatabaseService), writeToLog, "TesterMode");
                         }
                         if (!threadUiStatusAlive)
                         {
                             threadUiStatusMode = RestartWorker(threadUiStatusMode,
-                                () => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService), writeToLog, "UiStatusMode");
+                                () => ImportUiStatusMode(fileAccessUiStatus, dbAccess, DatabaseService), writeToLog, "UiStatusMode");
                         }
                         if (!threadTsmcAlive)
                         {
                             threadTsmcMode = RestartWorker(threadTsmcMode,
-                                () => ImportTsmcMode(fileAccess, dbAccess, DatabaseService), writeToLog, "TsmcMode");
+                                () => ImportTsmcMode(fileAccessTsmc, dbAccess, DatabaseService), writeToLog, "TsmcMode");
                         }
                         #region 固定時間通報程式還活著
                         try
