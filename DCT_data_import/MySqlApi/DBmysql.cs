@@ -198,7 +198,7 @@ namespace DCT_data_import.MySqlApi
                 transaction = connection.BeginTransaction();
                 int affectedRows = connection.Execute(cmd_string, parameters, transaction);
                 long insertId = 0;
-                if (cmd_string.Trim().ToUpper().StartsWith("INSERT"))
+                if (cmd_string.Trim().StartsWith("INSERT", StringComparison.OrdinalIgnoreCase))
                 {
                     try
                     {
@@ -231,12 +231,12 @@ namespace DCT_data_import.MySqlApi
                 {
                     // Safe string splitting with bounds checking
                     var cmdParts = cmd_string?.Split(' ');
-                    string operationType = (cmdParts != null && cmdParts.Length > 0) ? cmdParts[0].ToUpper() : "UNKNOWN";
+                    string operationType = (cmdParts != null && cmdParts.Length > 0) ? cmdParts[0].ToUpperInvariant() : "UNKNOWN";
                     throw new InvalidOperationException($"執行 {operationType} 操作失敗，且回滾交易時也發生錯誤。原始錯誤: {ex.Message}，回滾錯誤: {rollbackEx.Message}", ex);
                 }
                 // Safe string splitting with bounds checking
                 var cmdParts2 = cmd_string?.Split(' ');
-                string operationType2 = (cmdParts2 != null && cmdParts2.Length > 0) ? cmdParts2[0].ToUpper() : "UNKNOWN";
+                string operationType2 = (cmdParts2 != null && cmdParts2.Length > 0) ? cmdParts2[0].ToUpperInvariant() : "UNKNOWN";
                 throw new InvalidOperationException($"執行 {operationType2} 操作失敗: {ex.Message}", ex);
             }
             finally

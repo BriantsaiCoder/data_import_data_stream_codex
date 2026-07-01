@@ -842,29 +842,23 @@ namespace DCT_data_import.FileAccess
                 {
                     values += "NULL";
                 }
-                else
+                else if (column_name == "start_time" || column_name == "end_time")
                 {
-                    // 路徑的(\) 要處理成 (\\)
-                    if (column_name == "program_path")
+                    DateTime datetime = new DateTime();
+                    if (DateTime.TryParse(content.Tester_device_info.Rows[0][i].ToString().Trim(), out datetime))
                     {
-                        values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()).Replace(@"\", @"\\"));
-                    }
-                    else if (column_name == "start_time" || column_name == "end_time")
-                    {
-                        DateTime datetime = new DateTime();
-                        if (DateTime.TryParse(content.Tester_device_info.Rows[0][i].ToString().Trim(), out datetime))
-                        {
-                            values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", datetime.ToString("yyyy-MM-dd HH:mm:ss"));
-                        }
-                        else
-                        {
-                            values += "null";
-                        }
+                        values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", datetime.ToString("yyyy-MM-dd HH:mm:ss"));
                     }
                     else
                     {
-                        values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()));
+                        values += "null";
                     }
+                }
+                else
+                {
+                    // program_path 等一般欄位:值已由 AddInsertParameter 走 Dapper 參數化,不可再手動 \ → \\
+                    // 轉義(會雙重轉義污染 Windows 路徑,S2 漏網)。
+                    values += AddInsertParameter(testerDeviceInfoParameters, ref testerDeviceInfoParameterIndex, "tester_device_info", ConvertEmptyToDefaultString(content.Tester_device_info.Rows[0][i].ToString()));
                 }
                 columns += "`" + column_name.Trim() + "`";
                 if (i != content.Tester_device_info.Columns.Count - 1)
@@ -1275,7 +1269,16 @@ namespace DCT_data_import.FileAccess
                         else
                         {
                             string val = ConvertEmptyToDefaultString(content.Fail_pin_rate_list_pin_ball.Rows[i][j].ToString());
-                            valuesBuilder.Append(AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", fail_pin_rate_list_Id[int.Parse(val) - 1].ToString()));
+                            // val 為 1-based 索引;外層 catch 雖已能接住 int.Parse/越界例外並清理,但 generic
+                            // 訊息無法定位是哪個外部 CSV 值壞掉。改 TryParse + 邊界檢查,錯誤訊息點名 val。
+                            if (!int.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out int listIndex)
+                                || listIndex < 1 || listIndex > fail_pin_rate_list_Id.Count)
+                            {
+                                writeToLog.WriteErrorLog($"'INSERT INTO fail_pin_rate_list_pin_ball' 無效的 fail_pin_rate_list_id 索引值 val='{val}'(需為 1..{fail_pin_rate_list_Id.Count} 的整數)");
+                                DeleteFailPinLog(DatabaseService, fail_pin_rate_info_Id);
+                                return false;
+                            }
+                            valuesBuilder.Append(AddInsertParameter(failPinRatePinBallParameters, ref failPinRatePinBallParameterIndex, "fail_pin_rate_list_pin_ball", fail_pin_rate_list_Id[listIndex - 1].ToString()));
                         }
                         if (j != content.Fail_pin_rate_list_pin_ball.Columns.Count - 1)
                         {

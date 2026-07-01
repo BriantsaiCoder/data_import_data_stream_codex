@@ -186,6 +186,14 @@ namespace DCT_data_import.ReadAndImport
                         line = reader.ReadLine();
                     }
                 }
+                // 找不到 "Net Name" 標頭行時 netNameLine 仍為空:若照常 CompleteSuccess 會靜默刪檔 →
+                // 資料遺失。改走 error path 保留檔案供排查,回空清單。
+                if (string.IsNullOrEmpty(netNameLine))
+                {
+                    writeToLog.WriteErrorLog("TSMC 之 CSV 找不到 Net Name 標頭行:" + ftpserver);
+                    MoveToError(ftpserver, errorPath);
+                    return netNameList;
+                }
                 netNameList = netNameLine.Split(',').ToList();
                 if (netNameList.Count > 0) netNameList.RemoveAt(0);
                 // 刪除已成功讀完的TSMC CSV檔案
