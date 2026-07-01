@@ -17,7 +17,7 @@
 | `DCT_data_import/Properties/AssemblyInfo.cs` | Assembly 中繼資料（版本 `2026.2.5.0`） | `Properties/AssemblyInfo.cs:33` |
 | `DCT_data_import/App.config` | 執行期設定（DB/FTP/SMTP/資料來源切換） | `App.config` |
 | `DCT_data_import/DCT_data_import.csproj` | SDK-style `net8.0-windows` + PackageReference 套件清單 | `DCT_data_import.csproj` |
-| `專案架構報告.md` / `專案架構視覺化.html` | 已刷新至 S2 SQL 參數化後的 root 架構導覽 | repo 根目錄 |
+| `專案架構視覺化.html` | opt-in 互動架構視覺化（衍生自 `docs/codebase/ARCHITECTURE.md` Mermaid 單一真實來源） | repo 根目錄 |
 
 ### 2) Entry Points
 

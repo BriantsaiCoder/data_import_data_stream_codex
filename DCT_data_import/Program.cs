@@ -23,9 +23,12 @@ namespace DCT_data_import
         public static string PASSWORD = ConfigurationManager.AppSettings[$"{Environment}Password"];
         public static string PORT = ConfigurationManager.AppSettings[$"{Environment}Port"];
         public static string DATABASE = ConfigurationManager.AppSettings[$"{Environment}Database"];
-        public static string FTP_IP = ConfigurationManager.ConnectionStrings["FtpIp"].ConnectionString;
-        public static string FTP_USER = ConfigurationManager.ConnectionStrings["FtpUser"].ConnectionString;
-        public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"].ConnectionString;
+        // 缺 connectionString key 時 ConnectionStrings[key] 回 null,直接 .ConnectionString 會在 static
+        // 初始化擲 NRE → 包成 TypeInitializationException,繞過 Main 的友善 catch。以 ?. 讓缺設定時為
+        // null,交由 Main 內的早期驗證擲 ConfigurationErrorsException 走友善訊息。
+        public static string FTP_IP = ConfigurationManager.ConnectionStrings["FtpIp"]?.ConnectionString;
+        public static string FTP_USER = ConfigurationManager.ConnectionStrings["FtpUser"]?.ConnectionString;
+        public static string FTP_PASSWORD = ConfigurationManager.ConnectionStrings["FtpPassword"]?.ConnectionString;
         static void Main(string[] args)
         {
             // net8 預設編碼 provider 不含 codepage 950(big5);全 importer 的 FTP CSV 都以 big5 解碼。
@@ -39,7 +42,17 @@ namespace DCT_data_import
                 // 不印明文密碼(S3 已知債):只標示是否已設定,避免帳密外洩到 console / log。
                 Console.WriteLine("PASSWORD: " + (string.IsNullOrEmpty(PASSWORD) ? "(unset)" : "********"));
                 Console.WriteLine("Environment: " + Environment);
-                FileProcess fileAccess = new FileProcess();
+                // 早期驗證 FTP 設定:缺 key 時上面的 ?. 讓欄位為 null,在此擲 ConfigurationErrorsException
+                // 復用 :159 的友善 catch,取代 thread 內延後才浮現的隱晦失敗。
+                if (string.IsNullOrEmpty(FTP_IP) || string.IsNullOrEmpty(FTP_USER) || string.IsNullOrEmpty(FTP_PASSWORD))
+                {
+                    throw new ConfigurationErrorsException("缺少必要的 FTP 連線設定(FtpIp / FtpUser / FtpPassword),請檢查 App.config 的 connectionStrings。");
+                }
+                // 每條 import thread 各持一個 FileProcess:其 MultiSiteRawDataLotInfoIsImported /
+                // MultiSiteRawDataLotInfoInsertId 是可變實例欄位,共用單一實例會在三 thread 間互相覆寫。
+                FileProcess fileAccessTester = new FileProcess();
+                FileProcess fileAccessUiStatus = new FileProcess();
+                FileProcess fileAccessTsmc = new FileProcess();
                 DatabaseService DatabaseService = new DatabaseService();
                 DbAccess dbAccess = new DbAccess();
                 int count = 0;
@@ -94,9 +107,9 @@ namespace DCT_data_import
                 //Console.WriteLine("uiStatus importResult1.Result: " + importResult1.Result);
                 //Console.ReadLine();
                 bool threadTesterAlive = false, threadUiStatusAlive = false, threadTsmcAlive = false;
-                Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccess, dbAccess, DatabaseService));
-                Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService));
-                Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccess, dbAccess, DatabaseService));
+                Thread threadTesterMode = new Thread(() => ImportTesterMode(fileAccessTester, dbAccess, DatabaseService));
+                Thread threadUiStatusMode = new Thread(() => ImportUiStatusMode(fileAccessUiStatus, dbAccess, DatabaseService));
+                Thread threadTsmcMode = new Thread(() => ImportTsmcMode(fileAccessTsmc, dbAccess, DatabaseService));
                 while (true)
                 {
                     try
@@ -107,17 +120,17 @@ namespace DCT_data_import
                         if (!threadTesterAlive)
                         {
                             threadTesterMode = RestartWorker(threadTesterMode,
-                                () => ImportTesterMode(fileAccess, dbAccess, DatabaseService), writeToLog, "TesterMode");
+                                () => ImportTesterMode(fileAccessTester, dbAccess, DatabaseService), writeToLog, "TesterMode");
                         }
                         if (!threadUiStatusAlive)
                         {
                             threadUiStatusMode = RestartWorker(threadUiStatusMode,
-                                () => ImportUiStatusMode(fileAccess, dbAccess, DatabaseService), writeToLog, "UiStatusMode");
+                                () => ImportUiStatusMode(fileAccessUiStatus, dbAccess, DatabaseService), writeToLog, "UiStatusMode");
                         }
                         if (!threadTsmcAlive)
                         {
                             threadTsmcMode = RestartWorker(threadTsmcMode,
-                                () => ImportTsmcMode(fileAccess, dbAccess, DatabaseService), writeToLog, "TsmcMode");
+                                () => ImportTsmcMode(fileAccessTsmc, dbAccess, DatabaseService), writeToLog, "TsmcMode");
                         }
                         #region 固定時間通報程式還活著
                         try
@@ -142,7 +155,7 @@ namespace DCT_data_import
                             Console.WriteLine($"程式狀態通知失敗: {notificationEx.Message}");
                         }
                         #endregion 固定時間通報程式還活著
-                        Thread.Sleep(432000); // 432000秒 --> 2H 執行一次
+                        Thread.Sleep(432000); // 432000 毫秒 ≈ 7.2 分鐘 執行一次
                         threadTesterAlive = threadTesterMode.IsAlive;
                         threadUiStatusAlive = threadUiStatusMode.IsAlive;
                         threadTsmcAlive = threadTsmcMode.IsAlive;

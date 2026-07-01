@@ -67,6 +67,12 @@
   .mermaid:not([data-processed]){font-family:"SFMono-Regular",Consolas,monospace; font-size:12px; color:var(--mut); text-align:left; white-space:pre-wrap}
   .mermaid svg{max-width:100%; height:auto}
 
+  /* 目錄樹 */
+  .tree{background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; overflow-x:auto;
+        font-family:"SFMono-Regular",Consolas,monospace; font-size:12.5px; line-height:1.55; color:#c9d1d9; white-space:pre}
+  .tree .c{color:var(--dim)}
+  .tree .d{color:var(--accent2)}
+
   /* threads */
   .thread{border-radius:10px; padding:16px; border:1px solid var(--line); background:var(--bg2)}
   .thread .th-name{font-weight:700; font-size:15px; font-family:monospace; margin-bottom:4px}
@@ -124,20 +130,28 @@
 <!-- ============ NAV ============ -->
 <nav>
   <div style="font-weight:700;font-size:15px;color:var(--txt)">DCT_data_import</div>
-  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 v3.0.0</div>
+  <div style="font-size:11.5px;color:var(--dim);margin-top:2px">架構視覺化 · 現況快照</div>
   <h2>導覽</h2>
   <a href="#overview">① 系統概觀</a>
   <a href="#context">② 系統情境</a>
   <a href="#stack">③ 技術棧</a>
-  <a href="#layers">④ 分層架構</a>
-  <a href="#flow">⑤ 資料流</a>
-  <a href="#threads">⑥ 三執行緒</a>
-  <a href="#processors">⑦ 七個處理器</a>
-  <a href="#checkstatus">⑧ CheckStatus 旗標</a>
-  <a href="#db">⑨ 資料庫存取</a>
-  <a href="#datamodel">⑩ 資料模型</a>
-  <a href="#risk">⑪ 風險與技術債</a>
-  <a href="#quickstart">⑫ 接手指南</a>
+  <a href="#tree">④ 目錄結構</a>
+  <a href="#layers">⑤ 分層架構</a>
+  <a href="#flow">⑥ 資料流</a>
+  <a href="#threads">⑦ 三執行緒</a>
+  <a href="#env">⑧ 環境與來源切換</a>
+  <a href="#processors">⑨ 七個處理器</a>
+  <a href="#checkstatus">⑩ CheckStatus 旗標</a>
+  <a href="#db">⑪ 資料庫 + 引擎</a>
+  <a href="#datamodel">⑫ 資料模型 + 狀態機</a>
+  <a href="#rollback">⑬ 錯誤回滾真相</a>
+  <a href="#crosscut">⑭ 橫切關注點</a>
+  <a href="#config">⑮ 設定參考</a>
+  <a href="#deploy">⑯ 部署與可觀測性</a>
+  <a href="#cicd">⑰ 建置／測試／CI</a>
+  <a href="#risk">⑱ 風險與技術債</a>
+  <a href="#glossary">⑲ 詞彙表</a>
+  <a href="#quickstart">⑳ 接手指南</a>
 </nav>
 
 <!-- ============ MAIN ============ -->
@@ -148,29 +162,37 @@
   <p class="lead" style="margin-top:8px">半導體 DCT 測試資料自動匯入 MySQL 的常駐背景服務 · 給接手者的一頁式導覽</p>
   <div class="meta">
     <span class="pill"><b>.NET</b> net8.0-windows</span>
+    <span class="pill"><b>類型</b> 長駐輪詢式多執行緒 ETL Console</span>
     <span class="pill"><b>資料來源</b> FTP / Local</span>
     <span class="pill"><b>資料存取</b> MySql.Data 9.4.0 + Dapper parameters</span>
-    <span class="pill"><b>原始碼</b> 5 層架構</span>
-    <span class="pill"><b>對應</b> Stream F Task 5 typed-only DB result surface</span>
-    <span class="pill"><b>版本</b> v3.0.0 · 2026-06-30</span>
+    <span class="pill"><b>呈現</b> arc42 + C4 + ETL 視圖 · 現況快照</span>
   </div>
   <div class="note" style="margin-top:18px;margin-bottom:0">
-    📎 本頁為 <a href="專案架構報告.md">專案架構報告.md</a> 的視覺化版本,圖表與報告共用同一份 Mermaid 來源。詳細的 <code>檔案:行</code> 與 commit 佐證請看報告全文。
+    📎 本頁為 opt-in 互動視覺化，圖表衍生自 <a href="docs/codebase/ARCHITECTURE.md">docs/codebase/ARCHITECTURE.md</a> 的 <b>Mermaid 單一真實來源</b>（本 HTML 為衍生產物，勿手改圖；改架構先更新 ARCHITECTURE.md 再同步本頁，diagram rot 視同 bug）。完整 <code>檔案:行</code> 佐證與工程細節見 <code>docs/codebase/</code> 七檔。
   </div>
 </div>
 
 <!-- ① OVERVIEW -->
 <section id="overview">
-  <h2 class="sec"><span class="num">1</span> 系統概觀</h2>
-  <p>一支長時間運行的背景服務,把半導體 <b>DCT(Direct Circuit Test)</b>測試結果檔從 FTP 或 LocalImportRoot 自動匯入 MySQL。啟動後進入<b>無限迴圈</b>,常駐三條工作執行緒,每約 <b>7.2 分鐘</b>輪詢一次待匯入資料。</p>
+  <h2 class="sec"><span class="num">1</span> 系統概觀與目標</h2>
+  <p>一支長時間運行的背景服務，把半導體 <b>DCT(Direct Circuit Test)</b>測試結果檔從 FTP 或 LocalImportRoot 自動匯入 MySQL。啟動後進入<b>無限迴圈</b>，常駐三條工作執行緒，每約 <b>7.2 分鐘</b>輪詢一次待匯入資料（非一次性 ETL 工具）。</p>
   <div class="grid g4" style="margin-top:14px">
     <div class="card"><h4>🎯 核心目的</h4><p>FTP / Local 測試檔 → 解析 → 驗證 → 批次寫入 MySQL</p></div>
     <div class="card"><h4>🔁 運行模式</h4><p>無限迴圈 + 三常駐執行緒(死亡自我復活)</p></div>
-    <div class="card"><h4>🚩 完整性判定</h4><p>4-bit <code>check_status</code> 旗標,逐子項加權比對</p></div>
+    <div class="card"><h4>🚩 完整性判定</h4><p>4-bit <code>check_status</code> 旗標，逐子項加權比對</p></div>
     <div class="card"><h4>📧 失敗處置</h4><p>回寫 <code>mail=1</code> + 下輪重做 + 寄通知信</p></div>
   </div>
+  <table style="margin-top:14px">
+    <thead><tr><th>品質目標</th><th>在架構中的落實</th></tr></thead>
+    <tbody>
+      <tr><td><b>資料正確性</b></td><td>check_status 位元完整性判定(⑩)、欄位 Compare* 驗證、統計值清洗(⑪)</td></tr>
+      <tr><td><b>長時穩定運行</b></td><td>三執行緒自我復活監督(⑦)、寄信前 Ping、Mutex 保護日誌(⑭)</td></tr>
+      <tr><td><b>跨環境單一 binary</b></td><td>靠執行機本機 IP 切 Dev/Prod，不需重編譯(⑧)</td></tr>
+      <tr><td><b>可安全試跑</b></td><td>DryRun 影子模式:解析比對照常、所有對外寫入轉 no-op(⑧)</td></tr>
+    </tbody>
+  </table>
   <div class="note" style="margin-top:14px">
-    資料來源由 <code>ImportSource</code> 決定:預設 FTP;<code>Local</code> 時從 <code>LocalImportRoot</code> 讀同一套相對路徑,成功後 Delete 或 Archive,並寫入 success log。
+    <b>無終端使用者登入</b>——這是背景批次服務。利害關係人:產線/測試工程師(資料消費者)、維運(部署監控執行機)、接手開發者(本頁主要讀者)。
   </div>
 </section>
 
@@ -196,7 +218,7 @@ flowchart LR
     SVC -->|"錯誤 / 缺料 / 週一狀態通知"| SMTP
   </pre>
   <div class="note">
-    無使用者登入(背景批次服務);DB / FTP 用 App.config 明文帳密、SMTP 匿名 relay(憑證債見 ⑪)。同一份 binary 跨環境共用,靠執行機本機 IP 切 Dev / Prod(見 ⑫)。
+    無使用者登入(背景批次服務);DB / FTP 用 App.config 明文帳密、SMTP 匿名 relay(憑證債見 ⑱)。同一份 binary 跨環境共用，靠執行機本機 IP 切 Dev / Prod(見 ⑧)。
   </div>
 </section>
 
@@ -205,21 +227,83 @@ flowchart LR
   <h2 class="sec"><span class="num">3</span> 技術棧</h2>
   <div class="grid g3">
     <div class="card"><h4>Runtime</h4><p>net8.0-windows · Console (Exe) · single TFM</p></div>
-    <div class="card"><h4>資料存取</h4><p>MySql.Data 9.4.0 + Dapper 2.1.66,Dapper 直連 MySQL + parameters</p></div>
-    <div class="card"><h4>專案格式</h4><p>SDK-style csproj + PackageReference;新增 <code>.cs</code> 自動納入</p></div>
-  </div>
-  <div class="note">
-    ✅ SDK-style 專案已不需要手動維護 <span class="kbd">&lt;Compile Include&gt;</span>;新增原始碼檔會由 SDK glob 納入。完整套件清單見 <code>docs/codebase/STACK.md</code>。
+    <div class="card"><h4>資料存取</h4><p>MySql.Data 9.4.0 + Dapper 2.1.66，直連 MySQL + parameters</p></div>
+    <div class="card"><h4>JSON / 設定</h4><p>Newtonsoft.Json 13.0.3(JArray)、ConfigurationManager 8.0.1</p></div>
+    <div class="card"><h4>編碼</h4><p>System.Text.Encoding.CodePages 8.0.0(big5 / codepage 950)</p></div>
+    <div class="card"><h4>安全 pin</h4><p>System.Private.Uri 4.3.2(transitive CVE pin)</p></div>
+    <div class="card"><h4>專案格式</h4><p>SDK-style csproj + PackageReference;<code>.cs</code> 由 SDK glob 自動納入</p></div>
   </div>
   <div class="note warn">
-    ⚠️ <b>組件版本寫死</b>:<code>AssemblyVersion 2026.2.5.0</code> 在 <code>Properties/AssemblyInfo.cs:33</code> 是靜態字面值(<code>GenerateAssemblyInfo=false</code>),改版本要手改該行。A4 後不再保留 net462 fallback,CI 與本機驗證以 single <code>net8.0-windows</code> 為準,production-like smoke 仍需 Windows + MySQL/FTP。
+    ⚠️ <b>MySql.Data 版本敏感</b>:升級會改變 <code>Convert Zero Datetime</code>、微秒、<code>DateTimeKind</code> 行為(已有 round-trip 測試把關，見 ⑰)，升級前先過這些 characterization 測試。
+  </div>
+  <div class="note warn">
+    ⚠️ <b>組件版本寫死</b>:<code>AssemblyVersion 2026.2.5.0</code> 在 <code>Properties/AssemblyInfo.cs:33</code> 是靜態字面值(<code>GenerateAssemblyInfo=false</code>)，改版本要手改該行。完整套件清單 / 版本 pin 見 <code>docs/codebase/STACK.md</code>。
   </div>
 </section>
 
-<!-- ④ LAYERS -->
+<!-- ④ TREE -->
+<section id="tree">
+  <h2 class="sec"><span class="num">4</span> 專案目錄結構</h2>
+  <p>資料夾即 namespace(<code>Common/</code> → <code>DCT_data_import.Common</code>…，<code>NamespaceConventionTests</code> 把關;<code>Program</code> / <code>ImportDecision</code> 保留 root namespace)。帶職責註解的完整樹(25 個來源 <code>.cs</code> + 23 個測試 <code>.cs</code>):</p>
+  <div class="tree"><span class="d">DCT_data_import_data_stream_codex/</span>
+├── DCT_data_import.sln                    <span class="c"># VS 方案（主專案 + 測試專案）</span>
+├── CLAUDE.md / AGENTS.md                  <span class="c"># AI 協作守則（踩雷點 + 守則）</span>
+├── 專案架構視覺化.html                     <span class="c"># 本頁（衍生自 docs/codebase/ARCHITECTURE.md Mermaid）</span>
+├── <span class="d">.github/workflows/</span>ci.yml               <span class="c"># CI：windows-latest（restore+NuGetAudit+build+test）</span>
+├── <span class="d">docs/codebase/</span>                         <span class="c"># 七檔工程文件（權威細節來源）</span>
+│   ├── STACK / STRUCTURE / ARCHITECTURE / CONVENTIONS
+│   ├── INTEGRATIONS / TESTING / CONCERNS  .md
+│   └── NET8_UPGRADE_TEST_STRATEGY.md      <span class="c"># 歷史遷移策略（非 live stack 權威）</span>
+│
+├── <span class="d">DCT_data_import/</span>                       <span class="c">── 主專案（net8.0-windows Console Exe）──</span>
+│   ├── Program.cs                          <span class="c"># 進入點：環境偵測 + 三執行緒監督輪詢</span>
+│   ├── ImportDecision.cs                    <span class="c"># 派工決策 seam（check_status → 跑哪些 importer）</span>
+│   ├── App.config                          <span class="c"># 執行期設定（DB/FTP/SMTP/來源/DryRun；明文帳密 S1）</span>
+│   ├── Properties/AssemblyInfo.cs           <span class="c"># 組件中繼資料（版本字面值 2026.2.5.0）</span>
+│   ├── <span class="d">ReadAndImport/</span>                       <span class="c"># 匯入協調層（業務解析；Template Method）</span>
+│   │   ├── ImportData.cs                    <span class="c">#   基底：big5 / 來源操作 / 路徑 / 成功紀錄</span>
+│   │   ├── ImportFileSource.cs              <span class="c">#   FTP/Local 來源抽象（IImportFileSource + Factory）</span>
+│   │   ├── RawData.cs / MultiSpecRawData.cs <span class="c">#   原始測試結果（+ 多 site fallback）</span>
+│   │   ├── Tester.cs / FailPin.cs           <span class="c">#   機台狀態 / 失效針腳</span>
+│   │   ├── RecoveryRate.cs / UiStatus.cs    <span class="c">#   回收率 / UI 狀態（後者獨立於 check_status）</span>
+│   │   └── TsmcIeda.cs                      <span class="c">#   TSMC IEDA 固定寬度 → ieda_title/content</span>
+│   ├── <span class="d">FileAccess/</span>                          <span class="c"># 檔案↔DB 橋接層</span>
+│   │   ├── FileProcess.cs                   <span class="c">#   匯入引擎：DataTable→參數化 INSERT + 批次 + cascade DELETE（最高扇入）</span>
+│   │   ├── FileContentFormat.cs             <span class="c">#   5 CSV + 1 IEDA 固定寬度欄位契約 + Compare* 驗證</span>
+│   │   ├── CsvColumnNames.cs                <span class="c">#   CSV 欄位常數（含兩種 db_key header 契約）</span>
+│   │   └── ReadWriteINIfile.cs              <span class="c">#   kernel32 P/Invoke INI 讀寫（Windows-only）</span>
+│   ├── <span class="d">DbApi/</span>                               <span class="c"># DB 服務層</span>
+│   │   ├── DbAccess.cs                      <span class="c">#   db_key 控制表 + ComputeImportResult（⑩）</span>
+│   │   ├── DatabaseService.cs               <span class="c">#   typed ExecuteQuery/ExecuteCommand + 存在性檢查</span>
+│   │   └── DbObject.cs                      <span class="c">#   DbSqlRequest / DbQueryResult / DbCommandResult</span>
+│   ├── <span class="d">MySqlApi/</span>DBmysql.cs                   <span class="c"># MySQL 直連 + Dapper + 連線單例 + DryRun no-op</span>
+│   ├── <span class="d">Common/</span>                              <span class="c"># 橫切共用服務</span>
+│   │   ├── WriteToLog.cs                    <span class="c">#   Mutex 保護日誌（最高扇入）</span>
+│   │   ├── NotificationService.cs           <span class="c">#   寄信編排（週一 08:00 狀態窗）</span>
+│   │   ├── EmailModels.cs                   <span class="c">#   SMTP 發送器（Ping 前檢 + DryRun no-op）</span>
+│   │   ├── CalculateSPC.cs                  <span class="c">#   SPC 統計（avg2=E[x²]、暖機剔除）</span>
+│   │   └── RuntimeMode.cs                   <span class="c">#   DryRun 旗標讀取</span>
+│   └── <span class="d">sql/</span>dct.sql                         <span class="c"># 影子 schema 初始化參考（正式 schema 外部維護）</span>
+│
+└── <span class="d">DCT_data_import.Tests/</span>                  <span class="c">── 測試專案（net8.0-windows xUnit，23 檔）──</span>
+    ├── CheckStatusWeightedSumTests          <span class="c">#   R5 bitmask 正規化回歸（⑩）</span>
+    ├── ThreadSupervisorTests                <span class="c">#   執行緒監督/自我復活（⑦）</span>
+    ├── DryRunModeTests / SqlParameterizationTests   <span class="c">#   影子模式 / SQL 參數化</span>
+    ├── AppConfigContractTests / NamespaceConventionTests  <span class="c">#   設定契約 / namespace 對齊</span>
+    ├── Big5DecodeTests + EncodingTestBootstrap       <span class="c">#   big5 解碼 + provider 註冊</span>
+    ├── ImportDecisionTests / LocalImportFileSourceTests
+    ├── EmailRecipientGuardTests / WriteToLogPathTests
+    ├── ValidateAndConvertStatisticValueTests / CalculateSpcTests
+    ├── FileContentFormatTests / FileProcessHelperTests
+    └── DateTime* / MySqlData* / Double* / SpecialFloat* / Parser*  <span class="c"># net8 characterization</span>
+  </div>
+  <div class="note">每檔行數 / 方法清單見 <code>docs/codebase/STRUCTURE.md</code>。</div>
+</section>
+
+<!-- ⑤ LAYERS -->
 <section id="layers">
-  <h2 class="sec"><span class="num">4</span> 分層架構</h2>
-  <p>每層只依賴下層;<code>Common/</code> 為各層共用(虛線)。模組職責表見 <code>docs/codebase/ARCHITECTURE.md</code>。</p>
+  <h2 class="sec"><span class="num">5</span> 分層架構</h2>
+  <p>風格:<b>分層 + 批次輪詢的多執行緒 ETL pipeline</b>。每層只依賴下層;<code>Common/</code> 為各層共用(虛線)。模組職責表見 <code>docs/codebase/ARCHITECTURE.md</code>。</p>
   <pre class="mermaid">
 flowchart TB
     L1["進入點層 · Program.cs&lt;br/&gt;環境偵測 / 三執行緒監督 / bitmask 派工"]
@@ -232,11 +316,20 @@ flowchart TB
     L3 -.-> L5
     L4 -.-> L5
   </pre>
+  <table>
+    <thead><tr><th>模式</th><th>位置</th><th>為何存在</th></tr></thead>
+    <tbody>
+      <tr><td>Template Method</td><td>ImportData 基底 + 7 子處理器</td><td>共用 big5/FTP/路徑工具，子類各自實作 ReadAndImport{Type}</td></tr>
+      <tr><td>Singleton(連線字串)</td><td>DBmysql 的 MySqlConnectionManager(volatile+lock)</td><td>全域共用連線字串，單次初始化，池 Min5/Max100</td></tr>
+      <tr><td>Service 包裝</td><td>DatabaseService 包 DBmysql</td><td>統一輸入驗證與錯誤訊息脫敏</td></tr>
+      <tr><td>Status-flag state machine</td><td>db_key 表 check_status/import_status/mail</td><td>以 DB 旗標驅動「待處理/已匯入/待寄信」(⑫)</td></tr>
+    </tbody>
+  </table>
 </section>
 
-<!-- ⑤ FLOW -->
+<!-- ⑥ FLOW -->
 <section id="flow">
-  <h2 class="sec"><span class="num">5</span> 資料流</h2>
+  <h2 class="sec"><span class="num">6</span> 資料流</h2>
   <p>單批 DB_Key 的處理流程。</p>
   <pre class="mermaid">
 flowchart LR
@@ -248,43 +341,61 @@ flowchart LR
     E -->|不符| G["import_status=2 + mail=1&lt;br/&gt;寫 mail_temp + 下輪重做"]
   </pre>
   <div class="note">
-    成功時:清理來源檔並寫 <code>DCT_data_import_Success_Log_yyyy_MM_dd.txt</code>。失敗時:回寫 <code>db_key.mail=1</code> + 寫本機 <code>mail_temp.txt</code> → 7.2 分鐘迴圈下輪重撈未完成的 DB_Key 重做。<b>沒有真實 DB transaction</b>(見 ⑪)。
-  </div>
-  <div class="note warn">
-    <b>影子驗證模式(DryRun)</b>:<code>App.config</code> 設 <code>DryRun=true</code>(預設 false、缺 key 亦 false)時整條 ETL 變唯讀 —— DB 寫入(含 cascade delete)、FTP 刪/改名、Local 搬檔、寄信全部轉 no-op,只解析/比對並保留 <code>mail_temp.txt</code> 供比對;SELECT 仍照常。供 .NET 8 cutover 影子試跑與資料污染回滾防護(<code>Common/RuntimeMode.cs</code> · <code>DBmysql.cs:98</code> · <code>EmailModels.cs:25</code>)。
+    成功時:清理來源檔並寫 <code>DCT_data_import_Success_Log_yyyy_MM_dd.txt</code>。失敗時:回寫 <code>db_key.mail=1</code> + 寫本機 <code>mail_temp.txt</code> → 7.2 分鐘迴圈下輪重撈未完成的 DB_Key 重做。<b>沒有真實 DB transaction</b>(見 ⑬)。
   </div>
 </section>
 
-<!-- ⑥ THREADS -->
+<!-- ⑦ THREADS -->
 <section id="threads">
-  <h2 class="sec"><span class="num">6</span> 三執行緒模型 <span class="badge" style="background:#f8514922;color:var(--red);border:1px solid #f8514955">舊報告誤述為兩模式</span></h2>
-  <p>Main 無限迴圈常駐三條工作執行緒。迴圈偵測死亡執行緒並透過 <code>RestartWorker</code> 以 <code>Interrupt → new → Start</code> 重啟;現行程式不再呼叫 <code>Thread.Abort()</code>。</p>
+  <h2 class="sec"><span class="num">7</span> 執行期視圖：三執行緒模型</h2>
+  <p><code>Main</code>(<code>Program.cs:29</code>)無限迴圈常駐三條工作執行緒(<code>Program.cs:97-99</code>)。迴圈偵測死亡執行緒並透過 <code>RestartWorker</code>(<code>Program.cs:198</code>)以 <code>Interrupt → new → Start</code> 重啟;<code>Thread.Abort()</code> 在 net5+ 已停用，僅保留註解。</p>
   <div class="grid g3" style="margin-top:14px">
     <div class="thread t1">
       <div class="th-name">ImportTesterMode</div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Tester 模式</div>
-      <p style="font-size:13px;color:var(--mut)">主要測試資料:RawData / Tester / FailPin / RecoveryRate / MultiSpec,並計算 <code>check_status</code>。</p>
+      <p style="font-size:13px;color:var(--mut)">主要測試資料:RawData / Tester / FailPin / RecoveryRate / MultiSpec，並計算 <code>check_status</code>。</p>
     </div>
     <div class="thread t2">
       <div class="th-name">ImportUiStatusMode</div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:8px">UiStatus 模式</div>
-      <p style="font-size:13px;color:var(--mut)">獨立處理 UI 狀態,寫 <code>ui_status</code> 表。<b>不在 check_status 旗標內</b>。</p>
+      <p style="font-size:13px;color:var(--mut)">獨立處理 UI 狀態，寫 <code>ui_status</code> 表。<b>不在 check_status 旗標內</b>。</p>
     </div>
     <div class="thread t3">
       <div class="th-name">ImportTsmcMode</div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:8px">TSMC 模式</div>
-      <p style="font-size:13px;color:var(--mut)">TSMC IEDA 對接,固定寬度解析。<b>不讀 DB 的 DB_Key 清單</b>,直接掃 FTP 目錄。</p>
+      <p style="font-size:13px;color:var(--mut)">TSMC IEDA 對接，固定寬度解析。<b>不讀 DB 的 DB_Key 清單</b>，直接掃 FTP 目錄。</p>
     </div>
   </div>
   <div class="note danger">
-    🐞 <b>單位陷阱</b>:<code>Thread.Sleep(432000)</code> 註解寫「2H」,但 432000 <b>毫秒</b> = 432 秒 = <b>7.2 分鐘</b>。實際輪詢週期是 7.2 分鐘,不是 2 小時。
+    🐞 <b>單位陷阱</b>:<code>Thread.Sleep(432000)</code>(<code>Program.cs:145</code>)註解寫「2H」，但 432000 <b>毫秒</b> = 432 秒 = <b>7.2 分鐘</b>。實際輪詢週期是 7.2 分鐘，不是 2 小時;錯誤時 <code>Thread.Sleep(30000)</code>(<code>:155</code>)退避 30 秒再重試。
+  </div>
+  <div class="note">
+    <code>Main</code> 啟動只輸出 HOST/USER 與 PASSWORD set/unset，<b>不印 PASSWORD 明文</b>;新增啟動輸出要維持遮罩(⑱ 風險 1/2)。
   </div>
 </section>
 
-<!-- ⑦ PROCESSORS -->
+<!-- ⑧ ENV -->
+<section id="env">
+  <h2 class="sec"><span class="num">8</span> 環境與資料來源切換</h2>
+  <p>靠執行機本機 IPv4 硬編碼判定，<b>不是 build configuration</b>(<code>GetEnvironment</code> <code>Program.cs:224</code> / <code>GetLocalIPAddress</code> <code>:243</code>)。</p>
+  <div class="grid g2">
+    <div class="card"><h4>環境路由</h4><p><code>productionIps = {"10.16.92.67","10.16.92.68"}</code>(<code>Program.cs:231</code>)命中即 <b>Prod</b>，否則 <b>Dev</b>。連線鍵以字串串接 <code>${Environment}Host</code> 對應 App.config。</p></div>
+    <div class="card"><h4>FTP 根路徑分環境</h4><p>Dev <code>/DCT_Log/DCT_DB_DATA_Dev/</code>;Prod <code>/DCT_Log/DCT_DB_DATA/</code>。</p></div>
+  </div>
+  <div class="note warn">
+    ⚠️ <b>Release build 不會自動指向 Prod</b>——環境選擇是 runtime 邏輯，純看執行該程式的機器 IP(換機/換 IP 即失效，⑱ 風險 6)。
+  </div>
+  <h3>資料來源(FTP / Local)</h3>
+  <p><code>ImportFileSourceFactory.Create()</code> 依 <code>ImportSource</code> 建立來源——預設 <code>Ftp</code>;<code>Local</code> 時從 <code>LocalImportRoot</code> 讀同一套相對路徑，成功後依 <code>LocalSuccessAction</code> 決定 <code>Delete</code>(預設)或移到 <code>Imported/</code>。</p>
+  <div class="note warn">
+    <b>影子驗證模式(DryRun)</b>:<code>App.config</code> 設 <code>DryRun=true</code>(預設 false、缺 key 亦 fail-safe OFF;<code>RuntimeMode.cs:24</code>)時整條 ETL 變唯讀 —— DB 寫入(含 ⑬ cascade delete，<code>DBmysql.cs:98</code>)、FTP 刪/改名、Local 搬檔(<code>ImportFileSource.cs:221,237,316,336</code>)、寄信(<code>EmailModels.cs:25</code>)全部轉 no-op，只解析/比對並保留 <code>mail_temp.txt</code> 供比對;SELECT 仍照常。check_status / import_status 照常計算，只是結果不落地。用途:cutover 影子試跑與資料污染回滾防護。
+  </div>
+</section>
+
+<!-- ⑨ PROCESSORS -->
 <section id="processors">
-  <h2 class="sec"><span class="num">7</span> 七個格式處理器</h2>
-  <p><code>ImportData.cs</code> 是基底類別(big5 / FTP / 路徑);以下 7 個處理器繼承它。<span style="color:var(--red)">舊報告誤列的 <code>*Refactored.cs</code> 全部不存在。</span>各處理器行數與方法見 <code>docs/codebase/STRUCTURE.md</code>。</p>
+  <h2 class="sec"><span class="num">9</span> 七個格式處理器</h2>
+  <p><code>ImportData.cs</code> 是基底類別(big5 / FTP / 路徑);以下 7 個處理器繼承它。各處理器行數與方法見 <code>docs/codebase/STRUCTURE.md</code>。</p>
   <div class="grid g2" style="margin-top:14px">
     <div class="card">
       <h4>RawData</h4>
@@ -295,7 +406,7 @@ flowchart LR
     <div class="card">
       <h4>MultiSpecRawData <span class="tag" style="background:#d2992233;color:var(--amber)">fallback</span></h4>
       <div class="file">ReadAndImport/MultiSpecRawData.cs</div>
-      <p>僅 RawData result==0 時啟用(<code>e30b06c</code> 收斂)。搜尋 <code>test_result_site*_{dbKey}.csv</code>,多 site 共用單一 lots_info。</p>
+      <p>僅在 RawData result==0 時啟用(避免誤觸 fallback)。搜尋 <code>test_result_site*_{dbKey}.csv</code>，多 site 共用單一 lots_info。</p>
       <p style="color:var(--red)">⚠️ 多 site 部分失敗 → 前段不回滾(partial import)。</p>
     </div>
     <div class="card">
@@ -308,7 +419,7 @@ flowchart LR
       <h4>FailPin</h4>
       <div class="file">ReadAndImport/FailPin.cs</div>
       <p>表:<code>fail_pin_rate_info / _list / _list_pin_ball / _test_result</code></p>
-      <p><b>SN Num 相容</b>:新 dataStartIndex=4 / 舊=3,HasSnNum 旗標切換。'@' 分隔測試結果。</p>
+      <p><b>SN Num 相容</b>:新 dataStartIndex=4 / 舊=3，HasSnNum 旗標切換。'@' 分隔測試結果。</p>
     </div>
     <div class="card">
       <h4>RecoveryRate</h4>
@@ -318,20 +429,20 @@ flowchart LR
     <div class="card">
       <h4>UiStatus <span class="tag" style="background:#8b949e33;color:var(--mut)">最簡單</span></h4>
       <div class="file">ReadAndImport/UiStatus.cs</div>
-      <p>單一 <code>ui_status</code> 表,無重複檢查,純同步。<b>獨立於 check_status</b>。</p>
+      <p>單一 <code>ui_status</code> 表，無重複檢查，純同步。<b>獨立於 check_status</b>。</p>
     </div>
     <div class="card" style="grid-column:1/-1">
       <h4>TsmcIeda <span class="tag" style="background:#bc8cff33;color:var(--purple)">唯一固定寬度</span></h4>
       <div class="file">ReadAndImport/TsmcIeda.cs</div>
-      <p>唯一以 <code>Substring</code> 固定寬度解析、唯一純同步、唯一 ListDirectory 批次。<code>lot_mapping.csv → ase_lot</code>(讀入記憶體快取,不寫獨立表);寫 <code>ieda_title / ieda_content</code>。IEDA/CSV/LotID 路徑已收斂到 ImportData / IImportFileSource helper。</p>
+      <p>唯一以 <code>Substring</code> 固定寬度解析、唯一純同步、唯一 ListDirectory 批次。<code>lot_mapping.csv → ase_lot</code>(讀入記憶體快取，不寫獨立表);寫 <code>ieda_title / ieda_content</code>。IEDA/CSV/LotID 路徑已收斂到 ImportData / IImportFileSource helper。</p>
     </div>
   </div>
 </section>
 
-<!-- ⑧ CHECKSTATUS -->
+<!-- ⑩ CHECKSTATUS -->
 <section id="checkstatus">
-  <h2 class="sec"><span class="num">8</span> CheckStatus 位元旗標 <span class="badge" style="background:#f8514922;color:var(--red);border:1px solid #f8514955">舊報告位元順序相反</span></h2>
-  <p>判定「一筆 DB_Key 是否完整匯入」的核心機制。<b>點擊下方各位元</b>計算 importResult,並與目標 check_status 比對。</p>
+  <h2 class="sec"><span class="num">10</span> CheckStatus 位元旗標 <span class="badge" style="background:#3fb95022;color:var(--green);border:1px solid #3fb95055">GROUND TRUTH</span></h2>
+  <p>判定「一筆 DB_Key 是否完整匯入」的核心機制。<b>點擊下方各位元</b>計算 importResult，並與目標 check_status 比對。</p>
   <div class="cs-wrap" style="margin-top:16px">
     <div>
       <div class="bits" id="bits">
@@ -342,10 +453,10 @@ flowchart LR
       </div>
       <div class="note" style="margin-top:16px">
         <b>公式</b>:<code>importResult = 8×RecoveryRate + 4×Tester + 2×TestResult + 1×FailPin</code><br>
-        範圍 <b>0–15</b>。各子項先正規化為 <code>Result==1?1:0</code>(<b>不可</b>用 Math.Min,會把失敗碼 2/3 當成功)。只有 <code>importResult == db_key.check_status</code> 時,<code>import_status</code> 才設為 1(<code>DbAccess.cs:179</code>)。
+        範圍 <b>0–15</b>。各子項先正規化為 <code>Result==1?1:0</code>(<b>不可</b>用 Math.Min，會把失敗碼 2/3 當成功)。只有 <code>importResult == db_key.check_status</code> 時，<code>import_status</code> 才設為 1(<code>DbAccess.cs:179</code>;比對在 <code>:221</code>)。
       </div>
       <div class="note warn">
-        ⚠️ <b>UiStatus 不在這個旗標內</b>——它寫獨立的 <code>db_key_ui_status</code> 表。舊報告的 bit4=UiStatus、CheckStatus=31 範例皆錯誤。
+        ⚠️ <b>UiStatus 不在這個旗標內</b>——它走獨立的 <code>db_key_ui_status</code> 表 + <code>UpdateDbKeyUiStatusImportStatus</code>(<code>DbAccess.cs:253</code>，公式 <code>importResult = uiStatus</code>)。把它與 bit0–3 並列為同一 mask 是概念混用。
       </div>
     </div>
     <div class="cs-calc">
@@ -360,9 +471,9 @@ flowchart LR
   </div>
 </section>
 
-<!-- ⑨ DB -->
+<!-- ⑪ DB + ENGINE -->
 <section id="db">
-  <h2 class="sec"><span class="num">9</span> 資料庫存取層</h2>
+  <h2 class="sec"><span class="num">11</span> 資料庫存取層 + 匯入引擎</h2>
   <div class="grid g2">
     <div class="card">
       <h4>DbAccess.cs <span class="tag" style="background:#3fb95033;color:var(--green)">控制表</span></h4>
@@ -374,7 +485,7 @@ flowchart LR
     </div>
     <div class="card">
       <h4>DBmysql.cs <span class="tag" style="background:#3fb95033;color:var(--green)">typed-only</span></h4>
-      <p>每次 <code>new MySqlConnection</code>;<code>MySqlConnectionManager</code> 單例連線字串(池 Min5/Max100)。<code>FilterSqlCommand</code> 為 S2 前殘留防線。</p>
+      <p>每次 <code>new MySqlConnection</code>;<code>MySqlConnectionManager</code> 單例連線字串(池 Min5/Max100)。<code>FilterSqlCommand</code> 為 S2 前殘留防線，非主要安全控制。</p>
     </div>
     <div class="card">
       <h4>DbObject.cs <span class="tag" style="background:#bc8cff33;color:var(--purple)">回應契約</span></h4>
@@ -382,14 +493,22 @@ flowchart LR
     </div>
   </div>
   <div class="note">
-    ⚠️ <b>錯誤以 <code>Error</code> 字串傳遞,不拋例外</b>:呼叫端必須主動 <code>string.IsNullOrEmpty(response.Error)</code> 檢查。現況是 Dapper 直連 MySQL,<b>沒有外部 HTTP API Service</b>(舊報告所述 API surface 已清理;Task 5 後 DB result surface 為 typed-only)。
+    ⚠️ <b>錯誤以 <code>Error</code> 字串傳遞，不拋例外</b>:呼叫端必須主動 <code>string.IsNullOrEmpty(response.Error)</code> 檢查，否則錯誤被靜默吞掉。現況是 Dapper 直連 MySQL，<b>沒有外部 HTTP API Service、沒有自動建表、沒有 ORM 真實事務</b>——DB result surface 為 typed-only。
+  </div>
+  <h3>匯入引擎(FileProcess.cs)</h3>
+  <p>全部 <code>Import*</code> 集中於此，是最大的單檔、扇入極高(動它前先列依賴方)。</p>
+  <div class="grid g2">
+    <div class="card"><h4>參數化 chokepoint</h4><p>INSERT/DELETE 值走 Dapper parameters;<code>ExecuteInsert</code>(<code>FileProcess.cs:1414</code>)統一接 <code>DynamicParameters</code>，以 <b>identifier guard</b> 擋非法 table/column name。新增寫入路徑<b>不得繞過</b> ExecuteInsert。</p></div>
+    <div class="card"><h4>批次切割(寫死在程式)</h4><p><code>lots_statistic</code>:cut=10000/test_count;<code>recovery_rate</code>/<code>lots_result</code>:5000/批;<code>fail_pin</code>:50/批。大型批次已改 <code>StringBuilder</code>，小表單筆路徑仍 <code>values += ...</code>。</p></div>
+    <div class="card"><h4>統計值清洗</h4><p><code>ValidateAndConvertStatisticValue</code>(<code>FileProcess.cs:1697</code>)把 <code>-1.#IND</code>、<code>1.#QNAN</code> 轉為 0。</p></div>
+    <div class="card"><h4>其他</h4><p><code>tester_status</code> 只取第一列;「事務回滾」實為 best-effort cascade DELETE(見 ⑬)。</p></div>
   </div>
 </section>
 
-<!-- ⑩ DATA MODEL -->
+<!-- ⑫ DATA MODEL -->
 <section id="datamodel">
-  <h2 class="sec"><span class="num">10</span> 資料模型</h2>
-  <p>本服務寫入的匯入表與關聯。<b>實線</b> = FK <code>on delete cascade</code>;<b>虛線</b> = 僅靠 index / 欄位值的軟關聯(無 FK,刪父表不連帶)。</p>
+  <h2 class="sec"><span class="num">12</span> 資料模型 + 狀態機</h2>
+  <p>本服務寫入的匯入表與關聯。<b>實線</b> = FK <code>on delete cascade</code>;<b>虛線</b> = 僅靠 index / 欄位值的軟關聯(無 FK，刪父表不連帶)。完整 DDL 見 <code>DCT_data_import/sql/dct.sql</code>。</p>
   <pre class="mermaid">
 erDiagram
     db_key ||..o{ lots_info : "db_key 值"
@@ -408,42 +527,217 @@ erDiagram
     db_key_ui_status ||..o{ ui_status : "匯入批次對應 無FK"
   </pre>
   <div class="note warn">
-    ⚠️ <code>tester_sw_version</code> / <code>ieda_content</code> / <code>ui_status</code> <b>無 FK cascade</b>,父表刪除不會自動連帶,回滾全靠 app 端 DELETE 順序(見 ⑪)。<code>db_key</code> 是所有匯入根表的邏輯關聯鍵(每張根表帶 db_key 欄回指控制表,非 FK)。
+    ⚠️ <code>tester_sw_version</code> / <code>ieda_content</code> / <code>ui_status</code> <b>無 FK cascade</b>，父表刪除不會自動連帶，回滾全靠 app 端 DELETE 順序(見 ⑬)。<code>db_key</code> 是所有匯入根表的邏輯關聯鍵(每張根表帶 db_key 欄回指控制表，非 FK)。
   </div>
+  <h3>控制表 db_key 狀態機(狀態在 DB 不在程式)</h3>
+  <pre class="mermaid">
+stateDiagram-v2
+    [*] --> 待處理: 新 DB_Key（import_status=0, check_status&gt;0, mail=0）
+    待處理 --> 完整匯入: importResult == check_status&lt;br/&gt;import_status=1
+    待處理 --> 不符: importResult != check_status&lt;br/&gt;import_status=2, mail=1, 寫 mail_temp
+    不符 --> 待處理: 7.2 分鐘下輪重撈重做
+    完整匯入 --> [*]
+  </pre>
+  <h3>來源檔 → 處理器 → 資料表映射</h3>
+  <table>
+    <thead><tr><th>來源檔</th><th>處理器</th><th>寫入表</th><th>觸發 bit</th></tr></thead>
+    <tbody>
+      <tr><td>原始測試結果檔</td><td>RawData</td><td class="mono">lots_info / lots_statistic / lots_result</td><td>bit1 TestResult</td></tr>
+      <tr><td>test_result_site*(多 site)</td><td>MultiSpecRawData</td><td class="mono">同 RawData(共用 lots_info)</td><td>bit1</td></tr>
+      <tr><td>機台狀態檔</td><td>Tester</td><td class="mono">tester_device_info / _status / _sw_version / _production_analysis</td><td>bit2 Tester</td></tr>
+      <tr><td>失效針腳檔</td><td>FailPin</td><td class="mono">fail_pin_rate_info / _list / _list_pin_ball / _test_result</td><td>bit0 FailPin</td></tr>
+      <tr><td>回收率檔</td><td>RecoveryRate</td><td class="mono">recovery_rate</td><td>bit3 RecoveryRate</td></tr>
+      <tr><td>UI 狀態檔</td><td>UiStatus</td><td class="mono">ui_status</td><td>獨立 db_key_ui_status</td></tr>
+      <tr><td>TSMC IEDA 固定寬度 + lot_mapping.csv</td><td>TsmcIeda</td><td class="mono">ieda_title / ieda_content</td><td>獨立 pipeline</td></tr>
+    </tbody>
+  </table>
   <div class="note">
-    📋 完整 17 張表清單、寫入者與「來源檔→處理器→表」映射見 <a href="專案架構報告.md">報告 §11 資料模型</a>;DDL 見 <code>DCT_data_import/sql/dct.sql</code>。控制表 <code>db_key</code> 欄位:<code>check_status</code>(預期值)/ <code>import_status</code>(0 待處理 / 1 完整 / 2 不符)/ <code>mail</code>(待寄信)。
+    控制表 <code>db_key</code> 欄位:<code>check_status</code>(預期值)/ <code>import_status</code>(0 待處理 / 1 完整 / 2 不符)/ <code>mail</code>(待寄信)。待匯入查詢 <code>WHERE check_status&gt;0 AND import_status=0 AND mail=0</code>(<code>DbAccess.cs:100</code>)。寫入欄位細節見 <code>docs/codebase/INTEGRATIONS.md</code>。
   </div>
 </section>
 
-<!-- ⑪ RISK -->
+<!-- ⑬ ROLLBACK -->
+<section id="rollback">
+  <h2 class="sec"><span class="num">13</span> 錯誤回滾的真相 <span class="badge" style="background:#d2992222;color:var(--amber);border:1px solid #d2992255">best-effort</span></h2>
+  <div class="note danger">
+    <b>沒有真實 DB transaction 保護整個匯入單元。</b>失敗時以串接 DELETE 嘗試清掉已寫入資料，有兩個已知缺口。
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>① lots_result 失敗 → 殘留 orphan</h4><p>lots_info 與 lots_statistic 已先寫入，若 lots_result 失敗，DELETE 不一定清得乾淨。</p></div>
+    <div class="card"><h4>② MultiSpec 多 site 失敗 → 部分匯入</h4><p>後段 site 失敗，<b>前段已成功的 site 不回滾</b>。</p></div>
+  </div>
+  <div class="note">
+    此外，<b>無 FK cascade 的子表</b>(tester_sw_version / ieda_content / ui_status，見 ⑫)即使父表被刪也不會自動連帶，更依賴 app 端 DELETE 順序正確。也<b>沒有通用的重試/狀態復原機制</b>:唯一重試是 <code>TsmcIeda.GetNetNameList</code> 的一次性遞迴。狀態「復原」靠 <code>import_status</code> 標記 + 失敗回寫 <code>mail=1</code> + 7.2 分鐘迴圈下輪重撈重做。
+  </div>
+</section>
+
+<!-- ⑭ CROSSCUT -->
+<section id="crosscut">
+  <h2 class="sec"><span class="num">14</span> 橫切關注點</h2>
+  <div class="note">
+    <b>同步模型:明確同步阻塞。</b>importer 回 <code>ImportResult</code> 由 worker thread 直接呼叫;DB API 同步 <code>ExecuteQuery</code>/<code>ExecuteCommand</code>;<code>WriteToLog</code> 刻意用同步 <code>StreamWriter.WriteLine</code>(避免 fire-and-forget 丟日誌)。非「真 async」;要提升 I/O 併發需另設計 async DB/FTP path。
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>NotificationService</h4><p>收件人從 <code>dct_import_mail_list.ini</code> 的 <code>[mail_list]</code> 讀;<b>發信時窗硬編碼</b>——只在<b>週一 08:00–08:09</b> 回報平安。⚠️ ui_status 失敗通知<b>被註解停用</b>。</p></div>
+    <div class="card"><h4>EmailModels</h4><p>純 SMTP 發送器，server/from 由 App.config 指定;<b>寄信前先 Ping</b>，失敗即放棄(避免卡 timeout)。內網匿名 relay、<b>無 SMTP auth/TLS</b>;ToList null guard 不 NRE。</p></div>
+    <div class="card"><h4>WriteToLog <span class="tag" style="background:#f8514922;color:var(--red)">最高扇入</span></h4><p>根目錄 <code>DataImportLogRoot</code>(預設 <code>C:\temp</code>);<code>DataImportLogRetentionDays</code> 預設 90 天(retention，<b>非</b> size rotation);跨程序 <b>Mutex</b>(逾時 30 秒吞例外、日誌可能靜默遺失)。⚠️ <b>UTF-8 BOM 不一致</b>:data/check log 用 BOM，WriteToMailTemp 無 BOM。</p></div>
+    <div class="card"><h4>CalculateSPC</h4><p>⚠️ <code>avg2</code> 存的是<b>平方平均 E[x²]</b>，非變異數;呼叫端須 <code>avg2 - avg²</code> 再開根號(母體標準差，除 N)。根號內為負時 <code>Sqrt(負)=NaN</code>、<code>ToDecimal(NaN)</code> 拋例外被外層 catch 吞掉。</p></div>
+  </div>
+</section>
+
+<!-- ⑮ CONFIG -->
+<section id="config">
+  <h2 class="sec"><span class="num">15</span> 設定參考(App.config)</h2>
+  <p>執行期行為由 <code>App.config</code> 驅動。下表只列 <b>key 名與用途</b>——<b>憑證值(DB/FTP 帳密)為已知債 S1，永不輸出明文</b>(⑱ 風險 1)。</p>
+  <table>
+    <thead><tr><th>區段 / key</th><th>用途</th><th>備註</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">appSettings: Dev*(Host/UserName/Password/Port/Database)</td><td>Dev 環境 MySQL 連線</td><td>帳密明文(S1，不展示值)</td></tr>
+      <tr><td class="mono">appSettings: Prod*(Host/UserName/Password/Port/Database)</td><td>Prod 環境 MySQL 連線</td><td>帳密明文(S1，不展示值)</td></tr>
+      <tr><td class="mono">appSettings: DryRun</td><td>影子驗證模式開關(⑧)</td><td>預設 false;缺 key 亦 OFF</td></tr>
+      <tr><td class="mono">appSettings: ImportSource</td><td>資料來源 Ftp(預設)/ Local</td><td>⑧</td></tr>
+      <tr><td class="mono">appSettings: LocalImportRoot</td><td>Local 來源根目錄</td><td>ImportSource=Local 時生效</td></tr>
+      <tr><td class="mono">appSettings: LocalSuccessAction</td><td>Local 成功後 Delete(預設)/ Archive</td><td>⑧</td></tr>
+      <tr><td class="mono">appSettings: DataImportLogRoot</td><td>日誌根目錄</td><td>預設 <code>C:\temp</code></td></tr>
+      <tr><td class="mono">appSettings: DataImportLogRetentionDays</td><td>日誌保留天數</td><td>預設 90;0/負數關閉清理</td></tr>
+      <tr><td class="mono">appSettings: Smtp*(Server/FromAddress/FromDisplayName)</td><td>SMTP 寄信設定</td><td>匿名 relay，無 auth/TLS(⑭)</td></tr>
+      <tr><td class="mono">connectionStrings: FtpIp / FtpUser / FtpPassword</td><td>FTP 來源連線</td><td>帳密明文(S1，不展示值)</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <code>App.config</code> 契約由 <code>AppConfigContractTests</code> 把關(⑰)。新增設定<b>不得擴大 secret 輸出</b>，新值優先外部化。
+  </div>
+</section>
+
+<!-- ⑯ DEPLOY -->
+<section id="deploy">
+  <h2 class="sec"><span class="num">16</span> 部署視圖與可觀測性</h2>
+  <p><b>交付物</b>:<code>dotnet publish -c Release -r win-x64 --self-contained true</code> 產出 self-contained exe，部署到 Windows 執行主機後<b>直接執行 exe</b>(長駐 console process)。<b>未發現 Windows Service / 工作排程器安裝程式</b>——啟動與守護由維運操作 exe，程式自身負責三執行緒監督(⑦)。</p>
+  <pre class="mermaid">
+flowchart TB
+    subgraph host["Windows 執行主機（本機 IP 決定 Dev/Prod）"]
+        EXE["DCT_data_import.exe&lt;br/&gt;self-contained win-x64&lt;br/&gt;長駐 console process"]
+        T1["Thread: Tester"]
+        T2["Thread: UiStatus"]
+        T3["Thread: TSMC"]
+        LOG[("C:\temp\...\data_import_logs&lt;br/&gt;每日分檔 + 90 天 retention")]
+        INI["dct_import_mail_list.ini&lt;br/&gt;收件人清單"]
+        EXE --> T1
+        EXE --> T2
+        EXE --> T3
+        EXE --> LOG
+        EXE --> INI
+    end
+    MYSQL[("MySQL&lt;br/&gt;db_key + import 表")]
+    FTP[("FTP Server&lt;br/&gt;big5 CSV")]
+    SMTP["SMTP relay"]
+    T1 -->|Dapper| MYSQL
+    T2 -->|Dapper| MYSQL
+    T1 -->|FtpWebRequest| FTP
+    T3 -->|FtpWebRequest| FTP
+    EXE -->|SmtpClient| SMTP
+  </pre>
+  <div class="grid g3">
+    <div class="card"><h4>Windows 綁定</h4><p>kernel32 INI P/Invoke、FtpWebRequest、預設 <code>C:\temp</code> log——runtime 需 Windows(macOS/Linux 可 build/test，非 production-like smoke)。</p></div>
+    <div class="card"><h4>環境路由</h4><p>執行主機 IP 命中 10.16.92.67/68 → Prod，否則 Dev。同一 binary 跨環境。</p></div>
+    <div class="card"><h4>節奏</h4><p>每 7.2 分鐘輪詢一輪;錯誤退避 30 秒。</p></div>
+  </div>
+  <h3>可觀測性現況</h3>
+  <table>
+    <thead><tr><th>面向</th><th>現況</th><th>缺口</th></tr></thead>
+    <tbody>
+      <tr><td>日誌</td><td>檔案日誌(每日分檔、UTF-8 BOM、Mutex);成功匯入另寫 Success_Log audit</td><td>無集中式聚合(無 ELK/Seq);Mutex 逾時可能靜默丟日誌</td></tr>
+      <tr><td>告警</td><td>失敗回寫 mail=1 → 寄通知信;週一 08:00–08:09 平安回報</td><td>寄信即唯一告警通道;ui_status 失敗通知被停用</td></tr>
+      <tr><td>指標 / 追蹤</td><td>無</td><td>無 metrics / APM / tracing;健康狀態僅能從 log 與郵件推斷</td></tr>
+      <tr><td>健康檢查</td><td>無 HTTP endpoint(非 web 服務)</td><td>存活確認靠檢視 process 與 log 時間戳</td></tr>
+    </tbody>
+  </table>
+  <div class="note">觀測缺口屬現況、非缺陷待辦;若未來上監控，最小可行是把檔案日誌接到集中式聚合並對「7.2 分鐘無新 log」設活性告警。</div>
+</section>
+
+<!-- ⑰ CI/CD -->
+<section id="cicd">
+  <h2 class="sec"><span class="num">17</span> 建置／測試／CI 品質門</h2>
+  <h3>本機指令</h3>
+  <div class="tree"><span class="c"># restore → build → test → publish</span>
+dotnet restore DCT_data_import.sln
+dotnet build   DCT_data_import.sln --configuration Release --no-restore
+dotnet test    DCT_data_import.Tests\DCT_data_import.Tests.csproj --configuration Release --no-build
+dotnet publish DCT_data_import\DCT_data_import.csproj --configuration Release --runtime win-x64 --self-contained true</div>
+  <h3>測試套件(DCT_data_import.Tests，xUnit，23 檔)</h3>
+  <p>聚焦三類，皆為可重複的單元/契約/characterization 測試(缺 importer/FTP/DB 整合測試，見 <code>docs/codebase/TESTING.md</code>)。</p>
+  <div class="note">本機 evidence(此 sandbox，Release):<code>dotnet build</code> <b>0 警告 / 0 錯誤</b>;<code>dotnet test</code> 因 <code>vstest.console</code> 無法連線 testhost(sandbox loopback IPC 限制)<b>未能在本機跑完</b>，逐項通過數與 line coverage 以 <b>CI(windows-latest)</b> 為權威來源——CI 強制 line coverage <b>≥ 25%</b>，未達標即擋 PR。</div>
+  <div class="grid g3">
+    <div class="card"><h4>業務正確性回歸</h4><p>CheckStatusWeightedSum(R5)、ValidateAndConvertStatisticValue、CalculateSpc、SqlParameterization、EmailRecipientGuard</p></div>
+    <div class="card"><h4>執行期 / 設定契約</h4><p>ThreadSupervisor、DryRunMode、AppConfigContract、NamespaceConvention、LocalImportFileSource、WriteToLogPath</p></div>
+    <div class="card"><h4>net8 遷移 characterization</h4><p>Big5Decode、DateTimeParserCulture、DateTimeRoundTripCapture、MySqlDataDateTimeRoundTrip、DoubleToStringFormat、SpecialFloatParse、ParserCharacterization 等</p></div>
+  </div>
+  <h3>CI pipeline(.github/workflows/ci.yml)</h3>
+  <p><code>windows-latest</code> runner、.NET SDK 8.0.x，push/PR 到 <code>master</code> 觸發，三步驟:</p>
+  <table>
+    <thead><tr><th>步驟</th><th>內容</th></tr></thead>
+    <tbody>
+      <tr><td>Restore</td><td><code>dotnet restore</code> 帶 NuGetAudit=true / Mode=all / Level=low，並 <code>-warnaserror:NU1902;NU1903;NU1904</code>(已知漏洞 → build 失敗)</td></tr>
+      <tr><td>Build</td><td><code>dotnet build --configuration Release --no-restore</code></td></tr>
+      <tr><td>Test</td><td><code>dotnet test --no-build</code> + coverlet cobertura，<b>line coverage 門檻 Threshold=25</b>(未達標 CI 失敗)</td></tr>
+    </tbody>
+  </table>
+  <div class="note">CI 同時是依賴安全門(NuGetAudit)與覆蓋率門(line ≥ 25%)。新增依賴或降低覆蓋率到門檻以下會擋 PR。</div>
+</section>
+
+<!-- ⑱ RISK -->
 <section id="risk">
-  <h2 class="sec"><span class="num">11</span> 已知風險與技術債 <span class="badge" style="background:#f8514922;color:var(--red);border:1px solid #f8514955">Top 3</span></h2>
+  <h2 class="sec"><span class="num">18</span> 已知風險與技術債</h2>
   <div class="risk"><span class="lv hi">高</span><div><div class="rk-t">既有 DB/FTP secret 仍在 App.config 入版控(S1)</div><div class="rk-d">不得新增或擴大 secret 輸出;新設定值應外部化。目前 PASSWORD 只印 set/unset。</div></div></div>
+  <div class="risk"><span class="lv md">中</span><div><div class="rk-t">殘餘動態 SQL 組裝需維持 guard</div><div class="rk-d">table/column/placeholder 仍由 FileProcess 組(值已參數化);沿用 ExecuteInsert chokepoint，勿回到手動拼值。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">無真實 DB transaction</div><div class="rk-d">best-effort cascade DELETE:lots_result 失敗留 orphan;MultiSpec 多 site 失敗 partial import;無 FK 子表更依賴 DELETE 順序。</div></div></div>
   <div class="risk"><span class="lv md">中</span><div><div class="rk-t">環境靠本機 IP 硬編碼判定</div><div class="rk-d">10.16.92.67/68 → Prod;換機 / 換 IP 即失效。</div></div></div>
+  <div class="risk"><span class="lv lo">低</span><div><div class="rk-t">其他</div><div class="rk-d">同步阻塞 I/O 模型;SMTP 匿名 relay;<code>Thread.Sleep(432000)</code> 誤標「2H」;WriteToMailTemp 無 BOM 不一致;ui_status 失敗通知停用;log retention 僅依天數無 size rotation;新增啟動輸出可能誤印 secret(現已遮罩)。</div></div></div>
   <div class="note">
-    完整 11 項風險清單(含殘餘動態 SQL guard、同步阻塞模型、SMTP 匿名 relay、<code>Thread.Sleep</code> 誤標、WriteToMailTemp 無 BOM 不一致、log retention 僅依天數等)與緩解見 <a href="專案架構報告.md">報告 §16</a> 與 <code>docs/codebase/CONCERNS.md</code>。高風險 1 屬<b>既有設計</b>;SQL 值注入已由 S2 參數化收斂,新增 SQL 沿用 <code>DbSqlRequest.Parameters</code> / <code>ExecuteInsert</code> chokepoint。
+    完整風險清單與緩解見 <a href="docs/codebase/CONCERNS.md">docs/codebase/CONCERNS.md</a>。高風險 1 屬<b>既有設計</b>;SQL 值注入已由參數化收斂，新增 SQL 沿用 <code>DbSqlRequest.Parameters</code> / <code>ExecuteInsert</code> chokepoint。
   </div>
 </section>
 
-<!-- ⑫ QUICKSTART -->
+<!-- ⑲ GLOSSARY -->
+<section id="glossary">
+  <h2 class="sec"><span class="num">19</span> 詞彙表</h2>
+  <p>接手者不查就會誤解的領域 / 專案術語(領域知識完整版見 <a href="docs/codebase/CONCERNS.md">docs/codebase/CONCERNS.md</a> 與同目錄 <code>docs/codebase/</code> 七檔)。</p>
+  <table>
+    <thead><tr><th>術語</th><th>意義</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">DCT</td><td>Direct Circuit Test，半導體直接電路測試;本服務匯入其測試結果</td></tr>
+      <tr><td class="mono">DB_Key / db_key</td><td>一個待匯入批次的識別鍵;同時是控制表與各匯入根表的邏輯關聯欄位</td></tr>
+      <tr><td class="mono">check_status</td><td>該 DB_Key <b>預期</b>要匯入哪些子項的 4-bit 旗標(0–15);不同產品/流程預期值不同</td></tr>
+      <tr><td class="mono">importResult</td><td>實際匯入成功子項的加權和(⑩ 公式);== check_status 才算完整</td></tr>
+      <tr><td class="mono">import_status</td><td>0 待處理 / 1 完整匯入 / 2 不符(觸發寄信重做)</td></tr>
+      <tr><td class="mono">ImportResult.Result</td><td>importer 回傳碼:0 檔案不存在 / 1 成功 / 2 驗證或讀檔失敗 / 3 重複或匯入失敗(各 importer 一致)</td></tr>
+      <tr><td class="mono">MultiSpec / multi-site</td><td>同批多 site 各有檔案、共用單一 lots_info;僅 RawData result==0 時 fallback</td></tr>
+      <tr><td class="mono">IEDA</td><td>TSMC 端資料介面;TsmcIeda 以固定寬度解析、走獨立 pipeline</td></tr>
+      <tr><td class="mono">DryRun / 影子驗證</td><td>唯讀模式:解析比對照常、所有對外寫入(DB/FTP/Local/Email)轉 no-op(⑧)</td></tr>
+      <tr><td class="mono">big5</td><td>來源 CSV 字元編碼;Encoding.GetEncoding("big5") 解析</td></tr>
+      <tr><td class="mono">SPC / avg2</td><td>統計製程管制;avg2 是平方平均 E[x²] <b>非變異數</b>(⑭)</td></tr>
+      <tr><td class="mono">Dev/Prod 路由</td><td>靠執行機本機 IP 切換(⑧)，非 build configuration</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ⑳ QUICKSTART -->
 <section id="quickstart">
-  <h2 class="sec"><span class="num">12</span> 接手指南</h2>
+  <h2 class="sec"><span class="num">20</span> 接手指南(Runbook)</h2>
   <div class="grid g2">
-    <div class="card"><h4>1️⃣ 先讀三節</h4><p>三執行緒(⑥)+ CheckStatus(⑧)+ 回滾真相(⑪)是理解系統行為的關鍵。</p></div>
-    <div class="card"><h4>2️⃣ 環境判定</h4><p>本機 IP 在 10.16.92.67/68 → Prod,否則 Dev(localhost)。開發機預設走 Dev。</p></div>
-    <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/;新增 DB 寫入走 DbSqlRequest.Parameters / ExecuteInsert,caller 優先吃 typed results。</p></div>
-    <div class="card"><h4>4️⃣ 動共用檔前</h4><p>WriteToLog / FileProcess / DbAccess 扇入極高,先確認所有呼叫端。</p></div>
-    <div class="card"><h4>5️⃣ Build / test</h4><p>single <code>net8.0-windows</code> restore/build/test;runtime smoke 需 Windows + MySQL/FTP。</p></div>
-    <div class="card"><h4>6️⃣ Debug 日誌</h4><p><code>C:\temp\DCT_data_import\data_import_logs\</code><br>成功紀錄:<code>DCT_data_import_Success_Log_yyyy_MM_dd.txt</code></p></div>
-  </div>
-  <div class="note">
-    📚 工程細節權威來源:<code>docs/codebase/</code> 七檔(STACK / STRUCTURE / ARCHITECTURE / CONVENTIONS / INTEGRATIONS / TESTING / CONCERNS)。術語表見 <a href="專案架構報告.md">報告 §17 詞彙表</a>。
+    <div class="card"><h4>1️⃣ 先讀三節</h4><p>三執行緒(⑦)+ CheckStatus(⑩)+ 回滾真相(⑬)是理解系統行為的關鍵。</p></div>
+    <div class="card"><h4>2️⃣ 環境判定</h4><p>本機 IP 在 10.16.92.67/68 → Prod，否則 Dev。開發機預設走 Dev。</p></div>
+    <div class="card"><h4>3️⃣ 加新處理器</h4><p>繼承 ImportData、放 ReadAndImport/;新增 DB 寫入走 DbSqlRequest.Parameters / ExecuteInsert，caller 優先吃 typed results。</p></div>
+    <div class="card"><h4>4️⃣ 動共用檔前</h4><p>WriteToLog / FileProcess / DbAccess 扇入極高，先確認所有呼叫端。</p></div>
+    <div class="card"><h4>5️⃣ 安全試跑</h4><p>要驗證流程不污染資料，設 <code>DryRun=true</code>(⑧)跑一輪、比對 <code>mail_temp.txt</code>。</p></div>
+    <div class="card"><h4>6️⃣ Build / test</h4><p>見 ⑰;runtime smoke 仍需 Windows + MySQL/FTP。</p></div>
+    <div class="card"><h4>7️⃣ Debug 日誌</h4><p><code>C:\temp\DCT_data_import\data_import_logs\</code><br>成功紀錄:<code>DCT_data_import_Success_Log_yyyy_MM_dd.txt</code></p></div>
+    <div class="card"><h4>8️⃣ 權威來源</h4><p><code>docs/codebase/</code> 七檔(STACK / STRUCTURE / ARCHITECTURE / CONVENTIONS / INTEGRATIONS / TESTING / CONCERNS)。</p></div>
   </div>
 </section>
 
 <footer>
-  本頁由實際原始碼掃描產生,對應 <code>Stream F Task 5 typed-only DB result surface</code>。圖表與 <a href="專案架構報告.md">專案架構報告.md</a> 共用同一份 Mermaid 來源(本 HTML 為衍生產物,改架構時更新 Mermaid 來源後同步本頁;diagram rot 視同 bug)。完整 <code>檔案:行</code> 與 commit 佐證見報告全文。
+  本頁為現況快照(as-is)，由實際原始碼掃描產生。圖表衍生自 <a href="docs/codebase/ARCHITECTURE.md">docs/codebase/ARCHITECTURE.md</a> 的 <b>Mermaid 單一真實來源</b>(本 HTML 為衍生產物，改架構時更新 Mermaid 來源後同步本頁;diagram rot 視同 bug)。完整 <code>檔案:行</code> 佐證與工程細節以 <code>docs/codebase/</code> 七檔為權威來源。
 </footer>
 
 </main>

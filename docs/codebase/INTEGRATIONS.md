@@ -25,7 +25,7 @@
   - `tester_device_info`、`tester_status`、`tester_sw_version`、`tester_production_analysis`
   - `ui_status`
   - `fail_pin_rate_info`、`fail_pin_rate_list`、`fail_pin_rate_list_pin_ball`、`fail_pin_rate_test_result`
-  - `ieda_title`、`ieda_content`（TSMC IEDA 經 `FileProcess.ExecuteInsert` 寫入；`lot_mapping.csv` 僅讀入記憶體快取、不寫 DB）
+  - `ieda_title`、`ieda_content`（TSMC IEDA 經 `FileProcess.ExecuteInsert` 寫入；`lot_mapping.csv` 僅讀入記憶體快取、不寫 DB，映射後填入 `ieda_title.ase_lot` 欄——`ase_lot` 非獨立表，只是該欄來源）
   - Evidence：`FileAccess/FileProcess.cs:81-1336`、`ReadAndImport/TsmcIeda.cs:256,280`
 - 連線池：`server=...;Pooling=true;Min Pool Size=5;Max Pool Size=100;...;Charset=utf8mb4;`（`DBmysql.cs` `MySqlConnectionManager.Initialize`）。
 - Migration：無 migration 工具；`DCT_data_import/sql/dct.sql` 可作影子 schema 初始化參考，正式 schema 仍由外部維護。
